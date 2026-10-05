@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.0-rc.6"
+  },
+  "devDependencies": {
+    "lucide-static": "^1.52.0"
   }
 }

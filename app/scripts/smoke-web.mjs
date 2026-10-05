@@ -442,6 +442,7 @@ async function main() {
         return acc === null ? { r: 255, g: 255, b: 255, a: 1 } : over(acc, { r: 255, g: 255, b: 255, a: 1 });
       };
       const fails = [];
+      const gradientText = [];
       let checked = 0;
       for (const el of document.querySelectorAll('.ia-shell *')) {
         const ownsText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
@@ -453,6 +454,16 @@ async function main() {
         const px = parseFloat(cs.fontSize);
         const bold = (parseInt(cs.fontWeight, 10) || 400) >= 700;
         const need = (px >= 24 || (px >= 18.66 && bold)) ? 3 : 4.5;
+        // A gradient (or any background-image) has no single backgroundColor, so
+        // walking up the tree would measure the text against whatever surface
+        // happens to sit behind it -- which reports white-on-gradient as 1.00:1.
+        // Report those separately; they are verified against the darkest and
+        // lightest gradient stops below.
+        if (String(cs.backgroundImage) !== 'none') {
+          const cls0 = (typeof el.className === 'string' ? el.className : '').split(/\\s+/).filter(Boolean).join('.') || el.tagName.toLowerCase();
+          gradientText.push({ cls: cls0, color: cs.color, image: String(cs.backgroundImage), need });
+          continue;
+        }
         const bg = effBg(el);
         const fgOver = fg.a >= 1 ? fg : over(fg, bg);
         const lo = Math.min(lum(fgOver), lum(bg)), hi = Math.max(lum(fgOver), lum(bg));
@@ -463,11 +474,55 @@ async function main() {
           fails.push(cls + ' ' + got.toFixed(2) + ':1 (need ' + need + ')');
         }
       }
-      return { checked, bad: [...new Set(fails)].slice(0, 8), badCount: fails.length };
+      return { checked, bad: [...new Set(fails)].slice(0, 8), badCount: fails.length, gradientText: gradientText.slice(0, 8) };
     })()`);
     check(
       contrast && contrast.badCount === 0,
       `WCAG AA contrast holds (${contrast ? contrast.checked : 0} text elements scanned${contrast && contrast.badCount ? ", offenders: " + contrast.bad.join(", ") : ""})`,
+    );
+
+    // 12. Gradient-backed text is checked against the gradient's own stops: a
+    //     white label must clear AA on the DARKEST stop, since that is the
+    //     worst case the user can actually see behind the glyph.
+    const gradientCheck = await evaluate(cdp, `(() => {
+      const parse = (value) => {
+        const m = String(value).match(/rgba?\\(([^)]+)\\)/);
+        if (!m) return null;
+        const p = m[1].split(',').map((x) => parseFloat(x));
+        return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+      };
+      const lum = (c) => {
+        const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+      };
+      const worst = [];
+      for (const el of document.querySelectorAll('.ia-shell *')) {
+        const ownsText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        if (!ownsText) continue;
+        const cs = getComputedStyle(el);
+        const image = String(cs.backgroundImage);
+        if (image === 'none' || !image.includes('gradient')) continue;
+        const stops = [...image.matchAll(/rgba?\\([^)]+\\)/g)].map((m) => parse(m[0])).filter(Boolean);
+        if (stops.length === 0) continue;
+        const fg = parse(cs.color);
+        if (!fg) continue;
+        const px = parseFloat(cs.fontSize);
+        const bold = (parseInt(cs.fontWeight, 10) || 400) >= 700;
+        const need = (px >= 24 || (px >= 18.66 && bold)) ? 3 : 4.5;
+        let min = Infinity;
+        for (const stop of stops) {
+          const l1 = lum(fg), l2 = lum(stop);
+          min = Math.min(min, (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05));
+        }
+        const cls = (typeof el.className === 'string' ? el.className : '').split(/\\s+/).filter(Boolean).join('.') || el.tagName.toLowerCase();
+        // Only text colours are asserted; icon-only gradients carry aria-hidden.
+        if (min + 0.005 < need) worst.push(cls + ' ' + min.toFixed(2) + ':1 (need ' + need + ', stops=' + stops.length + ')');
+      }
+      return { bad: [...new Set(worst)].slice(0, 6), badCount: worst.length };
+    })()`);
+    check(
+      gradientCheck && gradientCheck.badCount === 0,
+      `gradient-backed text clears AA on every stop (${gradientCheck ? gradientCheck.badCount : "?"} offender(s)${gradientCheck && gradientCheck.badCount ? ": " + gradientCheck.bad.join(", ") : ""})`,
     );
 
     cdp.close();

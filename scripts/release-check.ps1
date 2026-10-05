@@ -132,6 +132,30 @@ Run-Step "Plugin packaging + client contract check" {
     if ($LASTEXITCODE -ne 0) { throw "check-plugins exit code $LASTEXITCODE" }
 }
 
+# 4b. Generated artefacts must match their sources. The icon set is spliced into
+#     lib/client.js at build time; a stale block would ship icons that no longer
+#     correspond to the generator, and nothing else would notice.
+Run-Step "Generated icon set is current (generate-icons.mjs --check)" {
+    & $node.Exe app/plugins/dsh-product-shell/scripts/generate-icons.mjs --check | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "generate-icons check exit code $LASTEXITCODE" }
+}
+
+# 4c. The bundler used to produce client.js must never reach the shipped payload.
+#     It lives in devDependencies only; this asserts that is still true.
+Run-Step "Build-only tooling stays out of the shipped app payload" {
+    $pkg = Get-Content app/package.json -Raw | ConvertFrom-Json
+    $shipped = @()
+    if ($pkg.dependencies) { $shipped += $pkg.dependencies.PSObject.Properties.Name }
+    $forbidden = @($shipped | Where-Object { $_ -in @('esbuild', 'lucide-static', 'lucide-react') })
+    if ($forbidden.Count -gt 0) {
+        throw "build-only package(s) declared as runtime dependencies: $($forbidden -join ', ')"
+    }
+    $dev = @()
+    if ($pkg.devDependencies) { $dev += $pkg.devDependencies.PSObject.Properties.Name }
+    Write-Host "   runtime deps: $($shipped -join ', ')"
+    Write-Host "   dev-only    : $($dev -join ', ')"
+}
+
 # 5. Product shell smoke in a real browser. Requires a running investment-web
 #    instance; see the note at the top of this file.
 if ($SkipWeb) {

@@ -76,6 +76,12 @@ jobs:
       - name: Plugin packaging + client contract check
         run: node app/scripts/check-plugins.mjs
 
+      # The icon set is spliced into lib/client.js at build time. If a generator
+      # or icon-name change is committed without regenerating, the shipped block
+      # silently disagrees with its source.
+      - name: Generated icon set is current
+        run: node app/plugins/dsh-product-shell/scripts/generate-icons.mjs --check
+
       - uses: actions/setup-dotnet@v4
         if: runner.os == 'Windows'
         with:

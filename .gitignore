@@ -65,3 +65,6 @@ venv/
 .DS_Store
 .vscode/
 .idea/
+
+# Isolated npm caches used to keep this project's installs away from the shared cache.
+.npm-cache-isolated*/
