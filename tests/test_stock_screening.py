@@ -274,6 +274,48 @@ def test_screening_store_auto_mode_without_uri_uses_json(monkeypatch):
     assert storage.get_screening_store({"storage": {"backend": "auto"}}) is None
 
 
+def test_screening_store_auto_mode_makes_no_connection_attempt(monkeypatch):
+    """With no URI there must be no connect attempt, no wait and no log noise.
+
+    This is the path every machine without a MongoDB deployment takes, and the
+    shipped .env.example leaves MONGODB_URI empty on purpose. Any attempt to
+    build a client here would cost a connect timeout and emit a warning.
+    """
+    monkeypatch.delenv("MONGODB_URI", raising=False)
+
+    def _explode(*args, **kwargs):
+        raise AssertionError("no MongoClient may be constructed without a URI")
+
+    monkeypatch.setattr(storage, "MongoScreeningStore", _explode)
+    assert storage.get_screening_store({"storage": {"backend": "auto"}}) is None
+
+
+def test_screening_store_explicit_mongodb_without_uri_is_refused(monkeypatch):
+    """backend=mongodb with no URI must fail loudly, not retarget silently.
+
+    It previously fell through to 127.0.0.1:27017 -- a second address just as
+    likely to be absent, which turned a configuration mistake into a confusing
+    later failure.
+    """
+    monkeypatch.delenv("MONGODB_URI", raising=False)
+    with pytest.raises(RuntimeError) as excinfo:
+        storage.get_screening_store({"storage": {"backend": "mongodb"}})
+    message = str(excinfo.value)
+    assert "MONGODB_URI" in message
+    assert "27017" not in message  # must not suggest the silent fallback address
+
+
+def test_screening_store_json_backend_never_touches_mongo(monkeypatch):
+    """backend=json is the explicit opt-out and must short-circuit."""
+    monkeypatch.setenv("MONGODB_URI", "mongodb://127.0.0.1:27018")
+
+    def _explode(*args, **kwargs):
+        raise AssertionError("backend=json must not construct a MongoClient")
+
+    monkeypatch.setattr(storage, "MongoScreeningStore", _explode)
+    assert storage.get_screening_store({"storage": {"backend": "json"}}) is None
+
+
 def test_screening_persists_snapshots_factors_and_run_to_store(monkeypatch, tmp_path):
     monkeypatch.setattr(engine, "SCREENING_DIR", tmp_path)
     monkeypatch.setattr(engine.fetcher, "market_list", lambda market, **kwargs: {

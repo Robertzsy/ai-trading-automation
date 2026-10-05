@@ -273,7 +273,15 @@ def get_screening_store(settings: Mapping[str, Any]) -> Optional[MongoScreeningS
     if not uri:
         if backend == "auto":
             return None
-        uri = "mongodb://127.0.0.1:27017"
+        # Explicitly asking for mongodb while naming no server used to silently
+        # retarget 127.0.0.1:27017 -- a second address that is just as likely to
+        # be absent, so the failure surfaced later and less clearly. Refuse
+        # instead, and say what the alternative is.
+        raise RuntimeError(
+            "screening.storage.backend=mongodb 但未设置 "
+            f"{uri_env}。留空 MONGODB_URI 并使用 backend: auto 即可走 JSON 回退（推荐），"
+            f"或把 {uri_env} 设为实际的 MongoDB 连接串。"
+        )
     database = str(storage.get("mongodb_database", "investment_auto")).strip() or "investment_auto"
     timeout_ms = max(250, min(10000, int(storage.get("connect_timeout_ms", 1500))))
     retry_seconds = max(5, min(3600, int(storage.get("retry_seconds", 60))))
