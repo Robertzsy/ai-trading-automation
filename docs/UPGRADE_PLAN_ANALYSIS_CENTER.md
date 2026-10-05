@@ -806,6 +806,23 @@ SSE 时延 < 1s；导出 HTML 可离线打开；版本漂移告警在 pinned ≠
 > 客户端插件在 rc.2 下**不挂载**（页面空白，零控制台报错）。为避免交付一个坏掉的 UI，已**回退到 rc.6**。
 > 下面是这次升级实测得到的**精确阻断点**，供后续单独一轮迁移使用。
 
+### 7.-1 明确暂缓项（用户决定，勿当成遗漏）
+
+以下两项**经用户确认暂不处理**，保持现状；它们目前**不影响**任何已交付能力或门禁：
+
+| 项 | 现状 | 为何暂缓 | 需要时的触发条件 |
+|---|---|---|---|
+| **便携 zip 是否包含 `app/`** | 不含；`build-windows-release.ps1` 只警告不失败 | 涉及包体积决策，以及必须同时排除 `app\dev-home`（内含凭据）以免泄漏 | 有人实际要分发便携版（非安装器）时 |
+| **`build/wheels` 离线 wheel 补齐 16 项** | 未补；`bundle-runtime.ps1:75` 只在目录为空时下载，不会自动刷新 | 只影响**离线构建发行包**；开发态与已安装态不受影响 | 下次要构建/签发安装器时（必须先补，否则 `bundle-runtime.ps1:82` 会抛"依赖离线安装失败"） |
+
+**注意**：`build/wheels` 缺口**不会被现有 gate 拦住**（`bundle-runtime.ps1:84` 的自包含 import 清单里没有 `akshare`），
+所以将来若发现"发行包里 K 线悄悄退化成纯 Node 源"，根因就在这里。补齐命令（已由 kline-provider 实测）：
+
+```powershell
+& .venv\Scripts\python.exe -m pip download -r requirements-lock.txt -d build\wheels   # 必须走 lock
+& .venv\Scripts\python.exe -m pip wheel jsonpath==0.82.2 -w build\wheels            # jsonpath 无 wheel，只能预构建
+```
+
 ### 7.0 实测结论（本轮）
 
 **rc.2 侧已验证可用**：
