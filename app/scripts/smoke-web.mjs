@@ -354,6 +354,122 @@ async function main() {
       }
     }
 
+    // 8. Typography floor. Anything under 11px is unreadable at 100% zoom, and
+    //    a stray literal is easy to reintroduce when editing a 2000-line style
+    //    string. Measured from real computed styles rather than by grepping CSS.
+    const FONT_FLOOR_PX = 11;
+    const typeAudit = await evaluate(cdp, `(() => {
+      const FLOOR = ${FONT_FLOOR_PX};
+      const bad = [];
+      let total = 0;
+      for (const el of document.querySelectorAll('.ia-shell *')) {
+        const ownsText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        if (!ownsText) continue;
+        const px = parseFloat(getComputedStyle(el).fontSize);
+        if (!Number.isFinite(px)) continue;
+        total += 1;
+        if (px < FLOOR) {
+          const cls = (typeof el.className === 'string' ? el.className : '').split(/\\s+/).filter(Boolean).join('.') || el.tagName.toLowerCase();
+          bad.push(cls + '@' + px + 'px');
+        }
+      }
+      return { total, bad: [...new Set(bad)].slice(0, 8) };
+    })()`);
+    check(
+      typeAudit && typeAudit.bad.length === 0,
+      `no text below ${FONT_FLOOR_PX}px (${typeAudit ? typeAudit.total : 0} elements scanned${typeAudit && typeAudit.bad.length ? ", offenders: " + typeAudit.bad.join(", ") : ""})`,
+    );
+
+    // 9. Every design token the rules consume must resolve. A custom property
+    //    defined as var() of itself is dropped silently, and any surface using
+    //    it then falls back to transparent -- invisible in review, obvious here.
+    const tokenAudit = await evaluate(cdp, `(() => {
+      const names = ['--ia-bg-base','--ia-surface','--ia-surface-2','--ia-text-1','--ia-text-2','--ia-text-3',
+        '--ia-border-subtle','--ia-border-strong','--ia-accent','--ia-accent-hover','--ia-ok','--ia-warn',
+        '--ia-danger','--ia-idle','--ia-label-3','--ia-hover','--ia-hover-solid','--ia-brand',
+        '--ia-rail-bg','--ia-rail-text','--ia-rail-text-dim','--ia-rail-active-text','--ia-rail-accent',
+        '--ia-rail-accent-ink','--ia-brandmark-from','--ia-brandmark-to',
+        '--ia-r-btn','--ia-r-tab','--ia-r-card','--ia-r-modal','--ia-fs-body','--ia-fs-caption','--ia-fs-micro',
+        '--ia-font-sans','--ia-dur-base','--ia-ease-out','--ia-shadow-sm','--ia-viz-1','--ia-viz-6'];
+      const cs = getComputedStyle(document.documentElement);
+      const missing = names.filter((n) => !cs.getPropertyValue(n).trim());
+      return { checked: names.length, missing };
+    })()`);
+    check(
+      tokenAudit && tokenAudit.missing.length === 0,
+      `all ${tokenAudit ? tokenAudit.checked : 0} design tokens resolve (${tokenAudit && tokenAudit.missing.length ? "unresolved: " + tokenAudit.missing.join(", ") : "none unresolved"})`,
+    );
+
+    // 10. Light-only lock. The surface ships one palette by design, so a dark
+    //     attribute or a dark color-scheme reaching the DOM is a regression.
+    const lightLock = await evaluate(cdp, `({
+      colorScheme: document.documentElement.style.colorScheme,
+      darkAttr: document.body.hasAttribute('data-ds-dark-theme'),
+    })`);
+    check(lightLock?.colorScheme === "light", `color-scheme is pinned to light (${JSON.stringify(lightLock)})`);
+    check(lightLock?.darkAttr === false, `no dark theme attribute on <body> (${JSON.stringify(lightLock)})`);
+
+    // 11. WCAG AA contrast, measured from rendered colours rather than from the
+    //     token table: several tokens are only opaque after compositing, and a
+    //     token can be correct in isolation yet illegible on the surface it is
+    //     actually used over. Walks every text-owning element, composites its
+    //     effective background, and applies the large-text exemption.
+    const contrast = await evaluate(cdp, `(() => {
+      const parse = (value) => {
+        const m = String(value).match(/rgba?\\(([^)]+)\\)/);
+        if (!m) return null;
+        const parts = m[1].split(',').map((x) => parseFloat(x));
+        if (parts.length < 3) return null;
+        return { r: parts[0], g: parts[1], b: parts[2], a: parts.length > 3 ? parts[3] : 1 };
+      };
+      const over = (fg, bg) => ({
+        r: fg.r * fg.a + bg.r * (1 - fg.a),
+        g: fg.g * fg.a + bg.g * (1 - fg.a),
+        b: fg.b * fg.a + bg.b * (1 - fg.a),
+        a: 1,
+      });
+      const lum = (c) => {
+        const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+      };
+      const effBg = (el) => {
+        let node = el, acc = null;
+        while (node && node !== document.documentElement) {
+          const bg = parse(getComputedStyle(node).backgroundColor);
+          if (bg && bg.a > 0) { acc = acc === null ? bg : over(acc, bg); if (acc.a >= 1) break; }
+          node = node.parentElement;
+        }
+        return acc === null ? { r: 255, g: 255, b: 255, a: 1 } : over(acc, { r: 255, g: 255, b: 255, a: 1 });
+      };
+      const fails = [];
+      let checked = 0;
+      for (const el of document.querySelectorAll('.ia-shell *')) {
+        const ownsText = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+        if (!ownsText) continue;
+        const cs = getComputedStyle(el);
+        if (cs.visibility === 'hidden' || cs.display === 'none' || parseFloat(cs.opacity) === 0) continue;
+        const fg = parse(cs.color);
+        if (!fg) continue;
+        const px = parseFloat(cs.fontSize);
+        const bold = (parseInt(cs.fontWeight, 10) || 400) >= 700;
+        const need = (px >= 24 || (px >= 18.66 && bold)) ? 3 : 4.5;
+        const bg = effBg(el);
+        const fgOver = fg.a >= 1 ? fg : over(fg, bg);
+        const lo = Math.min(lum(fgOver), lum(bg)), hi = Math.max(lum(fgOver), lum(bg));
+        const got = (hi + 0.05) / (lo + 0.05);
+        checked += 1;
+        if (got + 0.005 < need) {
+          const cls = (typeof el.className === 'string' ? el.className : '').split(/\\s+/).filter(Boolean).join('.') || el.tagName.toLowerCase();
+          fails.push(cls + ' ' + got.toFixed(2) + ':1 (need ' + need + ')');
+        }
+      }
+      return { checked, bad: [...new Set(fails)].slice(0, 8), badCount: fails.length };
+    })()`);
+    check(
+      contrast && contrast.badCount === 0,
+      `WCAG AA contrast holds (${contrast ? contrast.checked : 0} text elements scanned${contrast && contrast.badCount ? ", offenders: " + contrast.bad.join(", ") : ""})`,
+    );
+
     cdp.close();
   } finally {
     try {
