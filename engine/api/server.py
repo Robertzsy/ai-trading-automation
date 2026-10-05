@@ -194,6 +194,49 @@ class _Handler(BaseHTTPRequestHandler):
 
             self._send(200, {"ok": True, "keyword": keyword, "results": fetcher.search(keyword)})
             return
+        if path == "/api/screening/run":
+            # Trigger a fresh screening pass. The engine's own run_screening
+            # command does the same thing synchronously (investment/service.py),
+            # so the web entry point reuses that path rather than reimplementing
+            # it. A screening pass loads the full market universe and takes tens
+            # of seconds, so the UI must show progress; the server is a
+            # ThreadingHTTPServer, so this occupies only its own request thread.
+            # NOTE: must precede the /api/screening/<market> prefix arm below,
+            # which would otherwise read "run" as a market name.
+            values = _query(self)
+            market = (values.get("market") or "").strip().lower()
+            if market not in {"cn", "hk", "us", "etf"}:
+                self._send(400, {"ok": False, "error": "market 必须是 cn、hk、us 或 etf"})
+                return
+            try:
+                from engine.screening.preview import run_screening_preview
+
+                preview = run_screening_preview(market)
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)[:800]})
+                return
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("screening run failed")
+                self._send(500, {"ok": False, "error": str(exc)[:800]})
+                return
+            audit = preview.get("audit") if isinstance(preview, dict) else None
+            audit = audit if isinstance(audit, dict) else {}
+            # One line per run: this is the only place a screening pass is
+            # recorded, and without it a failed discovery is invisible in the
+            # log (the store fallback warning is unrelated noise).
+            logger.info(
+                "screening run market=%s status=%s source=%s discovered=%s candidates=%s selected=%s backend=%s discovery_error=%s",
+                market,
+                audit.get("status"),
+                audit.get("source"),
+                audit.get("discovered_count"),
+                audit.get("candidate_count"),
+                len(preview.get("selected_symbols") or []) if isinstance(preview, dict) else 0,
+                audit.get("storage_backend"),
+                str(audit.get("discovery_error") or "")[:160],
+            )
+            self._send(200, {"ok": True, "market": market, "screening": preview})
+            return
         if path.startswith("/api/screening/"):
             market = path.rsplit("/", 1)[-1].strip().lower()
             if market not in {"cn", "hk", "us", "etf"}:
