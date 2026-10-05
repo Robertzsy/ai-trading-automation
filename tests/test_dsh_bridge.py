@@ -16,12 +16,28 @@ NOW = datetime(2026, 8, 12, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
 
 @pytest.fixture(autouse=True)
 def isolate(monkeypatch, tmp_path):
+    """Sandbox audit output and the ambient DSH_HOME.
+
+    Note: since explicit product configuration outranks DSH_HOME (see
+    ``_resolve_dsh_home``), a test that needs a specific home must call
+    ``_pin_home`` — otherwise the shipped ``dsh_home`` would win. Config itself is
+    deliberately left untouched so tests of the real configuration still work.
+    """
     monkeypatch.setattr(dsh_bridge, "AUDIT_DIR", tmp_path / "audit")
     (tmp_path / "audit").mkdir()
-    # Never let the bridge touch the harness's own DSH_HOME during tests.
     monkeypatch.setenv("DSH_HOME", str(tmp_path / "home"))
     monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
     return tmp_path
+
+
+def _pin_home(monkeypatch, home):
+    """Pin the bridge's configured DSH home for one test (highest precedence)."""
+    monkeypatch.setattr(
+        dsh_bridge,
+        "_bridge_config",
+        lambda: {"enabled": True, "dsh_home": str(home)},
+    )
+    return home
 
 
 def _runner(tmp_path):
@@ -240,6 +256,8 @@ def test_runner_spawns_analysis_round_with_same_env(monkeypatch, tmp_path):
     (main_home / "storages" / "workspace.json").write_text("{}", encoding="utf-8")
     (main_home / ".credentials.yaml").write_text("DEEPSEEK_API_KEY: sk-test\n", encoding="utf-8")
     monkeypatch.setenv("DSH_HOME", str(main_home))
+    # Configuration outranks DSH_HOME, so pin it to the same home under test.
+    _pin_home(monkeypatch, main_home)
     monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
     captured = {}
 
@@ -298,3 +316,51 @@ def test_install_dsh_runner_skips_when_disabled(monkeypatch):
     monkeypatch.setitem(dsh_bridge.cfg.raw.setdefault("autonomous", {}), "dsh_bridge", {"enabled": False})
     installed = dsh_bridge.install_dsh_runner()
     assert installed is False
+
+def test_configured_home_outranks_inherited_dsh_home(monkeypatch, tmp_path):
+    """A foreign DSH_HOME must never decide where Investment Auto's rounds run.
+
+    On a machine that also runs DSH for other projects, DSH_HOME is inherited
+    from the launching shell and points at THAT installation's home. Honouring
+    it couples our rounds to a foreign home: they write profiles/storages into
+    it, and they inherit its .credentials.yaml -- which another DSH version may
+    have written in a format this build rejects, failing every round at boot.
+    Observed in the field, not hypothetical.
+    """
+    product_home = tmp_path / "product-home"
+    foreign_home = tmp_path / "foreign-dsh-home"
+    product_home.mkdir()
+    foreign_home.mkdir()
+    _pin_home(monkeypatch, product_home)
+    monkeypatch.setenv("DSH_HOME", str(foreign_home))
+
+    resolved = dsh_bridge._resolve_dsh_home(tmp_path / "app")
+
+    assert resolved == str(product_home)
+    assert "foreign" not in resolved
+
+
+def test_relative_configured_home_resolves_against_app_root(monkeypatch, tmp_path):
+    """A relative dsh_home must not depend on the engine's working directory."""
+    monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {"dsh_home": "app/dev-home"})
+    resolved = dsh_bridge._resolve_dsh_home(tmp_path / "app")
+    assert Path(resolved).is_absolute()
+    assert resolved == str(dsh_bridge.APP_ROOT / "app" / "dev-home")
+
+
+def test_dsh_home_falls_back_to_env_when_unconfigured(monkeypatch, tmp_path):
+    """Deployments that intentionally target a shared home still work."""
+    foreign_home = tmp_path / "shared-home"
+    foreign_home.mkdir()
+    monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})
+    monkeypatch.setenv("DSH_HOME", str(foreign_home))
+    assert dsh_bridge._resolve_dsh_home(tmp_path / "app") == str(foreign_home)
+
+
+def test_dsh_home_falls_back_to_dev_home_last(monkeypatch, tmp_path):
+    """With neither configuration nor env, the product's own home wins."""
+    app_dir = tmp_path / "app"
+    (app_dir / "dev-home").mkdir(parents=True)
+    monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})
+    monkeypatch.delenv("DSH_HOME", raising=False)
+    assert dsh_bridge._resolve_dsh_home(app_dir) == str(app_dir / "dev-home")

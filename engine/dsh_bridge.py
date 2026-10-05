@@ -50,12 +50,33 @@ def _resolve_app_dir() -> Optional[Path]:
 
 
 def _resolve_dsh_home(app_dir: Path) -> str:
+    """Resolve the DSH home background rounds run in.
+
+    Order matters, and the product's own configuration deliberately outranks the
+    ambient ``DSH_HOME``. ``DSH_HOME`` is inherited from whatever shell launched
+    the engine, and on a machine that also runs DSH for other projects it points
+    at *that* installation's home. Honouring it here couples Investment Auto's
+    rounds to a foreign home: rounds write profiles/presets/storages into it, and
+    they inherit its ``.credentials.yaml`` — which a different DSH version may
+    have written in a format this build rejects, failing every round during boot.
+
+    Precedence:
+      1. ``autonomous.dsh_bridge.dsh_home``  — explicit product configuration.
+      2. ``DSH_HOME``                        — back-compat for deployments that
+                                               intentionally target a shared home.
+      3. ``<app>/dev-home``                  — the product's own home (dev/install).
+    """
+    configured = str(_bridge_config().get("dsh_home", "") or "")
+    if configured:
+        # Resolved against the app root (like app_dir) so a relative value cannot
+        # depend on the engine process's working directory.
+        path = Path(configured)
+        if not path.is_absolute():
+            path = APP_ROOT / path
+        return str(path)
     env_home = os.getenv("DSH_HOME", "")
     if env_home:
         return env_home
-    configured = str(_bridge_config().get("dsh_home", "") or "")
-    if configured:
-        return configured
     dev_home = app_dir / "dev-home"
     return str(dev_home) if dev_home.exists() else ""
 

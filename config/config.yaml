@@ -46,6 +46,12 @@ autonomous:
     enabled: true
     app_dir: app                 # 相对仓库/安装根目录；或设 INVESTMENT_AUTO_APP_DIR
     node_timeout_seconds: 1800   # 单轮 headless 会话硬上限
+    # 轮次使用的 DSH home。**显式配置优先于环境变量 DSH_HOME**：本机若同时装着
+    # 其他 DSH 项目，继承来的 DSH_HOME 会指向别人的 home —— 轮次会往那里写
+    # profiles/storages，并继承其 .credentials.yaml（可能由别的 DSH 版本写成
+    # 本版本无法解析的格式，导致每轮在启动阶段就失败）。留空则回退到
+    # DSH_HOME，再回退到 app/dev-home。
+    dsh_home: app/dev-home
   agent_workflow:
     allow_partial_symbol_research: true
     enabled: true
