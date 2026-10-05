@@ -802,6 +802,41 @@ SSE 时延 < 1s；导出 HTML 可离线打开；版本漂移告警在 pinned ≠
 
 ## 7. DSH 升级到 0.2.0-rc.2（Q3）
 
+### 7.--1 UI 专项（第二轮）：已落地的决策与实施结果
+
+> 用户决策（2026-10-05）：**DSH 精确锁定 0.1.0-rc.6，不再升级**；**产品固定浅色单一主题**；
+> 图标采用**构建期生成**而非引入打包器。以下为实施结果。
+
+**为什么固定浅色（有意取舍，勿当缺陷修）**：单人维护下，两套配色意味着每个组件都要验证两遍，
+长期必然积累暗色专属 bug。单主题 + 单一验证路径是更划算的取舍。因此：
+- 钉住的是**主题偏好**（`setTheme("light")`）而不是 token 值——`snapshot.tokens` 已是按当前
+  scheme 解析后的扁平映射，只挑 light 值会让 DSH 自有组件仍渲染暗色。
+- `ThemePresenter` 无条件写 `colorScheme="light"`，并用 MutationObserver 兜底（偏好存在
+  user-settings 文档里，可被外部重置且不触发 `theme/change`）。
+- 「外观」行注册在 `settings.general.item`，而 `ui-settings-general` 在本 profile 已 `disabled`，
+  用户本来看不到该开关，故无需额外隐藏。
+
+**图标为什么用生成而非 esbuild/lucide-react**：client 端是预编译的
+`window.__ModuleLoader__.load({id,factory})` bundle，DSH loader 只解析 `react` 与
+`react/jsx-runtime`。引入 esbuild 意味着改写模块契约——对一个纯外观收益而言风险过高。
+构建期从 `lucide-static`（devDependency）抽取用到的 14 个图标拼进 `client.js`，得到同样结果
+（真实图标库、tree-shaken、完全离线），但**零运行时依赖、无构建期契约变更**。
+`generate-icons.mjs --check` 已接入 `release-check.ps1` 与 CI，防止生成块与源漂移。
+
+**设计 token 与门禁**：`lib/client.js` 内的 `tokenCss` 是唯一 token 来源（三层：L1 字面量 /
+L2 语义 / L3 兼容别名），以独立 `<style data-plugin="…/tokens">` 注入。新增 6 条永久门禁
+（`smoke-web.mjs`），全部基于**真实渲染值**而非 grep CSS：字号下限 11px、39 个 token 可解析、
+浅色锁、无暗色属性、WCAG AA 对比度、渐变端点 AA。
+
+**本轮修掉的真实缺陷**（均由门禁/探针发现，肉眼不可见）：
+1. 重复别名层以 `transparent` fallback 覆盖了 token 层 → `--ia-surface` 解析为透明。
+2. `--dsw-alias-bg-module-platform` 该运行版从不注入 → 所有引用它的 chip 一直透明。
+3. 批量替换把两个 token 定义改成 `var()` 自引用 → 声明被静默丢弃、logo 底色透明。
+4. 配色**实测不达 AA**（124 处失败）；`--ia-ink-400` 3.3–3.6:1、语义色当文字色最低 2.05:1。
+5. 渐变青色端白字仅 2.42:1 → 端点改为 `#1E5FD0 → #0E7C8A`。
+6. DSH 的 `--dsw-alias-label-tertiary`（`#81858c`）在 14px 下不达 AA，且以 body 行内样式写入
+   → 由 presenter 以同等优先级重指向。
+
 > **执行结果（2026-10-05）：已验证 rc.2 可安装、可启动、后端与管理壳代理全部正常，但 `dsh-product-shell` 的
 > 客户端插件在 rc.2 下**不挂载**（页面空白，零控制台报错）。为避免交付一个坏掉的 UI，已**回退到 rc.6**。
 > 下面是这次升级实测得到的**精确阻断点**，供后续单独一轮迁移使用。
