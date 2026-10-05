@@ -72,6 +72,20 @@ for (const dir of pluginDirs) {
       } catch (error) {
         failures.push(`${dir}: client.js syntax check failed (${error.message.split("\n")[0]})`);
       }
+      // Design-token integrity. A custom property defined as `var()` of itself is
+      // silently invalid: the declaration is dropped, the token resolves to
+      // nothing, and any surface using it falls back to transparent. Nothing
+      // throws and no console error appears — it is only visible by eye. That is
+      // exactly how a bulk colour-to-token refactor breaks a logo background, so
+      // it is asserted here rather than left to a screenshot review.
+      const selfReferential = [
+        ...clientText.matchAll(/(--[a-z0-9-]+)\s*:\s*var\(\s*(--[a-z0-9-]+)/gi),
+      ].filter((match) => match[1].toLowerCase() === match[2].toLowerCase());
+      for (const match of selfReferential) {
+        failures.push(
+          `${dir}: ${match[1]} is defined as var(${match[2]}) of itself — the declaration is dropped and the token resolves to nothing`,
+        );
+      }
     }
   }
 }
