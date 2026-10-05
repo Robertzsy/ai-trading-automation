@@ -245,6 +245,19 @@ export function apply(ctx) {
               sendJson(res, 200, await engineFetch("/api/analysis/rounds/active"));
               return;
             }
+            if (action === "screen") {
+              // One-click screening. Long-running (tens of seconds: it loads the
+              // whole market universe), so the engine call is awaited rather than
+              // fire-and-forget -- the UI shows a spinner and needs the result to
+              // fill the symbol list.
+              const market = (url.searchParams.get("market") ?? "").trim().toLowerCase();
+              if (!["cn", "hk", "us", "etf"].includes(market)) {
+                sendJson(res, 400, { ok: false, error: "market 必须是 cn、hk、us 或 etf" });
+                return;
+              }
+              sendJson(res, 200, await engineFetch(`/api/screening/run?market=${encodeURIComponent(market)}`));
+              return;
+            }
             sendJson(res, 400, { ok: false, error: "unknown action" });
             return;
           }

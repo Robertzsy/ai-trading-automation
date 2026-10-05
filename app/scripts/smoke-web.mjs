@@ -404,6 +404,94 @@ async function main() {
       console.error("   (markdown assertions skipped: no round report rows in the index)");
     }
 
+    // 7c. The three one-click entries, and the progress board.
+    const quick = await evaluate(cdp, `(() => {
+      const ids = ['ia-an-quick-full', 'ia-an-quick-screen', 'ia-an-quick-typed'];
+      const found = ids.map((id) => document.getElementById(id));
+      return {
+        present: found.filter(Boolean).length,
+        missing: ids.filter((id) => !document.getElementById(id)),
+        // Each must explain itself and expose a disabled reason, and ③ mirrors
+        // the primary start button so the two cannot disagree.
+        titled: found.filter((el) => el && String(el.getAttribute('title') || '').length > 0).length,
+        typedMirrorsStart: (() => {
+          const a = document.getElementById('ia-an-quick-typed');
+          const b = document.getElementById('ia-an-start');
+          return Boolean(a) && Boolean(b) && a.disabled === b.disabled;
+        })(),
+        gridCols: (() => {
+          const grid = document.querySelector('.ia-an-quick');
+          return grid ? getComputedStyle(grid).display : 'absent';
+        })(),
+      };
+    })()`);
+    check(quick?.present === 3, `analysis centre exposes three one-click entries (${JSON.stringify(quick)})`);
+    check(quick?.titled === 3, `every one-click entry explains itself (${quick?.titled}/3 have a title)`);
+    check(quick?.typedMirrorsStart === true, `一键分析指定股票 tracks 开始分析's disabled state (${quick?.typedMirrorsStart})`);
+
+    // 7d. Progress must be graphical, not a static glyph. The board is pinned so
+    //     it cannot scroll away while the user reads the lists beneath it.
+    const progress = await evaluate(cdp, `(() => {
+      const board = document.querySelector('.ia-an-board');
+      const rings = [...document.querySelectorAll('.ia-an-ring')];
+      const first = rings[0];
+      const fill = first ? first.querySelector('.ia-an-ring-fill') : null;
+      const bar = document.querySelector('.ia-an-progress-fill');
+      const start = document.querySelector('.ia-an-start');
+      return {
+        boardSticky: board ? getComputedStyle(board).position : 'absent',
+        ringCount: rings.length,
+        ringSvgs: first ? first.querySelectorAll('svg circle').length : 0,
+        ringHasDash: fill ? String(fill.getAttribute('stroke-dasharray') || '').length > 0 : false,
+        ringOffset: fill ? String(fill.getAttribute('stroke-dashoffset') || '') : '',
+        ringLabelled: first ? String(first.getAttribute('aria-label') || '').length > 0 : false,
+        barPresent: Boolean(bar),
+        barTransition: bar ? getComputedStyle(bar).transitionProperty.includes('transform') : false,
+        startSticky: start ? getComputedStyle(start).position : 'absent',
+      };
+    })()`);
+    check(progress?.boardSticky === "sticky", `analysis board is pinned while lists scroll (${progress?.boardSticky})`);
+    check(progress?.ringCount > 0, `stage progress renders as rings, not glyphs (${progress?.ringCount})`);
+    check(progress?.ringSvgs === 2, `each ring is a real SVG track+fill (${progress?.ringSvgs} circles)`);
+    check(progress?.ringHasDash === true, `ring progress is driven by stroke-dasharray (offset=${progress?.ringOffset})`);
+    check(progress?.ringLabelled === true, `ring carries an accessible label (${progress?.ringLabelled})`);
+    check(progress?.barPresent === true, `round progress bar renders (${progress?.barPresent})`);
+
+    // 7e. Reduced motion must degrade to a static but complete interface. This is
+    //     asserted by actually emulating the media feature and re-measuring,
+    //     because "we added a media query" is not evidence that it applies.
+    await cdp.call("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    await sleep(400);
+    const reduced = await evaluate(cdp, `(() => {
+      const ring = document.querySelector('.ia-an-ring[data-status=running]');
+      const pulse = document.querySelector('.ia-an-pulse');
+      const read = (el) => el ? getComputedStyle(el).animationDuration : null;
+      return { ring: read(ring ? ring.querySelector('svg') : null), pulse: read(pulse) };
+    })()`);
+    await cdp.call("Emulation.setEmulatedMedia", { features: [] });
+    // Chrome reports .01ms as "1e-05s", and a frozen animation may be reported as
+    // 0s; anything a user would perceive is orders of magnitude larger than both.
+    // A value of 1s here means the media query did not apply at all.
+    const frozenSeconds = (value) => {
+      if (value === null) return null; // element not on screen in this state
+      const match = /^([0-9.eE+-]+)s$/.exec(String(value).trim());
+      if (!match) return false;
+      return Number(match[1]) <= 0.002;
+    };
+    const ringFrozen = frozenSeconds(reduced?.ring);
+    const pulseFrozen = frozenSeconds(reduced?.pulse);
+    const measured = [ringFrozen, pulseFrozen].filter((v) => v !== null);
+    if (measured.length === 0) {
+      // No running stage and no pulse in this state, so the emulation proves
+      // nothing. Say so instead of asserting vacuously.
+      console.error("   (reduced-motion assertion skipped: no running animation on screen; run with a live round to exercise it)");
+    } else {
+      check(
+        measured.every((value) => value === true),
+        `prefers-reduced-motion freezes ring and pulse animations (${JSON.stringify(reduced)})`,
+      );
+    }
+
     // 8. Typography floor. Anything under 11px is unreadable at 100% zoom, and
     //    a stray literal is easy to reintroduce when editing a 2000-line style
     //    string. Measured from real computed styles rather than by grepping CSS.

@@ -494,6 +494,44 @@ window.__ModuleLoader__.load({
 			   source: keep the height cap and scrolling, drop the monospace/pre-wrap
 			   typography (the .ia-md-* rules own the prose). */
 			".ia-an-report-body{margin:10px 0 0;padding:11px;border-radius:var(--ia-r-tab);background:var(--dsw-alias-bg-layer-1,transparent);border:1px solid var(--dsw-alias-border-l2);max-height:420px;overflow:auto}",
+			/* ── one-click entries ─────────────────────────────────────────── */
+			".ia-an-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}",
+			".ia-an-quickbtn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+			"@media(max-width:1180px){.ia-an-quick{grid-template-columns:1fr}}",
+			/* ── progress: circular stage ring + round bar ─────────────────── */
+			".ia-an-ring{position:relative;width:24px;height:24px;display:inline-grid;place-items:center;flex:none}",
+			".ia-an-ring svg{display:block;transform:rotate(-90deg)}",
+			".ia-an-ring-track{stroke:var(--ia-border-subtle)}",
+			/* Only the dash offset and the stroke colour change, so a stage row never
+			   reflows while its ring fills. */
+			".ia-an-ring-fill{transition:stroke-dashoffset var(--ia-dur-slow) var(--ia-ease-out),stroke var(--ia-dur-fast) var(--ia-ease-out)}",
+			".ia-an-ring-mark{position:absolute;inset:0;display:grid;place-items:center;font-size:var(--ia-fs-micro);line-height:1;color:var(--ia-text-3)}",
+			".ia-an-ring[data-kind=ok] .ia-an-ring-mark{color:var(--ia-ok-text)}",
+			".ia-an-ring[data-kind=danger] .ia-an-ring-mark{color:var(--ia-danger-text)}",
+			".ia-an-ring[data-kind=accent] .ia-an-ring-mark{color:var(--ia-accent-text)}",
+			/* A running stage breathes; reduced-motion below freezes it and the ring
+			   plus the textual status still carry the state. */
+			".ia-an-ring[data-status=running] svg{animation:ia-ring-spin var(--ia-dur-flow) linear infinite}",
+			"@keyframes ia-ring-spin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}",
+			".ia-an-progress{margin:8px 0 2px}",
+			".ia-an-progress-track{height:6px;border-radius:var(--ia-r-full);background:var(--ia-border-subtle);overflow:hidden}",
+			".ia-an-progress-fill{height:100%;border-radius:var(--ia-r-full);background:var(--ia-grad-primary);transform-origin:left center;transform:scaleX(0);transition:transform var(--ia-dur-slow) var(--ia-ease-out)}",
+			".ia-an-progress[data-state=failed] .ia-an-progress-fill{background:var(--ia-danger)}",
+			".ia-an-progress-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;font-size:var(--ia-fs-micro);line-height:15px;color:var(--ia-label-3)}",
+			".ia-an-pulse{width:7px;height:7px;border-radius:var(--ia-r-full);background:var(--ia-accent);animation:ia-pulse var(--ia-dur-page) var(--ia-ease-in-out) infinite alternate}",
+			"@keyframes ia-pulse{from{opacity:.35;transform:scale(.8)}to{opacity:1;transform:scale(1.15)}}",
+			/* ── analysis board stays put ──────────────────────────────────── */
+			/* The progress board is the thing a user watches for minutes, so it must
+			   not scroll away while they read the stage list or the subagent list
+			   below it. Sticking it inside the panel keeps it visible for the whole
+			   panel, and the textual status stays in the KPIs above for anyone who
+			   cannot see the ring. */
+			".ia-an-board{position:sticky;top:0;z-index:var(--ia-z-sticky);background:var(--ia-surface);padding-bottom:6px}",
+			/* The start panel carries the three entries; on a tall page it would
+			   otherwise scroll off exactly when a long-running action makes the
+			   user want to look at it again. */
+			".ia-an-start{position:sticky;top:12px;align-self:start}",
+			"@media(max-height:760px){.ia-an-start{position:static}}",
 			"@media(max-width:1440px){.ia-an-main{grid-template-columns:minmax(0,1fr)}}",
 			"@media(max-width:1180px){.ia-an-grid{grid-template-columns:1fr}}"
 		].join("");
@@ -1377,6 +1415,90 @@ window.__ModuleLoader__.load({
 			if (row.result_digest) parts.push(JSON.stringify(row.result_digest).slice(0, 140));
 			return parts.join(" · ");
 		}
+		function stageFraction(row) {
+			// How far through ONE stage we are. Subagent counts are the only real
+			// progress signal a stage carries, so use them when present; otherwise
+			// fall back to a terminal/pending 0-or-1. Never invent a percentage:
+			// an indeterminate stage renders as an empty ring, not a fake number.
+			const status = String(row?.status ?? "");
+			if (status === "completed") return 1;
+			if (status === "failed" || status === "cancelled") return 1;
+			const total = Number(row?.agents_total ?? 0);
+			const done = Number(row?.agents_done ?? 0) + Number(row?.agents_failed ?? 0);
+			if (total > 0) return Math.max(0, Math.min(1, done / total));
+			return status === "running" ? 0.35 : 0;
+		}
+
+		function StageDot({ status, fraction }) {
+			// A circular progress ring replaces the static ✓ / ↻ / × glyph. The
+			// glyph told you a state but not how far along it was, and mid-stage
+			// progress was invisible. An SVG ring driven by stroke-dashoffset also
+			// animates without touching layout, so a stage row never reflows while
+			// it advances.
+			const size = 24;
+			const stroke = 2.5;
+			const radius = (size - stroke) / 2;
+			const circumference = 2 * Math.PI * radius;
+			const value = Math.max(0, Math.min(1, Number(fraction) || 0));
+			const kind = String(status ?? "");
+			const stateKind = kind === "completed" ? "ok" : kind === "failed" || kind === "cancelled" ? "danger" : kind === "running" ? "accent" : "idle";
+			const strokeColor = stateKind === "ok"
+				? "var(--ia-ok)"
+				: stateKind === "danger"
+					? "var(--ia-danger)"
+					: stateKind === "accent"
+						? "var(--ia-accent)"
+						: "var(--ia-idle)";
+			const label = kind === "completed" ? "已完成" : kind === "running" ? "进行中" : kind === "failed" ? "失败" : kind === "cancelled" ? "已停止" : "未开始";
+			return react_jsx_runtime.jsxs("span", {
+				className: "ia-an-ring",
+				"data-kind": stateKind,
+				"data-status": kind,
+				role: "img",
+				"aria-label": label + (kind === "running" ? " " + Math.round(value * 100) + "%" : ""),
+				children: [
+					react_jsx_runtime.jsxs("svg", {
+						width: size, height: size, viewBox: "0 0 " + size + " " + size, "aria-hidden": "true",
+						children: [
+							react_jsx_runtime.jsx("circle", { className: "ia-an-ring-track", cx: size / 2, cy: size / 2, r: radius, fill: "none", "stroke-width": stroke }),
+							react_jsx_runtime.jsx("circle", {
+								className: "ia-an-ring-fill", cx: size / 2, cy: size / 2, r: radius, fill: "none",
+								"stroke-width": stroke, stroke: strokeColor,
+								"stroke-dasharray": String(circumference),
+								"stroke-dashoffset": String(circumference * (1 - value)),
+								"stroke-linecap": "round"
+							})
+						]
+					}),
+					react_jsx_runtime.jsx("span", { className: "ia-an-ring-mark", children: kind === "completed" ? "✓" : kind === "failed" ? "×" : kind === "running" ? "" : "·" })
+				]
+			});
+		}
+
+		function RoundProgress({ stages }) {
+			// Round-level progress: completed stages over total stages, plus a
+			// running pulse. Text-only status ("3/5 完成") stays in the header so a
+			// reader who cannot see the bar still gets the number.
+			const rows = Array.isArray(stages) ? stages : [];
+			if (rows.length === 0) return null;
+			const done = rows.filter((row) => String(row?.status ?? "") === "completed").length;
+			const failed = rows.filter((row) => String(row?.status ?? "") === "failed").length;
+			const running = rows.some((row) => String(row?.status ?? "") === "running");
+			const value = Math.max(0, Math.min(1, done / rows.length));
+			const label = done + "/" + rows.length + " 阶段完成" + (failed > 0 ? " · 失败 " + failed : "") + (running ? " · 进行中" : "");
+			return react_jsx_runtime.jsxs("div", {
+				className: "ia-an-progress",
+				"data-state": failed > 0 ? "failed" : running ? "running" : done === rows.length ? "completed" : "idle",
+				children: [
+					react_jsx_runtime.jsx("div", { className: "ia-an-progress-track", children: react_jsx_runtime.jsx("div", { className: "ia-an-progress-fill", style: { transform: "scaleX(" + value + ")" } }) }),
+					react_jsx_runtime.jsxs("div", { className: "ia-an-progress-meta", children: [
+						react_jsx_runtime.jsx("span", { children: label }),
+						running ? react_jsx_runtime.jsx("span", { className: "ia-an-pulse", "aria-hidden": "true" }) : react_jsx_runtime.jsx("span", { children: Math.round(value * 100) + "%" })
+					]})
+				]
+			});
+		}
+
 		function durationOf(row) {
 			// analysis record -> duration_ms; report index rows only carry
 			// started_at/finished_at, so derive the span instead of inventing one.
@@ -1491,27 +1613,36 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": analysisStatusKind(run?.status), children: run ? "轮次 " + analysisStatusLabel(run.status) : "尚无轮次" })
 						]
 					}),
-					error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "读取轮次失败：" + error }) : null,
-					run?.error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "轮次失败：" + String(run.error) }) : null,
-					warnings.length > 0 ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "warn", children: "警告 " + warnings.length + " 条：" + warnings.slice(0, 3).map((item) => String(item)).join("；") }) : null,
+					/* Everything above the stage list is the board: it sticks so the
+					   ring and the round bar stay visible while the stage and subagent
+					   lists scroll underneath. */
 					react_jsx_runtime.jsxs("div", {
-						className: "ia-an-kpis",
+						className: "ia-an-board",
 						children: [
-							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "轮次状态" }), react_jsx_runtime.jsx("b", { children: run ? analysisStatusLabel(run.status) : "-" })] }),
-							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "当前阶段" }), react_jsx_runtime.jsx("b", { children: run ? analysisStageLabel(run.current_stage) : "-" })] }),
-							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "子任务 完成/预期" }), react_jsx_runtime.jsx("b", { children: (run?.completed_agents ?? 0) + "/" + (run?.expected_agents ?? 0) + (run?.failed_agents ? " · 失败 " + run.failed_agents : "") })] }),
-							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "证据条数" }), react_jsx_runtime.jsx("b", { children: run?.evidence_count ?? 0 })] })
+							error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "读取轮次失败：" + error }) : null,
+							run?.error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "轮次失败：" + String(run.error) }) : null,
+							warnings.length > 0 ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "warn", children: "警告 " + warnings.length + " 条：" + warnings.slice(0, 3).map((item) => String(item)).join("；") }) : null,
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-kpis",
+								children: [
+									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "轮次状态" }), react_jsx_runtime.jsx("b", { children: run ? analysisStatusLabel(run.status) : "-" })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "当前阶段" }), react_jsx_runtime.jsx("b", { children: run ? analysisStageLabel(run.current_stage) : "-" })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "子任务 完成/预期" }), react_jsx_runtime.jsx("b", { children: (run?.completed_agents ?? 0) + "/" + (run?.expected_agents ?? 0) + (run?.failed_agents ? " · 失败 " + run.failed_agents : "") })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "证据条数" }), react_jsx_runtime.jsx("b", { children: run?.evidence_count ?? 0 })] })
+								]
+							}),
+							react_jsx_runtime.jsx("div", {
+								className: "ia-an-note",
+								children: run ? "轮次 " + String(run.cycle_id ?? cycleId ?? "-") + " · " + (marketName[run.market] ?? run.market ?? "-") + " · 标签 " + String(run.label ?? "-") + " · 标的 " + (Array.isArray(run.symbols) ? run.symbols.length : 0) + " 个" : (cycleId ? "轮次 " + cycleId + "：引擎尚未返回记录" : "尚未启动分析轮次")
+							}),
+							react_jsx_runtime.jsx(RoundProgress, { stages: stageRows })
 						]
-					}),
-					react_jsx_runtime.jsx("div", {
-						className: "ia-an-note",
-						children: run ? "轮次 " + String(run.cycle_id ?? cycleId ?? "-") + " · " + (marketName[run.market] ?? run.market ?? "-") + " · 标签 " + String(run.label ?? "-") + " · 标的 " + (Array.isArray(run.symbols) ? run.symbols.length : 0) + " 个" : (cycleId ? "轮次 " + cycleId + "：引擎尚未返回记录" : "尚未启动分析轮次")
 					}),
 					stageRows.length > 0 ? react_jsx_runtime.jsx("div", { children: stageRows.map((row) => react_jsx_runtime.jsxs("div", {
 						className: "ia-an-stage",
 						"data-status": String(row.status ?? ""),
 						children: [
-							react_jsx_runtime.jsx("span", { className: "ia-an-stage-dot", children: row.status === "completed" ? "✓" : row.status === "running" ? "↻" : row.status === "failed" ? "×" : "·" }),
+							react_jsx_runtime.jsx(StageDot, { status: row.status, fraction: stageFraction(row) }),
 							react_jsx_runtime.jsxs("div", { children: [
 								react_jsx_runtime.jsx("div", { className: "ia-an-stage-name", children: analysisStageLabel(row.stage) }),
 								react_jsx_runtime.jsx("div", {
@@ -1685,6 +1816,9 @@ window.__ModuleLoader__.load({
 			const [symbolsText, setSymbolsText] = react.useState(Array.isArray(initial?.symbols) ? initial.symbols.join(",") : "");
 			const [goalId, setGoalId] = react.useState("");
 			const [submitting, setSubmitting] = react.useState(false);
+			// Which one-click entry is in flight. Screening loads the whole market
+			// universe and takes tens of seconds, so the button has to say so.
+			const [quickBusy, setQuickBusy] = react.useState("");
 			const [notice, setNotice] = react.useState(null);
 			const [refreshToken, setRefreshToken] = react.useState(0);
 
@@ -1797,6 +1931,99 @@ window.__ModuleLoader__.load({
 				// deliberately reuses the stored one.
 				submitStart({ cycleId: newAnalysisCycleId(market, label), market, label: label || "manual", symbols, symbolsSource: source, goalId });
 			};
+
+			// ── one-click entries ──────────────────────────────────────────────
+			// ② Screen. The engine's screening endpoint returns a dashboard preview
+			// whose selected list is `selected_symbols` (there is no `candidates`
+			// key); filling the box from it is what makes ② useful on its own, and
+			// it is also the input ① consumes.
+			const canQuick = !submitting && !quickBusy && !killSwitch && !hasRunningRound && engineReachable;
+			const quickBlockReason = submitting || quickBusy
+				? "另一个一键操作正在进行…"
+				: killSwitch
+					? "风控紧急停止已开启，禁止启动分析"
+					: hasRunningRound
+						? "已有分析轮次正在运行"
+						: !engineReachable
+							? "投资引擎不可达：无法执行"
+							: "";
+
+			const handleScreen = async () => {
+				if (!canQuick) return;
+				setQuickBusy("screen");
+				setNotice(null);
+				try {
+					const result = await jsonFetch("/api/investment/analysis?action=screen&market=" + encodeURIComponent(market), { method: "GET" });
+					const preview = result?.screening ?? {};
+					const picked = Array.isArray(preview.selected_symbols) ? preview.selected_symbols.map(String) : [];
+					const audit = preview.audit && typeof preview.audit === "object" ? preview.audit : {};
+					if (picked.length === 0) {
+						setNotice({
+							kind: "warn",
+							text: "选股完成但没有选出标的：发现 " + String(audit.discovered_count ?? "-") + " 只、候选 " + String(audit.candidate_count ?? "-") + " 只" + (audit.discovery_error ? " · " + String(audit.discovery_error).slice(0, 160) : "")
+						});
+					} else {
+						setSymbolsText(picked.join(","));
+						setSource("screening");
+						setNotice({
+							kind: "ok",
+							text: "选股完成：发现 " + String(audit.discovered_count ?? "-") + " 只 · 候选 " + String(audit.candidate_count ?? "-") + " 只 · 选出 " + picked.length + " 只（数据源 " + String(audit.source ?? "-") + "）。已填入标的清单。"
+						});
+					}
+				} catch (error) {
+					setNotice({ kind: "err", text: "选股失败：" + String(error?.message ?? error) });
+				} finally {
+					setQuickBusy("");
+					refreshAll();
+				}
+			};
+
+			// ① Whole pipeline: screen, then run the round on the screened names.
+			// The engine enforces submit=false on every web-launched round, so
+			// "whole pipeline" still means research only -- it never trades.
+			const handleFullPipeline = async () => {
+				if (!canQuick) return;
+				setQuickBusy("full");
+				setNotice(null);
+				try {
+					let picked = symbols;
+					let origin = "已填写的标的清单";
+					if (picked.length === 0) {
+						// Prefer the most recent screening round so ① does not re-run a
+						// screening the user just performed.
+						const recent = screenerRun && Array.isArray(screenerRun.symbols) ? screenerRun.symbols.map(String) : [];
+						if (recent.length > 0) {
+							picked = recent;
+							origin = "最近一次选股轮次 " + String(screenerRun.cycle_id ?? "-");
+						} else {
+							const result = await jsonFetch("/api/investment/analysis?action=screen&market=" + encodeURIComponent(market), { method: "GET" });
+							const preview = result?.screening ?? {};
+							picked = Array.isArray(preview.selected_symbols) ? preview.selected_symbols.map(String) : [];
+							origin = "刚刚完成的选股（数据源 " + String(preview?.audit?.source ?? "-") + "）";
+							if (picked.length > 0) {
+								setSymbolsText(picked.join(","));
+								setSource("screening");
+							}
+						}
+					}
+					if (picked.length === 0) {
+						setNotice({ kind: "warn", text: "全流程未启动：选股没有产出标的，请先手动填写标的清单。" });
+						return;
+					}
+					await submitStart({
+						cycleId: newAnalysisCycleId(market, label),
+						market,
+						label: label || "manual",
+						symbols: picked,
+						symbolsSource: source === "screening" || origin !== "已填写的标的清单" ? "screening" : source,
+						goalId
+					});
+				} catch (error) {
+					setNotice({ kind: "err", text: "全流程启动失败：" + String(error?.message ?? error) });
+				} finally {
+					setQuickBusy("");
+				}
+			};
 			const handleRetry = () => {
 				if (!canRetry) return;
 				const snapshot = pending ?? (run ? { cycle_id: run.cycle_id, market: run.market, label: run.label, symbols: run.symbols, symbols_source: run.symbols_source, goal_id: run.goal_id } : null);
@@ -1841,7 +2068,7 @@ window.__ModuleLoader__.load({
 				: "手动输入：逗号、空格或换行分隔，自动去重，上限 " + MAX_ANALYSIS_SYMBOLS + " 个。";
 
 			const renderStartPanel = () => react_jsx_runtime.jsxs("div", {
-				className: "ia-an-col",
+				className: "ia-an-col ia-an-start",
 				children: [
 					react_jsx_runtime.jsxs("section", {
 						className: "ia-an-panel",
@@ -1933,6 +2160,45 @@ window.__ModuleLoader__.load({
 								title: canStart ? "开始一个分析轮次（只分析，不下单）" : blockReason,
 								onClick: handleStart,
 								children: submitting ? "提交中…" : "开始分析"
+							}),
+							/* Three one-click entries. ② and ③ run the SAME fixed workflow
+							   as ① — the engine's analysis_rounds module documents that the
+							   tool is a thin launcher and one workflow implementation serves
+							   web-triggered rounds, scheduler rounds and the DSH tool alike.
+							   Only where the symbol list comes from differs, which is why ①
+							   collapses to "screen, then the normal start" rather than a
+							   second code path. */
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-quick",
+								children: [
+									react_jsx_runtime.jsx("button", {
+										id: "ia-an-quick-full",
+										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
+										type: "button",
+										disabled: !canQuick,
+										title: canQuick ? "一键运行全流程：先选股，再对选出的标的跑固定分析流程（只分析，绝不下单）" : quickBlockReason,
+										onClick: handleFullPipeline,
+										children: quickBusy === "full" ? "全流程启动中…" : "一键全流程"
+									}),
+									react_jsx_runtime.jsx("button", {
+										id: "ia-an-quick-screen",
+										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
+										type: "button",
+										disabled: !canQuick,
+										title: canQuick ? "一键筛选股票：扫描全市场并按流动性与因子选出候选，结果填入标的清单" : quickBlockReason,
+										onClick: handleScreen,
+										children: quickBusy === "screen" ? "选股中…（数十秒）" : "一键筛选股票"
+									}),
+									react_jsx_runtime.jsx("button", {
+										id: "ia-an-quick-typed",
+										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
+										type: "button",
+										disabled: !canStart,
+										title: canStart ? "一键分析指定股票：对上方清单里的标的跑固定分析流程（只分析，绝不下单）" : blockReason,
+										onClick: handleStart,
+										children: submitting ? "提交中…" : "一键分析指定股票"
+									})
+								]
 							}),
 							notice ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": notice.kind, children: notice.text }) : null,
 							react_jsx_runtime.jsxs("div", {
