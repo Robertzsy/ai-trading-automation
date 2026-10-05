@@ -272,6 +272,27 @@ window.__ModuleLoader__.load({
   --ia-shadow-lg:0 12px 32px rgba(16,24,40,.12),0 4px 8px rgba(16,24,40,.05);
   --ia-glow-accent:0 6px 20px rgba(27,110,243,.28);
 
+  /* L2 · elevation levels. Components reference a LEVEL, never a raw shadow, so
+     "how far off the page is this" stays one decision instead of eleven. */
+  --ia-elev-rail:var(--ia-shadow-lg);
+  --ia-elev-panel:var(--ia-shadow-sm);
+  --ia-elev-item:var(--ia-shadow-xs);
+  --ia-elev-item-hover:var(--ia-shadow-sm);
+  /* Selected items read as pressed-in, not raised: a stronger outer shadow would
+     stack cards on the page and look like cheap paper cut-outs. */
+  --ia-elev-item-active:inset 0 1px 2px rgba(16,24,40,.05);
+  --ia-elev-raised:var(--ia-shadow-md);
+
+  /* L2 · edge lighting. One highlight and one shade serve both modes: on the
+     dark rail the white hairline reads as a lit top edge, on light surfaces the
+     dark one reads as a soft seam. That is why the rail needs no dark variant. */
+  --ia-edge-hi:rgba(255,255,255,.09);
+  --ia-edge-lo:rgba(16,24,40,.05);
+  --ia-rail-sheen:linear-gradient(180deg,rgba(255,255,255,.055) 0%,rgba(255,255,255,0) 44%);
+  --ia-rail-vignette:linear-gradient(90deg,rgba(0,0,0,.16) 0%,rgba(0,0,0,0) 64%);
+  --ia-lift:translateY(-1px);
+  --ia-lift-press:translateY(0) scale(.995);
+
   /* L2 · spacing — 8pt grid */
   --ia-sp-1:4px; --ia-sp-2:8px; --ia-sp-3:12px; --ia-sp-4:16px; --ia-sp-5:20px;
   --ia-sp-6:24px; --ia-sp-8:32px; --ia-sp-10:40px; --ia-sp-12:48px;
@@ -324,6 +345,65 @@ window.__ModuleLoader__.load({
 .ia-shell .ia-num,.ia-an-kv b,.ia-kpi-value,.ia-table td,.ia-market-value{
   font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;
 }
+
+/* Interaction elevation. Buttons and list items opt in with ONE class instead of
+   each restating its own shadow, hover, active, focus and disabled rules --
+   eleven components previously had eleven different answers (most had none),
+   which is how a surface ends up looking assembled from parts.
+   Every state is defined here exactly once, so a new control cannot silently
+   ship without a focus ring. Depth is deliberately small: 1px of travel and one
+   shadow step. */
+.ia-elev{box-shadow:var(--ia-elev-item);
+  transition:box-shadow var(--ia-dur-fast) var(--ia-ease-out),transform var(--ia-dur-instant) var(--ia-ease-out),background-color var(--ia-dur-fast) var(--ia-ease-out)}
+.ia-elev:hover:not(:disabled):not([aria-disabled=true]){box-shadow:var(--ia-elev-item-hover);transform:var(--ia-lift)}
+.ia-elev:active:not(:disabled):not([aria-disabled=true]){box-shadow:var(--ia-elev-item-active);transform:var(--ia-lift-press)}
+/* Keyboard users get the same affordance as mouse users; :focus-visible keeps it
+   off plain clicks. */
+.ia-elev:focus-visible{outline:2px solid var(--ia-accent);outline-offset:2px}
+.ia-elev:disabled,.ia-elev[aria-disabled=true]{box-shadow:none;transform:none;opacity:.45;cursor:not-allowed}
+/* Level modifiers. Only the depth changes; the state machine above is shared. */
+.ia-elev-sm{box-shadow:var(--ia-elev-item)}
+.ia-elev-md{box-shadow:var(--ia-elev-panel)}
+.ia-elev-lg{box-shadow:var(--ia-elev-raised)}
+.ia-elev-lg:hover:not(:disabled):not([aria-disabled=true]){box-shadow:var(--ia-glow-accent)}
+/* Inside the 88px rail a travelling row reads as jitter, and the rail already
+   separates itself from the page, so its items keep the shadow without travel. */
+.ia-elev-static:hover:not(:disabled){transform:none}
+
+/* The left rail is a dark band beside a light surface, so it is built from a
+   stack rather than one background: base colour, a lit top edge, a capped sheen,
+   an inner right-hand shade for depth and an outer drop to separate it from the
+   content. Each layer is a token so the whole thing retints in one place. */
+.ia-rail{
+  background-color:var(--ia-rail-bg);
+  background-image:var(--ia-rail-sheen),var(--ia-rail-vignette);
+  box-shadow:var(--ia-elev-rail),inset 0 1px 0 var(--ia-edge-hi),inset -1px 0 0 var(--ia-edge-lo);
+}
+.ia-sidebar{
+  background-image:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 38%);
+  box-shadow:inset -1px 0 0 var(--ia-edge-lo);
+}
+
+/* Per-component tuning ONLY. The five interaction states live in .ia-elev
+   above, applied on the element itself, so nothing is restated here. The rail's
+   items opt out of travel: in an 88px band a moving row reads as jitter, and the
+   rail already separates itself from the page. */
+.ia-rail .ia-navbtn{box-shadow:none}
+.ia-rail .ia-navbtn[data-active=true]{box-shadow:inset 0 1px 0 var(--ia-edge-hi),inset 2px 0 0 var(--ia-accent-cyan)}
+.ia-sidebar .ia-session[data-active=true]{box-shadow:inset 0 1px 2px var(--ia-edge-lo)}
+
+/* DSH's own conversation controls (the composer's add button, the workspace
+   selector) are styled by its bundle, not ours, so they cannot carry .ia-elev.
+   Give them the same affordance from here, scoped to .ia-center so the rest of
+   DSH's UI is untouched. */
+.ia-center button[class*="_add"],.ia-center button[class*="_workspace"]{
+  box-shadow:var(--ia-elev-item);
+  transition:box-shadow var(--ia-dur-fast) var(--ia-ease-out),transform var(--ia-dur-instant) var(--ia-ease-out)}
+.ia-center button[class*="_add"]:hover,.ia-center button[class*="_workspace"]:hover{
+  box-shadow:var(--ia-elev-item-hover);transform:var(--ia-lift)}
+.ia-center button[class*="_add"]:focus-visible,.ia-center button[class*="_workspace"]:focus-visible{
+  outline:2px solid var(--ia-accent);outline-offset:2px}
+.ia-an-seg button{box-shadow:none}
 
 /* Readers who ask for less motion get a static-but-complete interface: every
    status stays legible through colour, icon and text rather than movement. */
@@ -787,7 +867,7 @@ window.__ModuleLoader__.load({
 			return react_jsx_runtime.jsxs("aside", {
 				className: "ia-context",
 				children: [
-					react_jsx_runtime.jsxs("div", { className: "ia-context-head", children: [react_jsx_runtime.jsx("strong", { children: "投资上下文" }), react_jsx_runtime.jsx("button", { className: "ia-iconbtn", type: "button", title: "收起上下文", onClick: onClose, children: "›" })] }),
+					react_jsx_runtime.jsxs("div", { className: "ia-context-head", children: [react_jsx_runtime.jsx("strong", { children: "投资上下文" }), react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-static ia-elev-sm ia-iconbtn", type: "button", title: "收起上下文", onClick: onClose, children: "›" })] }),
 					react_jsx_runtime.jsxs("div", {
 						className: "ia-context-section",
 						children: [
@@ -804,7 +884,7 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsx("div", { className: "ia-context-label", children: "分析流程" }),
 							react_jsx_runtime.jsx("span", { className: "ia-context-chip", children: analysis ? "当前：" + analysisStageLabel(analysis.current_stage) : "当前：尚无轮次" }),
 							react_jsx_runtime.jsx("p", { className: "ia-context-note", children: analysis ? "多角色 Agent " + (analysis.completed_agents ?? 0) + "/" + (analysis.expected_agents ?? 0) + "，证据 " + (analysis.evidence_count ?? 0) + " 条。" : "完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。" }),
-							react_jsx_runtime.jsx("button", { className: "ia-context-link", type: "button", onClick: onOpenWorkflow, children: "查看完整分析流程" })
+							react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-context-link", type: "button", onClick: onOpenWorkflow, children: "查看完整分析流程" })
 						]
 					}),
 					react_jsx_runtime.jsxs("div", {
@@ -1095,7 +1175,7 @@ window.__ModuleLoader__.load({
 						children: [
 							react_jsx_runtime.jsxs("div", { className: "ia-an-log-head", children: [
 								react_jsx_runtime.jsx("span", { children: "运行日志 · " + logs.length + " 条" + (logs.length > visibleLogs.length ? "（显示最近 " + visibleLogs.length + " 条）" : "") }),
-								react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", onClick: () => setLogsOpen((open) => !open), children: logsOpen ? "收起日志" : "展开日志" })
+								react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-an-btn", type: "button", onClick: () => setLogsOpen((open) => !open), children: logsOpen ? "收起日志" : "展开日志" })
 							]}),
 							logsOpen ? react_jsx_runtime.jsx("div", {
 								className: "ia-an-log-body",
@@ -1184,7 +1264,7 @@ window.__ModuleLoader__.load({
 										...ANALYSIS_MARKETS.map(([id, name]) => react_jsx_runtime.jsx("option", { value: id, children: name }, id))
 									]
 								}),
-								react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", onClick: () => reloadIndex(), children: index.loading ? "刷新中…" : "刷新" })
+								react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-an-btn", type: "button", onClick: () => reloadIndex(), children: index.loading ? "刷新中…" : "刷新" })
 							]})
 						]
 					}),
@@ -1207,7 +1287,7 @@ window.__ModuleLoader__.load({
 					selected ? react_jsx_runtime.jsxs("div", { children: [
 						react_jsx_runtime.jsxs("div", { className: "ia-an-log-head", style: { marginTop: 10 }, children: [
 							react_jsx_runtime.jsx("span", { children: content.data?.file ? String(content.data.file) : selected }),
-							react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", disabled: !content.data?.content, onClick: handleExport, children: "导出 .md" })
+							react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-an-btn", type: "button", disabled: !content.data?.content, onClick: handleExport, children: "导出 .md" })
 						]}),
 						exportError ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: exportError }) : null,
 						content.loading ? react_jsx_runtime.jsx("div", { className: "ia-empty", children: "正在读取报告正文…" }) : null,
@@ -1490,9 +1570,9 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsxs("div", {
 								className: "ia-an-actions",
 								children: [
-									react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", disabled: !canStop, title: canStop ? "停止当前轮次（只影响分析，绝不影响账户）" : "当前没有运行中的轮次", onClick: handleStop, children: "停止" }),
-									react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", disabled: !canRetry, title: canRetry ? "沿用同一个 cycle_id 重试（引擎从检查点续跑）" : "没有可重试的轮次：仅已失败 / 已停止的轮次或尚未提交成功的轮次可重试", onClick: handleRetry, children: "重试" }),
-									react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", onClick: refreshAll, children: "刷新" })
+									react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-an-btn", type: "button", disabled: !canStop, title: canStop ? "停止当前轮次（只影响分析，绝不影响账户）" : "当前没有运行中的轮次", onClick: handleStop, children: "停止" }),
+									react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-an-btn", type: "button", disabled: !canRetry, title: canRetry ? "沿用同一个 cycle_id 重试（引擎从检查点续跑）" : "没有可重试的轮次：仅已失败 / 已停止的轮次或尚未提交成功的轮次可重试", onClick: handleRetry, children: "重试" }),
+									react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-an-btn", type: "button", onClick: refreshAll, children: "刷新" })
 								]
 							}),
 							react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 8 }, children: hasRunningRound ? "进行中：" + String(runningRound?.cycle_id ?? "-") + " · 轮询 " + (run?.status === "running" ? "2" : "8") + " 秒" : isAnalysisTerminal(run?.status) ? "轮次已进入终态，已停止轮询。" : "当前没有运行中的轮次。" })
@@ -1625,7 +1705,7 @@ window.__ModuleLoader__.load({
 								style: { display: "flex", gap: 8 },
 								children: [["conservative", "保守"], ["neutral", "中立"], ["aggressive", "激进"]].map(([profile, label]) => react_jsx_runtime.jsx("button", {
 									key: profile,
-									className: "ia-btn",
+									className: "ia-elev ia-elev-md ia-btn",
 									"data-kind": current === profile ? "primary" : undefined,
 									disabled: saving,
 									onClick: () => selectProfile(profile),
@@ -1644,7 +1724,7 @@ window.__ModuleLoader__.load({
 								style: { display: "flex", gap: 8 },
 								children: [["manual", "手动"], ["automatic", "自动"]].map(([mode, label]) => react_jsx_runtime.jsx("button", {
 									key: mode,
-									className: "ia-btn",
+									className: "ia-elev ia-elev-md ia-btn",
 									"data-kind": String(autonomous.operation_mode ?? "manual") === mode ? "primary" : undefined,
 									disabled: saving,
 									onClick: () => updateConfig({ "autonomous.operation_mode": mode }),
@@ -1663,7 +1743,7 @@ window.__ModuleLoader__.load({
 								style: { display: "flex", gap: 8 },
 								children: [[true, "启用"], [false, "停用"]].map(([value, label]) => react_jsx_runtime.jsx("button", {
 									key: String(value),
-									className: "ia-btn",
+									className: "ia-elev ia-elev-md ia-btn",
 									"data-kind": Boolean(autonomous.enabled) === value ? "primary" : undefined,
 									disabled: saving,
 									onClick: () => updateConfig({ "autonomous.enabled": value }),
@@ -1786,7 +1866,7 @@ window.__ModuleLoader__.load({
 								style: { display: "flex", gap: 8 },
 								children: [["cn", "A股"], ["hk", "港股"], ["us", "美股"], ["etf", "ETF"]].map(([market, label]) => react_jsx_runtime.jsx("button", {
 									key: market,
-									className: "ia-btn",
+									className: "ia-elev ia-elev-md ia-btn",
 									"data-kind": enabled.includes(market) ? "primary" : undefined,
 									disabled: saving,
 									onClick: () => toggleMarket(market),
@@ -1860,7 +1940,7 @@ window.__ModuleLoader__.load({
 								children: [react_jsx_runtime.jsx("div", { className: "ia-form-label", children: "Webhook 通知" }), react_jsx_runtime.jsx("div", { className: "ia-form-hint", children: "当前：" + (notify.enabled ? "已启用" : "未启用") })]
 							}),
 							react_jsx_runtime.jsx("button", {
-								className: "ia-btn",
+								className: "ia-elev ia-elev-md ia-btn",
 								"data-kind": notify.enabled ? "primary" : undefined,
 								disabled: saving,
 								onClick: () => saveConfig({ "notify.enabled": !notify.enabled, "notify.channels": ["webhook"] }).then(() => data.reload()),
@@ -1885,7 +1965,7 @@ window.__ModuleLoader__.load({
 							})
 						]
 					}),
-					react_jsx_runtime.jsx("div", { style: { marginTop: 12 }, children: react_jsx_runtime.jsx("button", { className: "ia-btn", "data-kind": "primary", disabled: saving, onClick: save, children: "保存通知设置" }) })
+					react_jsx_runtime.jsx("div", { style: { marginTop: 12 }, children: react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-btn", "data-kind": "primary", disabled: saving, onClick: save, children: "保存通知设置" }) })
 				]
 			});
 		}
@@ -2014,7 +2094,7 @@ window.__ModuleLoader__.load({
 						className: "ia-sidebar-head",
 						children: [
 							react_jsx_runtime.jsx("span", { className: "ia-sidebar-title", children: "会话" }),
-							react_jsx_runtime.jsx("button", { className: "ia-iconbtn", type: "button", title: "新建会话", onClick: () => startSession(), children: "+" })
+							react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-static ia-elev-sm ia-iconbtn", type: "button", title: "新建会话", onClick: () => startSession(), children: "+" })
 						]
 					}),
 					react_jsx_runtime.jsxs("div", {
@@ -2029,7 +2109,7 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsx("div", { className: "ia-session-group", children: query.trim() ? "搜索结果" : "最近会话" }),
 							visibleIds.length === 0 ? react_jsx_runtime.jsx("div", { className: "ia-empty", children: query.trim() ? "没有匹配的会话" : "还没有会话，点击上方新建" }) : visibleIds.map((id) => react_jsx_runtime.jsxs("div", {
 								key: id,
-								className: "ia-session",
+								className: "ia-elev ia-elev-static ia-elev-sm ia-session",
 								"data-active": id === current,
 								onClick: () => open(id),
 								children: [
@@ -2125,7 +2205,7 @@ window.__ModuleLoader__.load({
 								"aria-label": "产品导航",
 								children: navigation.map(([id, iconKey, label]) => react_jsx_runtime.jsxs("button", {
 									key: id,
-									className: "ia-navbtn",
+									className: "ia-elev ia-elev-static ia-elev-sm ia-navbtn",
 									type: "button",
 									"data-active": page === id,
 									title: label,
