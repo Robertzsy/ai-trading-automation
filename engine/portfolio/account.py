@@ -118,9 +118,7 @@ def reset_market(market: str, *, backup_dir: Optional[Path] = None) -> Dict[str,
         destination.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         backup_path = destination / f"{stamp}-before-reset-{normalized}.json"
-        temporary = backup_path.with_suffix(backup_path.suffix + ".tmp")
-        temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        temporary.replace(backup_path)
+        write_text_atomic(backup_path, json.dumps(data, ensure_ascii=False, indent=2))
         accounts[normalized] = copy.deepcopy(DEFAULTS[normalized])
         save(data)
     return {

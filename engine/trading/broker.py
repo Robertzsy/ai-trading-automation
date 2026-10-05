@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from engine.atomic_write import write_text_atomic
 from engine.portfolio import account as account_store
 from engine.runtime_lock import atomic_claim
 
@@ -243,7 +244,5 @@ def execute_orders(
                 account_store.save(data)
             else:
                 portfolio_path.parent.mkdir(parents=True, exist_ok=True)
-                temporary = portfolio_path.with_suffix(portfolio_path.suffix + ".tmp")
-                temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-                temporary.replace(portfolio_path)
+                write_text_atomic(portfolio_path, json.dumps(data, ensure_ascii=False, indent=2))
             return {"fills": fills, "rejected": rejected, "cash_after": account.get("cash", 0)}

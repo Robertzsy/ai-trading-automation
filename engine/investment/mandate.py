@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[2]
+from engine.atomic_write import write_text_atomic
 from engine.paths import runtime_dir
 MANDATE_FILE = runtime_dir() / "investment" / "mandate.json"
 _lock = threading.RLock()
@@ -144,9 +145,7 @@ def set_mandate(profile: str, *, selected_by: str = "user") -> Dict[str, Any]:
             "version": int(previous.get("version", 0)) + 1,
         })
         MANDATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        temporary = MANDATE_FILE.with_suffix(".json.tmp")
-        temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        temporary.replace(MANDATE_FILE)
+        write_text_atomic(MANDATE_FILE, json.dumps(payload, ensure_ascii=False, indent=2))
         return payload
 
 

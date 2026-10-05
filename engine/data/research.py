@@ -13,6 +13,7 @@ import requests
 
 logger = logging.getLogger("investment-auto.research-data")
 ROOT = Path(__file__).resolve().parents[2]
+from engine.atomic_write import write_text_atomic
 from engine.paths import runtime_dir
 CACHE_DIR = runtime_dir() / "data" / "research"
 _write_lock = threading.RLock()
@@ -64,13 +65,11 @@ def _load_mongo_cache(market: str, symbol: str, ttl_minutes: int) -> Optional[Di
 def _save_cache(market: str, symbol: str, payload: Mapping[str, Any]) -> None:
     path = _cache_path(market, symbol)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".json.tmp")
     with _write_lock:
-        temporary.write_text(
+        write_text_atomic(
+            path,
             json.dumps(dict(payload), ensure_ascii=False, indent=2, default=str),
-            encoding="utf-8",
         )
-        temporary.replace(path)
     _save_mongo_cache(payload)
 
 

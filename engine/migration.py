@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Mapping, Optional
 from zoneinfo import ZoneInfo
 
 from engine import paths
+from engine.atomic_write import write_text_atomic
 
 TIMEZONE = ZoneInfo("Asia/Shanghai")
 
@@ -147,12 +148,10 @@ def run_migration(source: str, items: Optional[List[str]] = None) -> Dict[str, A
         raw_portfolio = json.loads(migrated_portfolio.read_text(encoding="utf-8"))
         normalized_portfolio = normalize_portfolio(raw_portfolio)
         if normalized_portfolio != raw_portfolio:
-            temporary = migrated_portfolio.with_suffix(migrated_portfolio.suffix + ".tmp")
-            temporary.write_text(
+            write_text_atomic(
+                migrated_portfolio,
                 json.dumps(normalized_portfolio, ensure_ascii=False, indent=2),
-                encoding="utf-8",
             )
-            temporary.replace(migrated_portfolio)
             portfolio_repaired = True
 
     # Legacy .env secrets -> DPAPI store; plain-text keys never land in .env.

@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 
+from engine.atomic_write import write_text_atomic
 from engine.config import cfg
 from engine.data import fetcher
 from engine.optimizer.engine import (
@@ -440,9 +441,7 @@ def _run_optimizer_unlocked(
         "output_file": str(path),
         **schemes,
     }
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
+    write_text_atomic(path, json.dumps(result, ensure_ascii=False, indent=2))
     return result
 
 

@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 from zoneinfo import ZoneInfo
 
+from engine.atomic_write import write_text_atomic
 from engine.config import cfg
 from engine.paths import runtime_dir
 
@@ -49,9 +50,7 @@ def _read_idempotency(key: str) -> Optional[Dict[str, Any]]:
 def _write_idempotency(key: str, payload: Mapping[str, Any]) -> None:
     IDEMPOTENCY_DIR.mkdir(parents=True, exist_ok=True)
     path = _idempotency_path(key)
-    temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    temporary.replace(path)
+    write_text_atomic(path, json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
 def _now(value: Optional[datetime] = None) -> datetime:
@@ -150,9 +149,7 @@ def _write_audit(payload: Mapping[str, Any]) -> Path:
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     stamp = _now().strftime("%Y%m%d-%H%M%S")
     path = AUDIT_DIR / f"{stamp}-{payload['market']}-{payload['label']}.json"
-    temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(dict(payload), ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    temporary.replace(path)
+    write_text_atomic(path, json.dumps(dict(payload), ensure_ascii=False, indent=2, default=str))
     return path
 
 

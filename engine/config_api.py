@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, Mapping, Optional
 
 import yaml
 
+from engine.atomic_write import write_text_atomic
 from engine.config import cfg
 
 _lock = threading.RLock()
@@ -149,19 +150,17 @@ def apply_config_changes(changes: Any) -> Dict[str, Any]:
         for path, value in normalized.items():
             _set_path(document, path.split("."), value)
 
-        temporary = config_path.with_suffix(config_path.suffix + ".tmp")
-        temporary.write_text(
-            yaml.safe_dump(document, allow_unicode=True, sort_keys=False), encoding="utf-8"
+        write_text_atomic(
+            config_path,
+            yaml.safe_dump(document, allow_unicode=True, sort_keys=False),
         )
-        temporary.replace(config_path)
         try:
             cfg.reload()
         except Exception:
             # Roll the file back to the pre-change document on a bad reload.
-            rollback = config_path.with_suffix(config_path.suffix + ".rollback")
-            rollback.write_text(
-                yaml.safe_dump(previous, allow_unicode=True, sort_keys=False), encoding="utf-8"
+            write_text_atomic(
+                config_path,
+                yaml.safe_dump(previous, allow_unicode=True, sort_keys=False),
             )
-            rollback.replace(config_path)
             raise
         return sorted(normalized)

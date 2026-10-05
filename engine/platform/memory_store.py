@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[2]
+from engine.atomic_write import write_text_atomic
 from engine.paths import runtime_dir
 MEMORY_ROOT = runtime_dir() / "memory"
 _write_lock = threading.RLock()
@@ -45,10 +46,8 @@ class StructuredMemoryStore:
         payload.setdefault("created_at", _now())
         destination = self.directory / name / f"{payload['record_id']}.json"
         destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = destination.with_suffix(".json.tmp")
         with _write_lock:
-            temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-            temporary.replace(destination)
+            write_text_atomic(destination, json.dumps(payload, ensure_ascii=False, indent=2, default=str))
         self._mongo_insert(name, payload)
         return payload
 
