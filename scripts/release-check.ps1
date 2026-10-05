@@ -140,6 +140,14 @@ Run-Step "Generated icon set is current (generate-icons.mjs --check)" {
     if ($LASTEXITCODE -ne 0) { throw "generate-icons check exit code $LASTEXITCODE" }
 }
 
+# 4b-2. The Markdown renderer is generated into the same file by the same kind of
+#       script: a stale block would keep displaying reports through an outdated
+#       parser while every other gate stayed green.
+Run-Step "Generated Markdown renderer is current (generate-markdown.mjs --check)" {
+    & $node.Exe app/plugins/dsh-product-shell/scripts/generate-markdown.mjs --check | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "generate-markdown check exit code $LASTEXITCODE" }
+}
+
 # 4c. The bundler used to produce client.js must never reach the shipped payload.
 #     It lives in devDependencies only; this asserts that is still true.
 Run-Step "Build-only tooling stays out of the shipped app payload" {

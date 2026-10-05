@@ -354,6 +354,56 @@ async function main() {
       }
     }
 
+    // 7b. Round reports must render as Markdown, not as raw source in a <pre>.
+    //     The engine emits GFM (a real report measured 6 headings, 53 table rows,
+    //     8 blockquotes, 1 fence), and the panel used to print it verbatim. This
+    //     asserts rendered structure -- counting headings would pass even if the
+    //     syntax were merely visible, so it also forbids literal markers.
+    const reportRow = await evaluate(cdp, `(() => {
+      const rows = [...document.querySelectorAll('.ia-an-report-item')];
+      if (!rows.length) return 'no-rows';
+      rows[0].click();
+      return 'clicked';
+    })()`);
+    if (reportRow === "clicked") {
+      await sleep(4000);
+      const md = await evaluate(cdp, `(() => {
+        const body = document.querySelector('.ia-an-report-body');
+        if (!body) return { present: false };
+        const q = (sel) => body.querySelectorAll(sel).length;
+        const text = body.textContent || '';
+        return {
+          present: true,
+          wrapperTag: body.tagName,
+          hasRoot: Boolean(body.querySelector('.ia-md')),
+          directPre: body.querySelectorAll(':scope > pre').length,
+          headings: q('.ia-md-h1') + q('.ia-md-h2') + q('.ia-md-h3'),
+          tables: q('.ia-md-table'),
+          tableRows: q('.ia-md-table tbody tr'),
+          quotes: q('.ia-md-quote'),
+          scripts: body.querySelectorAll('script').length,
+          literalHeading: text.includes('## '),
+          literalSeparator: text.includes('|---'),
+          tdNumeric: (() => { const td = body.querySelector('.ia-md-table tbody td'); return td ? getComputedStyle(td).fontVariantNumeric : 'n/a'; })(),
+        };
+      })()`);
+      if (!md || !md.present) {
+        check(false, "round report body renders (.ia-an-report-body missing)");
+      } else {
+        check(md.hasRoot === true, `round report renders a Markdown root (${JSON.stringify({ hasRoot: md.hasRoot, wrapperTag: md.wrapperTag })})`);
+        check(md.directPre === 0, `round report has no raw <pre> wrapper (${md.directPre})`);
+        check(md.headings > 0 || md.tables > 0, `round report renders headings or tables (headings=${md.headings}, tables=${md.tables})`);
+        check(md.scripts === 0, `round report injects no <script> (${md.scripts})`);
+        check(
+          md.literalHeading === false && md.literalSeparator === false,
+          `round report shows no literal Markdown markers (heading=${md.literalHeading}, separator=${md.literalSeparator})`,
+        );
+        check(md.tdNumeric === "tabular-nums", `round report table cells align numerically (${md.tdNumeric})`);
+      }
+    } else {
+      console.error("   (markdown assertions skipped: no round report rows in the index)");
+    }
+
     // 8. Typography floor. Anything under 11px is unreadable at 100% zoom, and
     //    a stray literal is easy to reintroduce when editing a 2000-line style
     //    string. Measured from real computed styles rather than by grepping CSS.

@@ -80,7 +80,23 @@ function renderIcon(nodes) {
   return parts.join("");
 }
 
-function build() {
+/**
+ * Dominant line ending of a text, or null when it has none.
+ *
+ * The repo runs with core.autocrlf=true, so a checked-out client.js is CRLF on
+ * Windows and LF in CI. Hard-coding one of them makes the generated region
+ * disagree with the file it is spliced into, and then `--check` reports STALE
+ * forever on the other platform — the block is byte-different without a single
+ * icon having changed.
+ */
+function newlineOf(text) {
+  const crlf = (text.match(/\r\n/g) || []).length;
+  const lf = (text.match(/\n/g) || []).length;
+  if (lf === 0) return null;
+  return crlf * 2 >= lf ? "\r\n" : "\n";
+}
+
+function build(eol) {
   if (!existsSync(nodesPath)) {
     console.error(`generate-icons: lucide-static not found at ${nodesPath}`);
     console.error("generate-icons: run `npm install` in app/ first (it is a devDependency).");
@@ -103,7 +119,7 @@ function build() {
     `\t\t// Source: lucide-static@${JSON.parse(readFileSync(join(appRoot, "node_modules", "lucide-static", "package.json"), "utf-8")).version}` +
       ` (${entries.length} of ${Object.keys(nodes).length} icons)`,
     "\t\tconst ICON_SVG = {",
-    entries.join(",\n"),
+    entries.join("," + eol),
     "\t\t};",
     "",
     "\t\t/** Render one icon as an inline <svg> that inherits currentColor and token sizes. */",
@@ -117,7 +133,7 @@ function build() {
     "\t\t\t});",
     "\t\t};",
     "\t\t/* ICONS:END */",
-  ].join("\n");
+  ].join(eol);
   return block;
 }
 
@@ -133,7 +149,13 @@ if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
   process.exit(1);
 }
 
-const generated = build();
+// Match the line ending of the region being replaced, so re-running the
+// generator is a byte-for-byte no-op on every platform. A region with no line
+// ending at all (a one-liner) falls back to the host file's dominant ending.
+const region = source.slice(startIndex, endIndex + END.length);
+const eol = newlineOf(region) ?? newlineOf(source) ?? "\n";
+
+const generated = build(eol);
 const head = source.slice(0, source.indexOf("\t\t/* ICONS:START"));
 const tail = source.slice(endIndex + END.length);
 const next = head + generated + tail;

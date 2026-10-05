@@ -82,6 +82,11 @@ jobs:
       - name: Generated icon set is current
         run: node app/plugins/dsh-product-shell/scripts/generate-icons.mjs --check
 
+      # The Markdown renderer takes the same route into lib/client.js, so it gets
+      # the same staleness gate.
+      - name: Generated Markdown renderer is current
+        run: node app/plugins/dsh-product-shell/scripts/generate-markdown.mjs --check
+
       - uses: actions/setup-dotnet@v4
         if: runner.os == 'Windows'
         with:
