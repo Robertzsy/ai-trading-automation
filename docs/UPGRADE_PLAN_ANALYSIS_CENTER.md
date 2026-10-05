@@ -802,6 +802,45 @@ SSE 时延 < 1s；导出 HTML 可离线打开；版本漂移告警在 pinned ≠
 
 ## 7. DSH 升级到 0.2.0-rc.2（Q3）
 
+> **执行结果（2026-10-05）：已验证 rc.2 可安装、可启动、后端与管理壳代理全部正常，但 `dsh-product-shell` 的
+> 客户端插件在 rc.2 下**不挂载**（页面空白，零控制台报错）。为避免交付一个坏掉的 UI，已**回退到 rc.6**。
+> 下面是这次升级实测得到的**精确阻断点**，供后续单独一轮迁移使用。
+
+### 7.0 实测结论（本轮）
+
+**rc.2 侧已验证可用**：
+- `npm install` 到 `0.2.0-rc.2` 成功（205 added / 197 removed / 242 changed）。
+- `dsh --profile investment-web` 正常启动；新增 **per-process token 鉴权**：无 token `401`，带 `?token=…` 返回 200。
+- 我们的**全部引擎与代理路由在 rc.2 下正常**：`/api/investment/analysis?action=runs` 与
+  `/api/investment/reports?action=index` 均返回 200。
+- 页面 `<title>` 仍为 `Investment Auto`（`brand-dist.mjs` 需在 `npm install` 后重跑）。
+
+**阻断点：客户端插件不挂载。** 在真实 Chrome 下：`document.body.innerHTML` 仅 ~2.3KB、
+`.ia-navbtn` = 0、`.ia-shell` = 0，且**没有任何** `Runtime.exceptionThrown` / `Log.entryAdded` 错误
+—— 即 bundle 被正常打包与下发（127KB，内容含 `AnalysisCenter`），但插件从未生效。
+
+**根因（已定位）**：rc.2 的**客户端模块图**只有 56 个已注册模块，而本插件 `dsh.client.inject`
+里有两类问题条目：
+
+| 我们声明的 inject | rc.2 实际 | 处置 |
+|---|---|---|
+| `@deepseek-ai/dsh-client-store` | **不是已注册客户端模块**（rc.2 里它只是可 `require` 的普通包） | 从 inject **移除**；`defineStore` 改为 `require("@deepseek-ai/dsh-client-store")`（裸标识符，rc.2 自身的 `dsh-client-ui-theme`/`ui-chat` 都这么用） |
+| `@deepseek-ai/dsh-client-ui-slots` | **不是已注册客户端模块**（槽位服务已迁走） | 从 inject **移除**；`ctx.slots` 在 rc.2 由 **`@deepseek-ai/dsh-client-ui-renderer`** 提供（`dsh-client-ui-renderer/lib/types/client/index.d.ts:27` → `slots: SlotRegistry`），故改为 inject `dsh-client-ui-renderer` |
+| `@deepseek-ai/dsh-client-ui-primitives` | **不是已注册客户端模块** | 从 inject **移除** |
+| `@deepseek-ai/dsh-client-locale` / `-ui-conversation` / `-ui-settings-models` | ✅ 已注册 | 保留 |
+
+**只改 inject 并不够**：按上表修正后**仍然不挂载**，说明 `ctx.slots.register({name:"root", children:{…}})`
+的**调用契约**在 rc.6→rc.2 之间也变了（bundle 外层 `window.__ModuleLoader__.load({id, factory})`
+格式两边一致，故分歧在注册 API 内部）。这是下一轮迁移需要逐项比对的部分。
+
+**rc.6 与 rc.2 的其它差异（本轮实测）**：
+- rc.2 **移除** `dsh-workflow-worker-thread` → `dsh-workflow-ptc`（预设必须同步改，否则整个 workflow 不加载）。
+- rc.2 新增 `--no-open`；rc.6 **不认识**该参数（回退后必须去掉）。
+- rc.2 把 `$DSH_HOME/.credentials.yaml` 重写为带 `records:`、且 `version: 1` 不带引号的格式；
+  **rc.6 的解析器要求"扁平 ref→string 映射"**，会因此启动失败。**这是跨版本污染 dev-home 的真实案例**，
+  回退后必须把该文件还原为：`DEEPSEEK_API_KEY: <value>`（单行扁平映射）。
+- rc.2 的 `dsh.client.inject` 校验是**硬失败且静默**：不在客户端模块图里的模块不会报错，插件直接不加载。
+
 ### 7.1 目标版本
 
 `npm view @deepseek-ai/dsh dist-tags` → `latest = 0.2.0-rc.2`，与桌面壳实际运行版本（`runtime.json` → `desktopVersion: 0.2.0-rc.2`）**一致**。

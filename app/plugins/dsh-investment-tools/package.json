@@ -1,6 +1,6 @@
 {
   "name": "@investment-auto/dsh-investment-tools",
-  "version": "2.0.0-p2",
+  "version": "2.1.3",
   "description": "Investment Auto 2.0 engine bridge and checkpointed multi-role analysis workflow",
   "type": "module",
   "main": "lib/index.js",
