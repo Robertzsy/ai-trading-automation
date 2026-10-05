@@ -142,12 +142,142 @@ window.__ModuleLoader__.load({
 			"@media(max-width:1440px){.ia-an-main{grid-template-columns:minmax(0,1fr)}}",
 			"@media(max-width:1180px){.ia-an-grid{grid-template-columns:1fr}}"
 		].join("");
-		if (typeof document !== "undefined" && document.querySelector("style[data-plugin=" + JSON.stringify(CSS_ID) + "]") === null) {
+		// ── design tokens ──────────────────────────────────────────────────
+		//
+		// Single source of truth for colour, type, radius, elevation, spacing,
+		// motion and layering. Rules should reference these instead of literals.
+		//
+		// Layer 1 writes literal values and is the ONLY place a hex code belongs.
+		// Layer 2 gives them meaning. Layer 3 keeps the existing `--ia-*` aliases
+		// that current rules already consume, so this layer can be introduced
+		// without touching a single existing declaration.
+		//
+		// Investment Auto is light-only by design (see ThemePresenter): there is
+		// deliberately no dark override block, and `color-scheme` is pinned in JS.
+		const tokenCss = `
+:root{
+  color-scheme:light;
+
+  /* L1 · brand primitives */
+  --ia-blue-400:#4C8DFF; --ia-blue-500:#2F7BFF; --ia-blue-600:#1B6EF3; --ia-blue-700:#1557C8;
+  --ia-cyan-400:#3ED4DE; --ia-cyan-500:#22B8CF; --ia-cyan-600:#17B8C4;
+  --ia-violet-500:#7C5CFF;
+  --ia-ink-900:#0E1524; --ia-ink-700:#1E293B; --ia-ink-600:#495468; --ia-ink-500:#5A6578;
+  --ia-ink-400:#7C879B; --ia-ink-300:#94A3B8; --ia-ink-200:#C7CEDA;
+  --ia-paper-0:#FFFFFF; --ia-paper-50:#F6F7F9; --ia-paper-100:#F1F3F7;
+  --ia-line-200:#E6E9EF; --ia-line-300:#D3D8E2;
+  --ia-green-600:#0E9F6E; --ia-amber-600:#C2740A; --ia-red-600:#DC2626;
+
+  /* L2 · surfaces */
+  --ia-bg-base:var(--dsw-alias-bg-base,var(--ia-paper-50));
+  --ia-surface:var(--dsw-alias-bg-layer-1,var(--ia-paper-0));
+  --ia-surface-2:var(--dsw-alias-bg-layer-2,var(--ia-paper-100));
+  --ia-surface-inverse:var(--ia-ink-900);
+
+  /* L2 · text */
+  --ia-text-1:var(--dsw-alias-label-primary,var(--ia-ink-900));
+  --ia-text-2:var(--dsw-alias-label-secondary,var(--ia-ink-600));
+  --ia-text-3:var(--ia-ink-400);
+  --ia-text-on-accent:#FFFFFF;
+
+  /* L2 · borders */
+  --ia-border-subtle:var(--dsw-alias-border-l1,var(--ia-line-200));
+  --ia-border-strong:var(--dsw-alias-border-l2,var(--ia-line-300));
+
+  /* L2 · accent + semantic */
+  --ia-accent:var(--dsw-alias-brand-primary,var(--ia-blue-600));
+  --ia-accent-hover:var(--ia-blue-700);
+  --ia-accent-cyan:var(--ia-cyan-600);
+  --ia-accent-violet:var(--ia-violet-500);
+  --ia-ok:var(--dsw-alias-state-success-primary,var(--ia-green-600));
+  --ia-warn:var(--dsw-alias-state-warn-primary,var(--ia-amber-600));
+  --ia-danger:var(--dsw-alias-state-error-primary,var(--ia-red-600));
+  --ia-idle:var(--dsw-alias-state-idle-primary,var(--ia-ink-300));
+
+  /* L2 · data-visualisation order (fixed semantics: 4 = up, 5 = down) */
+  --ia-viz-1:var(--ia-blue-600); --ia-viz-2:var(--ia-cyan-500); --ia-viz-3:var(--ia-violet-500);
+  --ia-viz-4:var(--ia-green-600); --ia-viz-5:var(--ia-red-600); --ia-viz-6:var(--ia-ink-300);
+
+  /* L2 · gradients (safe to revert: point these at the flat colours above) */
+  --ia-grad-primary:linear-gradient(135deg,var(--ia-blue-500) 0%,var(--ia-cyan-600) 100%);
+  --ia-grad-accent:linear-gradient(135deg,var(--ia-blue-600) 0%,var(--ia-violet-500) 100%);
+  --ia-grad-stroke:linear-gradient(135deg,rgba(47,123,255,.55) 0%,rgba(23,184,196,.25) 100%);
+  --ia-grad-surface:linear-gradient(180deg,rgba(255,255,255,.9) 0%,rgba(246,247,249,.6) 100%);
+
+  /* L2 · typography. Nothing is downloaded: we use a face the machine already
+     has, then fall back to the platform UI face. */
+  --ia-font-sans:"HarmonyOS Sans SC","MiSans","OPPO Sans","Alibaba PuHuiTi 3.0","Source Han Sans SC","Noto Sans SC","Manrope","Plus Jakarta Sans","Inter","Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI","PingFang SC",system-ui,sans-serif;
+  --ia-font-num:"Manrope","Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",system-ui,sans-serif;
+  --ia-font-mono:"Cascadia Mono","SF Mono",Consolas,"JetBrains Mono",ui-monospace,monospace;
+
+  --ia-fs-display:48px; --ia-fs-h1:32px; --ia-fs-h2:24px; --ia-fs-h3:20px;
+  --ia-fs-body:16px; --ia-fs-body-sm:14px; --ia-fs-label:14px;
+  --ia-fs-caption:12px; --ia-fs-micro:11px; --ia-fs-mono:12.5px;
+  --ia-lh-tight:1.25; --ia-lh-snug:1.4; --ia-lh-body:1.6;
+  --ia-fw-regular:400; --ia-fw-medium:500; --ia-fw-semibold:600; --ia-fw-bold:700;
+
+  /* L2 · radii — large-radius language */
+  --ia-r-xs:8px; --ia-r-sm:10px; --ia-r-btn:14px; --ia-r-tab:16px;
+  --ia-r-chart:22px; --ia-r-card:24px; --ia-r-modal:28px; --ia-r-full:999px;
+
+  /* L2 · elevation (multi-layer, low alpha) */
+  --ia-shadow-xs:0 1px 2px rgba(16,24,40,.04);
+  --ia-shadow-sm:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  --ia-shadow-md:0 4px 12px rgba(16,24,40,.08),0 2px 4px rgba(16,24,40,.04);
+  --ia-shadow-lg:0 12px 32px rgba(16,24,40,.12),0 4px 8px rgba(16,24,40,.05);
+  --ia-glow-accent:0 6px 20px rgba(27,110,243,.28);
+
+  /* L2 · spacing — 8pt grid */
+  --ia-sp-1:4px; --ia-sp-2:8px; --ia-sp-3:12px; --ia-sp-4:16px; --ia-sp-5:20px;
+  --ia-sp-6:24px; --ia-sp-8:32px; --ia-sp-10:40px; --ia-sp-12:48px;
+
+  /* L2 · motion */
+  --ia-dur-instant:120ms; --ia-dur-fast:160ms; --ia-dur-base:200ms;
+  --ia-dur-page:280ms; --ia-dur-slow:400ms; --ia-dur-flow:560ms;
+  --ia-ease-out:cubic-bezier(.22,1,.36,1);
+  --ia-ease-in-out:cubic-bezier(.65,0,.35,1);
+  --ia-ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --ia-ease-out-expo:cubic-bezier(.16,1,.3,1);
+
+  /* L2 · layering */
+  --ia-z-base:1; --ia-z-dropdown:100; --ia-z-sticky:200; --ia-z-overlay:300; --ia-z-toast:400;
+
+  /* L3 · compatibility aliases consumed by existing rules. Several point at DSH
+     tokens this runtime does not actually inject, so every one carries a
+     concrete fallback — an unresolved var() renders the surface transparent. */
+  --ia-label-3:var(--ia-text-3);
+  --ia-hover:color-mix(in srgb,var(--ia-accent) 8%,transparent);
+  --ia-hover-solid:color-mix(in srgb,var(--ia-accent) 14%,transparent);
+  --ia-brand:var(--ia-accent);
+}
+.ia-shell{font-family:var(--ia-font-sans)}
+.ia-shell .ia-num,.ia-an-kv b,.ia-kpi-value,.ia-table td,.ia-market-value{
+  font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;
+}
+
+/* Readers who ask for less motion get a static-but-complete interface: every
+   status stays legible through colour, icon and text rather than movement. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;
+  }
+}`;
+
+		// Two independent sheets, each guarded by its own presence check so a
+		// re-mount never stacks duplicate <style> nodes. The main sheet keeps the
+		// original `data-plugin` value verbatim — that attribute is a published
+		// contract even though nothing in-tree consumes it.
+		const injectSheet = (plugin, text) => {
+			if (typeof document === "undefined") return;
+			if (document.querySelector("style[data-plugin=" + JSON.stringify(plugin) + "]") !== null) return;
 			const tag = document.createElement("style");
-			tag.dataset.plugin = CSS_ID;
-			tag.textContent = css + productCss;
+			tag.dataset.plugin = plugin;
+			tag.textContent = text;
 			document.head.appendChild(tag);
-		}
+		};
+		injectSheet(CSS_ID, css + productCss);
+		injectSheet(CSS_ID + "/tokens", tokenCss);
 
 		// ── helpers ────────────────────────────────────────────────────────
 		const jsonFetch = async (url, options = {}) => {
@@ -1961,7 +2091,20 @@ window.__ModuleLoader__.load({
 			});
 		}
 
-		// ── theme presenter (taken over from ui-layout, which this shell replaces) ──
+		// ── theme presenter ────────────────────────────────────────────────
+		//
+		// Investment Auto ships a LIGHT-ONLY surface. This is a deliberate
+		// product trade-off, not an oversight: a single palette means every
+		// component is verified once instead of twice, which matters far more
+		// for a one-person maintenance budget than offering a dark mode.
+		//
+		// The lock is applied to the THEME PREFERENCE (`setTheme("light")`), not
+		// to the token values. That distinction is essential: `snapshot.tokens`
+		// arrives already resolved for the active scheme, so picking light values
+		// here would leave every DSH-owned surface (conversation kernel, model
+		// settings) rendering dark next to our light shell.
+		const LIGHT_ONLY = "light";
+
 		var ThemePresenter = class {
 			appliedTokens = [];
 			themeColorMeta;
@@ -1970,11 +2113,11 @@ window.__ModuleLoader__.load({
 				this.themeColorMeta.name = "theme-color";
 			}
 			apply(snapshot) {
-				const scheme = snapshot.active.colorScheme;
-				document.documentElement.style.colorScheme = scheme;
+				// `colorScheme` is pinned rather than read so a transient dark
+				// resolution can never reach the DOM (not even for one frame).
+				document.documentElement.style.colorScheme = LIGHT_ONLY;
 				const body = document.body;
-				if (scheme === "dark") body.setAttribute("data-ds-dark-theme", "");
-				else body.removeAttribute("data-ds-dark-theme");
+				body.removeAttribute("data-ds-dark-theme");
 				for (const name of this.appliedTokens) body.style.removeProperty(name);
 				this.appliedTokens = [];
 				for (const [name, value] of Object.entries(snapshot.active.tokens)) {
@@ -2007,17 +2150,55 @@ window.__ModuleLoader__.load({
 			};
 			ctx.reflect.provide("layout", layoutService);
 
+			// Pin the theme preference to light BEFORE the presenter reads it, so
+			// every surface (ours and DSH's) resolves light from the first frame.
+			// Wrapped because a locked-down or future theme service must not be
+			// able to prevent the shell itself from mounting.
+			const pinLightTheme = () => {
+				try {
+					if (ctx.theme.getTheme().preference !== LIGHT_ONLY) ctx.theme.setTheme(LIGHT_ONLY);
+				} catch (error) {
+					ctx.logger?.warn?.("ia-shell: could not pin theme to light: %s", String(error?.message ?? error));
+				}
+			};
+			pinLightTheme();
+
 			ctx.effect(() => {
 				const presenter = new ThemePresenter();
 				presenter.apply(ctx.theme.getTheme());
 				const off = ctx.on("theme/change", (snapshot) => {
 					presenter.apply(snapshot);
+					// The preference lives in the user-settings document, so it can be
+					// reset externally (or back to `system`, which a dark OS resolves to
+					// dark). Re-assert rather than trusting the first write.
+					if (snapshot.preference !== LIGHT_ONLY) pinLightTheme();
 				});
 				return () => {
 					off();
 					presenter.dispose();
 				};
 			}, "ia-shell: theme presenter");
+
+			// Belt-and-braces lock. `theme/change` only fires for preference
+			// changes; anything that writes the OS-level signal another way (an
+			// extension, a host reset, a resolved `system` flip) would otherwise
+			// re-darken the surface with no event for us to catch. Watching the
+			// observed attribute is deliberately cheap and needs no React scope —
+			// root-scoped components cannot reach a session-scoped theme store.
+			ctx.effect(() => {
+				if (typeof MutationObserver !== "function") return;
+				const observer = new MutationObserver(() => {
+					if (document.documentElement.style.colorScheme !== LIGHT_ONLY) {
+						document.documentElement.style.colorScheme = LIGHT_ONLY;
+					}
+					if (document.body.hasAttribute("data-ds-dark-theme")) {
+						document.body.removeAttribute("data-ds-dark-theme");
+					}
+				});
+				observer.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
+				observer.observe(document.body, { attributes: true, attributeFilter: ["data-ds-dark-theme"] });
+				return () => observer.disconnect();
+			}, "ia-shell: light-only lock");
 
 			let rowsCache = null;
 			let rowsKey = "";
