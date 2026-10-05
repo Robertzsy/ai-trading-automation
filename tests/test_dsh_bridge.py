@@ -16,16 +16,25 @@ NOW = datetime(2026, 8, 12, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
 
 @pytest.fixture(autouse=True)
 def isolate(monkeypatch, tmp_path):
-    """Sandbox audit output and the ambient DSH_HOME.
+    """Sandbox audit output and every DSH home this machine could offer.
 
-    Note: since explicit product configuration outranks DSH_HOME (see
-    ``_resolve_dsh_home``), a test that needs a specific home must call
-    ``_pin_home`` — otherwise the shipped ``dsh_home`` would win. Config itself is
-    deliberately left untouched so tests of the real configuration still work.
+    ``_resolve_dsh_home`` falls back to the *installed* data root
+    (``%LOCALAPPDATA%\\InvestmentAuto``). Without redirecting LOCALAPPDATA, a
+    test on a machine that has the product installed resolves to that real home
+    and then seeds profiles into it -- an 8s drift plus a write into live user
+    data. Both are unacceptable from a unit test, so both markers are pointed at
+    throwaway directories here.
+
+    Note: explicit product configuration outranks DSH_HOME, so a test that needs
+    a specific home must call ``_pin_home``. Config itself is deliberately left
+    untouched so tests of the real configuration still work.
     """
     monkeypatch.setattr(dsh_bridge, "AUDIT_DIR", tmp_path / "audit")
     (tmp_path / "audit").mkdir()
     monkeypatch.setenv("DSH_HOME", str(tmp_path / "home"))
+    # No settings.yaml in these sandboxes, so neither can be mistaken for ours,
+    # and neither is the real install.
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
     return tmp_path
 
@@ -348,19 +357,78 @@ def test_relative_configured_home_resolves_against_app_root(monkeypatch, tmp_pat
     assert resolved == str(dsh_bridge.APP_ROOT / "app" / "dev-home")
 
 
-def test_dsh_home_falls_back_to_env_when_unconfigured(monkeypatch, tmp_path):
-    """Deployments that intentionally target a shared home still work."""
-    foreign_home = tmp_path / "shared-home"
-    foreign_home.mkdir()
+def test_dsh_home_falls_back_to_env_when_it_is_ours(monkeypatch, tmp_path):
+    """A DSH_HOME pointing at OUR data root is honoured (packaged shell path).
+
+    This is how the desktop shell drives the engine: it exports DSH_HOME to the
+    installed data root, and that root carries the model/provider selection and
+    the DPAPI credential store the rounds must inherit.
+    """
+    our_home = tmp_path / "our-data-home"
+    our_home.mkdir()
+    (our_home / "settings.yaml").write_text("ui-onboarding: {}\n", encoding="utf-8")
     monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})
-    monkeypatch.setenv("DSH_HOME", str(foreign_home))
-    assert dsh_bridge._resolve_dsh_home(tmp_path / "app") == str(foreign_home)
+    monkeypatch.setenv("DSH_HOME", str(our_home))
+    assert dsh_bridge._resolve_dsh_home(tmp_path / "app") == str(our_home)
 
 
-def test_dsh_home_falls_back_to_dev_home_last(monkeypatch, tmp_path):
-    """With neither configuration nor env, the product's own home wins."""
+def test_foreign_dsh_home_is_rejected_even_when_unconfigured(monkeypatch, tmp_path):
+    """A DSH_HOME belonging to ANOTHER project must never be adopted.
+
+    Such a home has profiles/agent-home/sessions but no settings.yaml. Adopting
+    it makes rounds write into a foreign tree and inherit its .credentials.yaml,
+    which another DSH version may have written in a format this build rejects.
+    """
+    foreign = tmp_path / "foreign-dsh"
+    (foreign / "profiles").mkdir(parents=True)
+    (foreign / "agent-home").mkdir()
+    monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})
+    monkeypatch.setenv("DSH_HOME", str(foreign))
+    # Isolate the installed-root probe so only the dev home can win.
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "no-such-localappdata"))
+    app_dir = tmp_path / "app"
+    (app_dir / "dev-home").mkdir(parents=True)
+    resolved = dsh_bridge._resolve_dsh_home(app_dir)
+    assert resolved == str(app_dir / "dev-home")
+    assert Path(resolved) != foreign
+
+
+def test_installed_data_root_outranks_dev_home(monkeypatch, tmp_path):
+    """On an installed machine the packaged data root wins over app/dev-home.
+
+    app/dev-home is a development home: it carries no settings storages and no
+    credentials, so preferring it on a real install would leave rounds without a
+    configured model. See _sync_internal_home.
+    """
+    installed = tmp_path / "InvestmentAuto"
+    installed.mkdir()
+    (installed / "settings.yaml").write_text("ui-onboarding: {}\n", encoding="utf-8")
+    monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})
+    monkeypatch.delenv("DSH_HOME", raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    app_dir = tmp_path / "app"
+    (app_dir / "dev-home").mkdir(parents=True)
+    assert dsh_bridge._resolve_dsh_home(app_dir) == str(installed)
+
+
+def test_dev_home_is_used_when_nothing_else_applies(monkeypatch, tmp_path):
+    """Source checkout with no env and no install: the in-repo dev home wins."""
     app_dir = tmp_path / "app"
     (app_dir / "dev-home").mkdir(parents=True)
     monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})
     monkeypatch.delenv("DSH_HOME", raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "no-such-localappdata"))
     assert dsh_bridge._resolve_dsh_home(app_dir) == str(app_dir / "dev-home")
+
+
+def test_product_data_home_marker_requires_settings_yaml(tmp_path):
+    """The marker is settings.yaml: present on ours, absent on a foreign DSH home."""
+    ours = tmp_path / "ours"
+    ours.mkdir()
+    (ours / "settings.yaml").write_text("{}\n", encoding="utf-8")
+    foreign = tmp_path / "foreign"
+    (foreign / "profiles").mkdir(parents=True)
+    (foreign / "agent-home").mkdir()
+    assert dsh_bridge._is_product_data_home(ours) is True
+    assert dsh_bridge._is_product_data_home(foreign) is False
+    assert dsh_bridge._is_product_data_home(tmp_path / "missing") is False

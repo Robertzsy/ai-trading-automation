@@ -46,12 +46,17 @@ autonomous:
     enabled: true
     app_dir: app                 # 相对仓库/安装根目录；或设 INVESTMENT_AUTO_APP_DIR
     node_timeout_seconds: 1800   # 单轮 headless 会话硬上限
-    # 轮次使用的 DSH home。**显式配置优先于环境变量 DSH_HOME**：本机若同时装着
-    # 其他 DSH 项目，继承来的 DSH_HOME 会指向别人的 home —— 轮次会往那里写
-    # profiles/storages，并继承其 .credentials.yaml（可能由别的 DSH 版本写成
-    # 本版本无法解析的格式，导致每轮在启动阶段就失败）。留空则回退到
-    # DSH_HOME，再回退到 app/dev-home。
-    dsh_home: app/dev-home
+    # 轮次使用的 DSH home。**留空即自动判定（推荐）**：
+    #   1. 本配置项（显式指定时优先）
+    #   2. 环境变量 DSH_HOME —— 仅当它确实是本产品的数据目录时才采用
+    #   3. %LOCALAPPDATA%\InvestmentAuto（安装版数据根）
+    #   4. app/dev-home（源码开发）
+    # 判定标记是数据根下的 settings.yaml。本机若同时装着其他 DSH 项目，
+    # 继承来的 DSH_HOME 指向别人的 home，会被判为"非本产品"而忽略 ——
+    # 否则轮次会往那里写数据，并继承其 .credentials.yaml（可能由别的 DSH
+    # 版本写成本版本无法解析的格式，导致每轮在启动阶段就失败）。
+    # 只有在确实要把轮次指向某个特定 home 时才填写本项。
+    dsh_home: ""
   agent_workflow:
     allow_partial_symbol_research: true
     enabled: true
@@ -306,11 +311,16 @@ screening:
   shortlist_size: 20
   snapshot_limit: 60
   storage:
+    # no URI -> no connection attempt at all, JSON only (storage.py get_screening_store).
     backend: auto
-    connect_timeout_ms: 1500
+    # A loopback address does not need 1.5s to prove it is closed; failing fast
+    # keeps an unconfigured/absent MongoDB from costing real time. Only relevant
+    # when MONGODB_URI is actually set.
+    connect_timeout_ms: 800
     mongodb_database: investment_auto
     mongodb_uri_env: MONGODB_URI
-    retry_seconds: 60
+    # When the configured server is down, do not retry every minute forever.
+    retry_seconds: 600
   use_for_optimizer: true
   weights:
     liquidity: 0.2
