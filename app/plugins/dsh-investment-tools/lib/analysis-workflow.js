@@ -359,13 +359,50 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
 export function registerAnalysisWorkflow(ctx, client, registerTool) {
   const activeRuns = new Map();
   if (typeof ctx.on === "function") {
-    ctx.on("workflow/agent-start", (info) => {
+    // The DSH workflow engine publishes BOTH arguments:
+    //   workflow/agent-start (info, agent)   info={id,meta}  agent={seq,label,phase?,childId}
+    //   workflow/agent-end   (info, agent)   agent gains outcome: completed|failed|cancelled
+    // Historically only `info.id` was used, so the engine could count subagents
+    // but never say WHICH one ran, in which phase, for how long, or why it
+    // failed. Forwarding the published identity is what makes the analysis
+    // timeline real. These events go to /runs/events (timeline semantics), not
+    // /runs/update (checkpoint semantics).
+    ctx.on("workflow/agent-start", (info, agent) => {
       const active = activeRuns.get(String(info.id));
-      if (active) void client.post("/api/analysis/runs/update", {cycle_id:active.cycleId,stage:active.stage,event:"agent_start"}).catch(() => {});
+      if (!active) return;
+      void client.post("/api/analysis/runs/events", {
+        cycle_id:active.cycleId,
+        stage:active.stage,
+        event:"agent_start",
+        seq:agent?.seq,
+        label:agent?.label,
+        phase:agent?.phase,
+        child_id:agent?.childId,
+      }).catch(() => {});
     });
     ctx.on("workflow/agent-end", (info, agent) => {
       const active = activeRuns.get(String(info.id));
-      if (active) void client.post("/api/analysis/runs/update", {cycle_id:active.cycleId,stage:active.stage,event:"agent_end",outcome:agent.outcome}).catch(() => {});
+      if (!active) return;
+      void client.post("/api/analysis/runs/events", {
+        cycle_id:active.cycleId,
+        stage:active.stage,
+        event:"agent_end",
+        seq:agent?.seq,
+        label:agent?.label,
+        phase:agent?.phase,
+        child_id:agent?.childId,
+        outcome:agent?.outcome,
+      }).catch(() => {});
+    });
+    // Phase boundaries and workflow logs enrich the timeline without needing
+    // any engine schema change.
+    ctx.on("workflow/phase", (info, title) => {
+      const active = activeRuns.get(String(info.id));
+      if (!active || !title) return;
+      void client.post("/api/analysis/runs/events", {
+        cycle_id:active.cycleId, stage:active.stage, event:"log",
+        level:"info", message:"阶段推进：" + String(title).slice(0,200),
+      }).catch(() => {});
     });
   }
 
@@ -487,17 +524,35 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         const minimumCitations = Math.max(1, Number(workflowConfig.minimum_citations ?? 1));
         const requireCitations = workflowConfig.require_citations !== false;
 
+        // Untruncated stage results. `compact()` below caps strings at 1600
+        // chars before checkpointing, so the durable checkpoint is lossy by
+        // design. Keeping the raw values here lets the engine archive them
+        // verbatim (Q4-B) so a later audit can recover the full research text.
+        const rawStages = {};
+        const recordStage = (name, value) => { rawStages[name] = value; };
+        const flushArchive = async () => {
+          try {
+            await client.post("/api/analysis/runs/archive", {cycle_id:cycleId, stages:rawStages}, {timeoutMs:120000});
+          } catch { /* auxiliary: never fail the round over the archive */ }
+        };
+
         const base = checkpoints.base_research?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"base_research",BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory},targets.length*4);
+        if (checkpoints.base_research?.result === undefined) recordStage("base_research", base);
         const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations);
         const successRatio = validation.good.length / targets.length;
         const requiredRatio = Math.max(0,Math.min(1,Number(workflowConfig.minimum_symbol_research_success_ratio ?? 0.8)));
         if (successRatio < requiredRatio) throw new Error("基础研究成功率 " + successRatio.toFixed(2) + " 未达到阈值 " + requiredRatio.toFixed(2) + "，本轮按故障安全规则停止提交");
         const failedHoldings = validation.failed.filter((symbol) => holdingSymbols.includes(symbol));
         const debate = checkpoints.research_debate?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"research_debate",RESEARCH_DEBATE_SCRIPT,{research:validation.good,mandate,holdings,rounds:researchRounds},Math.max(1,validation.good.length*(2*researchRounds+2)));
+        if (checkpoints.research_debate?.result === undefined) recordStage("research_debate", debate);
         const recommendations = (Array.isArray(debate) ? debate : []).map((row) => row?.trader).filter(Boolean);
         const draft = checkpoints.portfolio_draft?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"portfolio_draft",PORTFOLIO_SCRIPT,{portfolio,mandate,recommendations},1);
+        if (checkpoints.portfolio_draft?.result === undefined) recordStage("portfolio_draft", draft);
         const risk = checkpoints.risk_review?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"risk_review",RISK_SCRIPT,{draft,portfolio,mandate,rounds:riskRounds},3*riskRounds+1);
+        if (checkpoints.risk_review?.result === undefined) recordStage("risk_review", risk);
         const finalResult = checkpoints.final_decision?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"final_decision",FINAL_SCRIPT,{risk,recommendations,mandate},1);
+        if (checkpoints.final_decision?.result === undefined) recordStage("final_decision", finalResult);
+        await flushArchive();
         const decisions = normalizedDecisions(finalResult?.decisions,targets,failedHoldings);
         const warnings = validation.failed.map((symbol) => holdingSymbols.includes(symbol) ? symbol+" 基础研究不完整，已强制 HOLD" : symbol+" 基础研究不完整，已从候选决策排除");
         // Persist the final decisions FIRST and enter ready_for_execution:

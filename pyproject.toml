@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-investment-auto = "src.main:main"
+investment-auto = "engine.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

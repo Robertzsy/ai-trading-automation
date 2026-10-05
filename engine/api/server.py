@@ -21,6 +21,32 @@ def _api_token() -> str:
     return os.getenv("IA_ACCESS_TOKEN", "").strip()
 
 
+def _drain_body(handler: BaseHTTPRequestHandler, limit: int = 1_000_000) -> None:
+    """Consume an unread request body.
+
+    A handler that answers without reading the body (e.g. the 404 arm, or a
+    405/413 rejection) leaves unread bytes in the socket. On Windows the
+    subsequent connection teardown then aborts in-flight client reads with
+    WinError 10053 (``ConnectionAbortedError``) — an intermittent failure that
+    showed up as a ~25% flake in the API tests. Draining first keeps the
+    response/teardown ordering deterministic.
+    """
+    try:
+        length = int(handler.headers.get("Content-Length") or 0)
+    except ValueError:
+        return
+    if length <= 0:
+        return
+    if length > limit:
+        # Do not buffer an absurd body just to discard it; the connection is
+        # about to close anyway and the caller has already rejected it.
+        return
+    try:
+        handler.rfile.read(length)
+    except Exception:  # noqa: BLE001 - best-effort; never fail the response
+        pass
+
+
 def _read_json(handler: BaseHTTPRequestHandler, limit: int = 1_000_000) -> Optional[Dict[str, Any]]:
     try:
         length = int(handler.headers.get("Content-Length") or 0)
@@ -211,6 +237,44 @@ class _Handler(BaseHTTPRequestHandler):
             } for path in files[:limit]]
             self._send(200, {"ok": True, "market": market or None, "reports": rows})
             return
+        if path == "/api/reports/index":
+            # Round-report index: one row per analysis round, newest first.
+            # Registered before /api/reports/content only for readability; both
+            # are exact paths so ordering is irrelevant.
+            from engine.analysis_reports import read_index
+
+            values = _query(self)
+            try:
+                limit = max(1, min(200, int(values.get("limit", "50"))))
+            except ValueError:
+                limit = 50
+            rows = read_index(
+                market=values.get("market", "").strip().lower(),
+                limit=limit,
+                status=values.get("status", "").strip().lower(),
+            )
+            self._send(200, {"ok": True, "reports": rows, "count": len(rows)})
+            return
+        if path == "/api/reports/content":
+            # Report BODY. Previously unreachable over HTTP: /api/reports only
+            # ever returned {file, mtime, size} and /api/reports/latest only
+            # {file, generated_at}. Traversal is rejected inside the module.
+            from engine.analysis_reports import read_report_content
+
+            values = _query(self)
+            try:
+                payload = read_report_content(
+                    cycle_id=values.get("cycle_id", "").strip(),
+                    file=values.get("file", "").strip(),
+                )
+            except KeyError as exc:
+                self._send(404, {"ok": False, "error": str(exc)})
+                return
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
+                return
+            self._send(200, {"ok": True, **payload})
+            return
         if path == "/api/reports/latest":
             market = _query(self).get("market", "").strip().lower()
             from engine.investment.status import _latest_report
@@ -311,10 +375,16 @@ class _Handler(BaseHTTPRequestHandler):
 
             self._send(200, {"ok": True, "first_run": not (runtime_dir() / "setup.complete").exists()})
             return
+        # A POST routed here has an unread body; drain it before answering so
+        # the Windows socket teardown cannot abort the client's read.
+        _drain_body(self)
         self._send(404, {"ok": False, "error": "not found", "path": path})
 
     def do_POST(self) -> None:  # noqa: N802
         if not self._authorized():
+            # Rejecting before reading the body must still drain it, or the
+            # Windows teardown can abort the client's in-flight read (10053).
+            _drain_body(self)
             self._send(403, {"ok": False, "error": "invalid access token"})
             return
         path = urlsplit(self.path).path
@@ -355,6 +425,22 @@ class _Handler(BaseHTTPRequestHandler):
                     result = analysis_runs.start_or_resume(payload)
                 elif path == "/api/analysis/runs/update":
                     result = analysis_runs.update(payload)
+                elif path == "/api/analysis/runs/events":
+                    # Fine-grained timeline events (subagent identity, logs,
+                    # stage boundaries). Separate from /update because /update
+                    # carries checkpoint semantics and is inert on terminal runs.
+                    result = analysis_runs.apply_event(payload)
+                elif path == "/api/analysis/runs/archive":
+                    # Q4-B: the workflow's checkpoint payloads are truncated to
+                    # 1600 chars by compact(); the launcher posts the raw stage
+                    # results here so the full research text survives.
+                    from engine import analysis_reports
+
+                    directory = analysis_reports.archive_stage_results(
+                        str(payload.get("cycle_id", "")), payload.get("stages") or {},
+                    )
+                    self._send(200, {"ok": True, "archive_dir": directory})
+                    return
                 elif path == "/api/analysis/runs/complete":
                     result = analysis_runs.finish(payload)
                 elif path == "/api/analysis/runs/fail":
@@ -367,6 +453,28 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(400, {"ok": False, "error": str(exc)[:800]})
             except Exception as exc:  # noqa: BLE001
                 logger.exception("analysis run update failed")
+                self._send(500, {"ok": False, "error": str(exc)[:800]})
+            return
+        if path == "/api/analysis/rounds/stop":
+            payload = _read_json(self)
+            if payload is None:
+                self._send(400, {"ok": False, "error": "invalid JSON body"})
+                return
+            try:
+                from engine import analysis_runs
+
+                cycle_id = str(payload.get("cycle_id", "")).strip()
+                if not cycle_id:
+                    self._send(400, {"ok": False, "error": "missing cycle_id"})
+                    return
+                # Analysis-only: cancelling never touches the account, because
+                # web-launched rounds force submit=False and place no orders.
+                result = analysis_runs.cancel(cycle_id, reason=str(payload.get("reason", ""))[:500])
+                self._send(200, {"ok": True, "analysis": result})
+            except (KeyError, ValueError) as exc:
+                self._send(400, {"ok": False, "error": str(exc)[:800]})
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("analysis round stop failed")
                 self._send(500, {"ok": False, "error": str(exc)[:800]})
             return
         if self.path == "/api/credentials/set":

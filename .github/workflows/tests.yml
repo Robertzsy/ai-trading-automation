@@ -17,18 +17,70 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
+
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Pinned to the Node version declared in scripts/fetch-runtime.ps1,
+          # which is the single source of truth for the portable runtime the
+          # installer ships. The next step fails if the two ever disagree.
+          node-version: "22.19.0"
+
+      - name: Node pin matches scripts/fetch-runtime.ps1
+        shell: pwsh
+        run: |
+          . ./scripts/runtime-common.ps1
+          $pinned = Get-IAPinnedNodeVersion
+          $actual = (& node --version).Trim()
+          Write-Host "setup-node: $actual / fetch-runtime.ps1 pin: $pinned"
+          if ($actual -ne $pinned) {
+            throw "CI Node $actual does not match the fetch-runtime.ps1 pin $pinned"
+          }
+
       - run: python -m pip install --upgrade pip
+
       - run: pip install -r requirements.txt pytest
-      - run: python -m pytest -q
-      - run: python -m compileall -q src tests
+
+      - name: Python test suite
+        run: python -m pytest -q
+
+      - name: Python byte-compile
+        run: python -m compileall -q engine tests
+
+      - name: Version declarations match engine/version.py
+        shell: pwsh
+        run: ./scripts/bump-version.ps1 -Check
+
       - run: node --check scripts/stock-fetcher.js
+
       - run: node --check scripts/macro-environment/collect.js
+
       - run: node --check scripts/macro-environment/report.js
+
       - run: node --check scripts/macro-environment/run.js
+
+      - name: Install DSH app dependencies
+        working-directory: app
+        run: npm ci --no-audit --no-fund
+
+      - name: DSH plugin unit tests (node --test)
+        run: node --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs"
+
+      - name: Investment skills structural check
+        run: node app/scripts/check-skills.mjs
+
+      - name: Plugin packaging + client contract check
+        run: node app/scripts/check-plugins.mjs
+
+      - uses: actions/setup-dotnet@v4
+        if: runner.os == 'Windows'
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: C# desktop tests (dotnet test)
+        if: runner.os == 'Windows'
+        run: dotnet test windows/desktop/InvestmentAuto.Desktop.Tests/InvestmentAuto.Desktop.Tests.csproj -c Release --nologo

@@ -14,12 +14,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
+from engine import analysis_events
 from engine.paths import runtime_dir
 
 _lock = threading.RLock()
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$")
 _MARKETS = {"cn", "hk", "us", "etf"}
 _TERMINAL = {"completed", "failed"}
+#: Statuses that end a round's life. ``cancelled`` is user-initiated (the stop
+#: button); ``ready_for_execution`` is terminal for ANALYSIS but may still be
+#: advanced by an approved submission, so it is deliberately NOT in this set.
+_TERMINAL_OR_CANCELLED = {"completed", "failed", "cancelled"}
+
+#: Record schema version. v1 had counters only; v2 adds the stage timeline,
+#: per-subagent identity and a bounded log ring. Readers must accept both.
+RUN_VERSION = 2
 
 
 def _directory() -> Path:
@@ -111,7 +120,7 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             raise ValueError("expected_agents 必须是非负整数")
         now = _now()
         run = {
-            "version": 1,
+            "version": RUN_VERSION,
             "cycle_id": cycle_id,
             "market": market,
             "label": str(payload.get("label") or "analysis")[:80],
@@ -131,6 +140,12 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             "failed_agents": 0,
             "evidence_count": 0,
             "checkpoints": {},
+            # ── v2 timeline (additive) ────────────────────────────────────
+            "stages": {},
+            "agents": {},
+            "logs": [],
+            "goal_id": str(payload.get("goal_id") or "")[:120] or None,
+            "report": None,
             "warnings": [],
             "started_at": now,
             "updated_at": now,
@@ -141,18 +156,37 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
 
 
 def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
-    """Update live counters or persist one completed stage checkpoint."""
+    """Update live counters or persist one completed stage checkpoint.
+
+    v1 semantics are preserved exactly (the three counters and ``checkpoints``);
+    v2 additionally records the stage timeline so the product UI can show how
+    long each stage took. Stage timing is derived here — server side — so a
+    caller that omits timestamps still produces a truthful timeline.
+    """
     cycle_id = _cycle_id(payload.get("cycle_id"))
     with _lock:
         path = _path(cycle_id)
         run = _read(path)
         if run is None:
             raise KeyError(f"analysis run not found: {cycle_id}")
-        if run.get("status") in _TERMINAL:
+        if run.get("status") in _TERMINAL_OR_CANCELLED:
             return copy.deepcopy(run)
+        analysis_events.ensure_shape(run)
         stage = str(payload.get("stage") or run.get("current_stage") or "running").strip()[:80]
         event = str(payload.get("event") or "checkpoint").strip().lower()
         run["current_stage"] = stage
+        now = _now()
+        stages: Dict[str, Any] = run["stages"]
+        stage_state = stages.get(stage)
+        if not isinstance(stage_state, dict):
+            stage_state = {
+                "status": "running", "started_at": now, "finished_at": None,
+                "duration_ms": None, "agents_total": 0, "agents_done": 0,
+                "agents_failed": 0, "result_digest": None,
+            }
+            stages[stage] = stage_state
+        if not stage_state.get("started_at"):
+            stage_state["started_at"] = now
         if event == "execution_ready":
             # The fixed workflow has persisted its final decisions: analysis is
             # done, trading is now possible (autonomous submit=true) or
@@ -169,34 +203,138 @@ def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
             checkpoints = run.setdefault("checkpoints", {})
             checkpoints[stage] = {
                 "status": "completed",
-                "completed_at": _now(),
+                "completed_at": now,
                 "agents_started": int(payload.get("agents_started", 0) or 0),
                 "result": payload.get("result"),
             }
+            _end_stage(stage_state, "completed", now, payload.get("result"))
         elif event == "agent_start":
             run["started_agents"] = int(run.get("started_agents", 0)) + 1
         elif event == "agent_end":
             outcome = str(payload.get("outcome") or "completed").lower()
             if outcome == "completed":
                 run["completed_agents"] = int(run.get("completed_agents", 0)) + 1
+                stage_state["agents_done"] = int(stage_state.get("agents_done", 0) or 0) + 1
             else:
                 run["failed_agents"] = int(run.get("failed_agents", 0)) + 1
+                stage_state["agents_failed"] = int(stage_state.get("agents_failed", 0) or 0) + 1
         elif event == "checkpoint":
             result = payload.get("result")
             checkpoints = run.setdefault("checkpoints", {})
             checkpoints[stage] = {
                 "status": "completed",
-                "completed_at": _now(),
+                "completed_at": now,
                 "agents_started": int(payload.get("agents_started", 0) or 0),
                 "result": result,
             }
             evidence_count = payload.get("evidence_count")
             if isinstance(evidence_count, int) and not isinstance(evidence_count, bool) and evidence_count >= 0:
                 run["evidence_count"] = max(int(run.get("evidence_count", 0)), evidence_count)
+            _end_stage(stage_state, "completed", now, result)
         elif event == "stage_start":
-            pass
+            stage_state["status"] = "running"
         else:
             raise ValueError("event 必须是 stage_start、agent_start、agent_end 或 checkpoint")
+        run["updated_at"] = now
+        _write(path, run)
+        return copy.deepcopy(run)
+
+
+def _end_stage(stage_state: Dict[str, Any], status: str, at: str, result: Any = None) -> None:
+    """Close a stage with a measured duration and an honest result digest."""
+    stage_state["status"] = status
+    stage_state["finished_at"] = at
+    started = stage_state.get("started_at")
+    if isinstance(started, str):
+        measured = analysis_events.ms_between(started, at)
+        if measured is not None:
+            stage_state["duration_ms"] = measured
+    digest = analysis_events.digest_from_result(result)
+    if digest is not None:
+        stage_state["result_digest"] = digest
+
+
+def apply_event(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    """Fold one fine-grained event (subagent identity / log / stage) into a run.
+
+    Used by ``POST /api/analysis/runs/events``.  Kept separate from ``update()``
+    on purpose: ``update()`` carries checkpoint semantics and is intentionally
+    inert on terminal runs, whereas late-arriving subagent events must still be
+    recorded so a finished round's timeline is complete.
+    """
+    cycle_id = _cycle_id(payload.get("cycle_id"))
+    with _lock:
+        path = _path(cycle_id)
+        run = _read(path)
+        if run is None:
+            raise KeyError(f"analysis run not found: {cycle_id}")
+        if run.get("status") == "cancelled":
+            return copy.deepcopy(run)
+        analysis_events.ensure_shape(run)
+        analysis_events.apply_event(run, payload)
+        run["updated_at"] = _now()
+        _write(path, run)
+        return copy.deepcopy(run)
+
+
+def cancel(cycle_id: str, *, reason: str = "") -> Dict[str, Any]:
+    """Mark a round cancelled by the user.
+
+    Analysis-only, so there is nothing to roll back: no order was ever placed
+    (web rounds force ``submit=False``).  The worker observes the status change
+    and stops; the cycle lease is released by the worker's ``finally``.
+    """
+    normalized = _cycle_id(cycle_id)
+    with _lock:
+        path = _path(normalized)
+        run = _read(path)
+        if run is None:
+            raise KeyError(f"analysis run not found: {normalized}")
+        status = str(run.get("status", ""))
+        if status in _TERMINAL_OR_CANCELLED:
+            return copy.deepcopy(run)
+        now = _now()
+        run["status"] = "cancelled"
+        run["current_stage"] = "cancelled"
+        run["cancelled_at"] = now
+        run["updated_at"] = now
+        run["completed_at"] = now
+        run["error"] = str(reason or "用户手动停止分析")[:2000]
+        analysis_events.ensure_shape(run)
+        for stage_state in (run.get("stages") or {}).values():
+            if isinstance(stage_state, dict) and stage_state.get("status") == "running":
+                _end_stage(stage_state, "cancelled", now)
+        analysis_events.append_log(
+            run, message=str(reason or "用户手动停止分析"), level="warn", at=now,
+        )
+        _write(path, run)
+        return copy.deepcopy(run)
+
+
+def is_cancelled(cycle_id: str) -> bool:
+    """Cheap check used by the round worker between stages."""
+    try:
+        run = get(cycle_id)
+    except (KeyError, ValueError):
+        return False
+    return bool(run) and run.get("status") == "cancelled"
+
+
+def set_report_meta(cycle_id: str, descriptor: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+    """Attach the per-round report descriptor to a run (idempotent).
+
+    The report is generated once, after the round reaches a terminal state, so
+    this deliberately does not touch status/stage fields.
+    """
+    normalized = _cycle_id(cycle_id)
+    with _lock:
+        path = _path(normalized)
+        run = _read(path)
+        if run is None:
+            return None
+        if run.get("report_meta"):
+            return copy.deepcopy(run)
+        run["report_meta"] = dict(descriptor or {})
         run["updated_at"] = _now()
         _write(path, run)
         return copy.deepcopy(run)
@@ -209,19 +347,38 @@ def finish(payload: Mapping[str, Any], *, failed: bool = False) -> Dict[str, Any
         run = _read(path)
         if run is None:
             raise KeyError(f"analysis run not found: {cycle_id}")
+        if str(run.get("status")) == "cancelled":
+            # A cancelled round is already terminal; a late worker must not
+            # resurrect it into completed/failed.
+            return copy.deepcopy(run)
+        analysis_events.ensure_shape(run)
+        now = _now()
         run["status"] = "failed" if failed else "completed"
         run["current_stage"] = "failed" if failed else "completed"
         if failed:
             run["error"] = str(payload.get("error") or "analysis workflow failed")[:2000]
+            analysis_events.append_log(
+                run, message=run["error"], level="error", at=now,
+            )
         else:
+            # ``report`` keeps its v1 meaning (a path string) for compatibility;
+            # the v2 structured descriptor lives in ``report_meta``.
             for key in ("decisions", "execution", "report", "audit_file"):
                 if key in payload:
                     run[key] = payload[key]
         warnings = payload.get("warnings")
         if isinstance(warnings, list):
             run["warnings"] = [str(item)[:500] for item in warnings[:50]]
-        run["updated_at"] = _now()
-        run["completed_at"] = run["updated_at"]
+        final_status = "failed" if failed else "completed"
+        for stage_name, stage_state in (run.get("stages") or {}).items():
+            if isinstance(stage_state, dict) and stage_state.get("status") == "running":
+                _end_stage(
+                    stage_state,
+                    final_status if stage_name == run.get("current_stage") else "completed",
+                    now,
+                )
+        run["updated_at"] = now
+        run["completed_at"] = now
         _write(path, run)
         return copy.deepcopy(run)
 

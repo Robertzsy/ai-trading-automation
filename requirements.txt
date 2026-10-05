@@ -7,3 +7,9 @@ pandas>=2.2.0
 numpy>=1.26.0
 pydantic-ai-slim[openai]>=2.0,<3
 pymongo>=4.8,<5
+# Primary K-line source (engine/data/providers/akshare_provider.py).
+# Pinned exactly: the provider maps specific akshare function names and column
+# layouts, and akshare renames both between minor releases.  Note akshare
+# requires Python >= 3.11; on older interpreters the provider ladder falls
+# through to the bundled Node fetcher.
+akshare==1.19.1

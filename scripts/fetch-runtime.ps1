@@ -1,6 +1,6 @@
 param(
     [string]$PythonVersion = "3.11.9",
-    [string]$NodeVersion = "v22.19.0",
+    [string]$NodeVersion = "v22.19.0",   # SINGLE SOURCE OF TRUTH for the Node pin
     [string]$OutputDirectory = ""
 )
 
@@ -9,6 +9,12 @@ param(
 #   - official Node.js Windows zip
 #   - Microsoft WebView2 Evergreen bootstrapper
 # Build-time only: end users never run this script.
+#
+# The two versions above are the ONE place a runtime version is written down.
+# scripts\runtime-common.ps1 reads the Node pin back out of this file
+# (Get-IAPinnedNodeVersion) and bundle-runtime.ps1 / build-windows-release.ps1 /
+# release-check.ps1 all consume it, so those scripts can no longer drift to a
+# different Node than the one downloaded here.
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot

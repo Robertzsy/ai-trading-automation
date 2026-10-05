@@ -98,7 +98,7 @@ autonomous:
   operation_mode: automatic
   trade_on_catch_up: false
 llm:
-  quick_model: deepseek-v4-flash
+  quick_model: deepseek-flash
   deep_model: deepseek-v4-pro
   models:
     deepseek:
@@ -106,9 +106,8 @@ llm:
       api_key_env: DEEPSEEK_API_KEY
       model: deepseek-v4-pro
       variants:
-      - deepseek-chat
+      - deepseek-flash
       - deepseek-v4-pro
-      - deepseek-v4-flash
     deepinfra:
       provider_name: DeepInfra
       api_base: https://api.deepinfra.com/v1/openai
@@ -144,26 +143,26 @@ llm:
   - kimi
   request_timeout_seconds: 120
   role_model_override:
-    aggressive_analyst: deepseek-v4-flash
-    analyst: deepseek-v4-flash
-    bear_researcher: deepseek-v4-flash
-    bull_researcher: deepseek-v4-flash
-    conservative_analyst: deepseek-v4-flash
-    fundamentals_analyst: deepseek-v4-flash
+    aggressive_analyst: deepseek-flash
+    analyst: deepseek-flash
+    bear_researcher: deepseek-flash
+    bull_researcher: deepseek-flash
+    conservative_analyst: deepseek-flash
+    fundamentals_analyst: deepseek-flash
     investment_advisor: deepseek-v4-pro
     judge: deepseek-v4-pro
-    neutral_analyst: deepseek-v4-flash
-    news_analyst: deepseek-v4-flash
+    neutral_analyst: deepseek-flash
+    news_analyst: deepseek-flash
     portfolio_manager: deepseek-v4-pro
     quant_analyst: deepseek-v4-pro
-    research: deepseek-chat
+    research: deepseek-flash
     research_manager: deepseek-v4-pro
-    researcher: deepseek-v4-flash
+    researcher: deepseek-flash
     risk_chairman: deepseek-v4-pro
     risk_manager: deepseek-v4-pro
-    sentiment_analyst: deepseek-v4-flash
-    technical_analyst: deepseek-v4-flash
-    trader: deepseek-v4-flash
+    sentiment_analyst: deepseek-flash
+    technical_analyst: deepseek-flash
+    trader: deepseek-flash
 manager_agent:
   usage_limits:
     request_limit: 32

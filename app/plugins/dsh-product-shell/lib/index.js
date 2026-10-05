@@ -202,11 +202,149 @@ export function apply(ctx) {
         }
       },
     });
+
+    // ── analysis centre: manual start / progress / reports ────────────────────
+    //
+    // The browser must never see the engine loopback URL or IA_ACCESS_TOKEN
+    // (see the header comment), so every analysis call goes through these
+    // proxy routes. Analysis rounds are asynchronous engine jobs, so none of
+    // these requests stays open for the duration of a round.
+
+    const analysisRoute = ctx.webServer.register({
+      kind: "exact",
+      path: "/api/investment/analysis",
+      handler: async (req, res) => {
+        try {
+          const url = new URL(req.url ?? "", "http://127.0.0.1");
+          const action = (url.searchParams.get("action") ?? "").trim();
+
+          if (req.method === "GET") {
+            if (action === "run") {
+              const cycleId = (url.searchParams.get("cycle_id") ?? "").trim();
+              if (!cycleId) {
+                sendJson(res, 400, { ok: false, error: "missing cycle_id" });
+                return;
+              }
+              sendJson(res, 200, await engineFetch(`/api/analysis/run?cycle_id=${encodeURIComponent(cycleId)}`));
+              return;
+            }
+            if (action === "runs") {
+              const limit = (url.searchParams.get("limit") ?? "20").trim();
+              const market = (url.searchParams.get("market") ?? "").trim();
+              const query = `limit=${encodeURIComponent(limit)}${market ? `&market=${encodeURIComponent(market)}` : ""}`;
+              sendJson(res, 200, await engineFetch(`/api/analysis/runs?${query}`));
+              return;
+            }
+            if (action === "latest") {
+              const market = (url.searchParams.get("market") ?? "").trim();
+              const query = market ? `?market=${encodeURIComponent(market)}` : "";
+              sendJson(res, 200, await engineFetch(`/api/analysis/latest${query}`));
+              return;
+            }
+            if (action === "active") {
+              sendJson(res, 200, await engineFetch("/api/analysis/rounds/active"));
+              return;
+            }
+            sendJson(res, 400, { ok: false, error: "unknown action" });
+            return;
+          }
+
+          if (req.method === "POST") {
+            const body = await readBody(req);
+            if (action === "start") {
+              // Mirror the engine's manual-entry contract in the proxy so an
+              // obviously invalid request never reaches the engine at all.
+              const symbols = Array.isArray(body.symbols) ? body.symbols : [];
+              if (symbols.length === 0) {
+                sendJson(res, 400, {
+                  ok: false,
+                  error: "手动分析必须提供 symbols：请先运行选股得到标准化候选列表（或直接传入用户点名的股票）",
+                });
+                return;
+              }
+              const market = String(body.market ?? "").trim().toLowerCase();
+              if (!["cn", "hk", "us", "etf"].includes(market)) {
+                sendJson(res, 400, { ok: false, error: "market 必须是 cn、hk、us 或 etf" });
+                return;
+              }
+              sendJson(res, 200, await engineFetch("/api/analysis/rounds/start", {
+                method: "POST",
+                body: {
+                  cycle_id: body.cycle_id,
+                  market,
+                  symbols,
+                  symbols_source: body.symbols_source,
+                  label: body.label,
+                  goal_id: body.goal_id,
+                },
+              }));
+              return;
+            }
+            if (action === "stop") {
+              const cycleId = String(body.cycle_id ?? "").trim();
+              if (!cycleId) {
+                sendJson(res, 400, { ok: false, error: "missing cycle_id" });
+                return;
+              }
+              sendJson(res, 200, await engineFetch("/api/analysis/rounds/stop", {
+                method: "POST",
+                body: { cycle_id: cycleId, reason: body.reason },
+              }));
+              return;
+            }
+            sendJson(res, 400, { ok: false, error: "unknown action" });
+            return;
+          }
+
+          sendJson(res, 405, { ok: false, error: "method not allowed" });
+        } catch (error) {
+          sendJson(res, 400, { ok: false, error: String(error?.message ?? error) });
+        }
+      },
+    });
+
+    const reportsRoute = ctx.webServer.register({
+      kind: "exact",
+      path: "/api/investment/reports",
+      handler: async (req, res) => {
+        try {
+          if (req.method !== "GET") {
+            sendJson(res, 405, { ok: false, error: "method not allowed" });
+            return;
+          }
+          const url = new URL(req.url ?? "", "http://127.0.0.1");
+          const action = (url.searchParams.get("action") ?? "index").trim();
+          if (action === "content") {
+            const cycleId = (url.searchParams.get("cycle_id") ?? "").trim();
+            const file = (url.searchParams.get("file") ?? "").trim();
+            const query = cycleId
+              ? `cycle_id=${encodeURIComponent(cycleId)}`
+              : `file=${encodeURIComponent(file)}`;
+            sendJson(res, 200, await engineFetch(`/api/reports/content?${query}`));
+            return;
+          }
+          const limit = (url.searchParams.get("limit") ?? "50").trim();
+          const market = (url.searchParams.get("market") ?? "").trim();
+          const status = (url.searchParams.get("status") ?? "").trim();
+          const query = [
+            `limit=${encodeURIComponent(limit)}`,
+            market ? `market=${encodeURIComponent(market)}` : "",
+            status ? `status=${encodeURIComponent(status)}` : "",
+          ].filter(Boolean).join("&");
+          sendJson(res, 200, await engineFetch(`/api/reports/index?${query}`));
+        } catch (error) {
+          sendJson(res, 400, { ok: false, error: String(error?.message ?? error) });
+        }
+      },
+    });
+
     return () => {
       summary();
       configRoute();
       webhookRoute();
       commandRoute();
+      analysisRoute();
+      reportsRoute();
     };
   }, "investment-auto: investment data proxy");
 }

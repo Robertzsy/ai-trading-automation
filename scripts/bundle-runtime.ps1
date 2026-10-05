@@ -12,6 +12,7 @@
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "runtime-common.ps1")
 if (-not $Downloads) { $Downloads = Join-Path $projectRoot "build\runtime-downloads" }
 if (-not $Output) { $Output = Join-Path $projectRoot "build\runtime" }
 $Downloads = [System.IO.Path]::GetFullPath($Downloads)
@@ -43,15 +44,18 @@ foreach ($entry in $zip.Entries) {
 $zip.Dispose()
 
 # 2) Node zip (flattened: build/runtime/node/node.exe for the installer).
-#    Prefer the newest version: the downloads dir may keep older 1.x zips.
-$nodeZip = Get-ChildItem $Downloads -Filter "node-*-win-x64.zip" | Sort-Object Name -Descending | Select-Object -First 1
-if (-not $nodeZip) { throw "未找到 node zip，请先运行 fetch-runtime.ps1" }
+#    Pinned to the version in fetch-runtime.ps1 instead of "newest file in the
+#    downloads dir", so a leftover zip from an older run cannot decide what
+#    ships.
+$pinnedNode = Get-IAPinnedNodeVersion
+$nodeZip = Join-Path $Downloads "node-$pinnedNode-win-x64.zip"
+if (-not (Test-Path $nodeZip)) { throw "未找到 node zip，请先运行 fetch-runtime.ps1" }
 $nodeDir = Join-Path $Output "node"
 if (Test-Path $nodeDir) { Remove-Item $nodeDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $nodeDir | Out-Null
 $nodeStage = Join-Path $Output "node-stage"
 if (Test-Path $nodeStage) { Remove-Item $nodeStage -Recurse -Force }
-[System.IO.Compression.ZipFile]::ExtractToDirectory($nodeZip.FullName, $nodeStage)
+[System.IO.Compression.ZipFile]::ExtractToDirectory($nodeZip, $nodeStage)
 $nodeVersionName = (Get-ChildItem $nodeStage -Directory | Select-Object -First 1).Name
 Get-ChildItem (Join-Path $nodeStage $nodeVersionName) | ForEach-Object { Move-Item $_.FullName $nodeDir }
 Remove-Item $nodeStage -Recurse -Force

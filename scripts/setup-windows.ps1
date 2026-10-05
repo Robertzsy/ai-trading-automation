@@ -5,7 +5,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $projectRoot
 
 if (-not (Get-Command node.exe -ErrorAction SilentlyContinue)) {
-    throw "未找到 Node.js。请先安装 Node.js 18 或更高版本：https://nodejs.org/"
+    throw "未找到 Node.js。请先安装 Node.js 22 或更高版本：https://nodejs.org/"
 }
 
 $python = Get-Command py.exe -ErrorAction SilentlyContinue
@@ -23,7 +23,7 @@ if (-not (Test-Path ".env")) {
     Copy-Item -LiteralPath ".env.example" -Destination ".env"
 }
 if (-not $SkipPortfolioInit -and -not (Test-Path "runtime\data\portfolio.json")) {
-    & ".\.venv\Scripts\python.exe" -m src.main init
+    & ".\.venv\Scripts\python.exe" -m engine.main init
 }
 
 Write-Host ""

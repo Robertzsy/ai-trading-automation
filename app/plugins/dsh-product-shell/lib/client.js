@@ -11,7 +11,7 @@ window.__ModuleLoader__.load({
 
 		// ── styles ─────────────────────────────────────────────────────────
 		const CSS_ID = "@investment-auto/dsh-product-shell/style";
-		const css = ".ia-shell{display:flex;flex-direction:column;height:100%;min-width:0;background:var(--dsw-alias-bg-base)}.ia-topbar{flex:none;display:flex;align-items:center;gap:4px;height:48px;padding:0 12px;border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base)}.ia-brand{display:flex;align-items:center;gap:8px;margin-right:16px;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap}.ia-brandmark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#2f6fed,#4cc2ff);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}.ia-nav{display:flex;align-items:center;gap:2px}.ia-navbtn{border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;padding:6px 12px;border-radius:8px;cursor:pointer}.ia-navbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.ia-navbtn[data-active=true]{background:var(--dsw-alias-interactive-bg-hover-solid);color:var(--dsw-alias-label-primary);font-weight:600}.ia-body{flex:1;min-height:0;display:flex;position:relative}.ia-sidebar{flex:none;width:264px;display:flex;flex-direction:column;border-right:1px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base));min-width:0}.ia-sidebar-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px}.ia-newbtn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;line-height:20px;padding:8px;cursor:pointer;margin-bottom:8px}.ia-newbtn:hover{background:var(--dsw-alias-interactive-bg-hover)}.ia-search{box-sizing:border-box;width:100%;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;padding:6px 10px;margin-bottom:8px;outline:none}.ia-search:focus{border-color:var(--dsw-alias-brand-primary)}.ia-session{display:flex;align-items:center;gap:8px;border-radius:8px;padding:7px 8px;cursor:pointer;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;margin-bottom:2px;min-width:0}.ia-session:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.ia-session[data-active=true]{background:var(--dsw-alias-interactive-bg-hover-solid);color:var(--dsw-alias-label-primary);font-weight:500}.ia-session-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ia-session-actions{flex:none;display:none;gap:2px}.ia-session:hover .ia-session-actions{display:flex}.ia-session-actions button{border:none;background:transparent;color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px;padding:2px 5px;border-radius:5px;cursor:pointer}.ia-session-actions button:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.ia-empty{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;padding:16px 8px;text-align:center}.ia-center{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}.ia-details{flex:none;width:340px;border-left:1px solid var(--dsw-alias-border-l2);overflow-y:auto;background:var(--dsw-alias-bg-base)}.ia-page{flex:1;min-width:0;overflow-y:auto;padding:16px 20px}.ia-page-title{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);margin:0 0 4px}.ia-page-sub{color:var(--dsw-alias-label-tertiary);font-size:13px;margin:0 0 16px}.ia-card{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-module-platform);padding:14px 16px;margin-bottom:12px}.ia-card h3{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}.ia-kv{display:flex;justify-content:space-between;font-size:13px;line-height:24px;color:var(--dsw-alias-label-secondary);border-bottom:1px dashed var(--dsw-alias-border-l2)}.ia-kv:last-child{border-bottom:none}.ia-kv b{color:var(--dsw-alias-label-primary);font-weight:600}.ia-chip{display:inline-flex;align-items:center;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;padding:2px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);margin-right:6px}.ia-chip[data-kind=ok]{border-color:var(--dsw-alias-state-success-primary);color:var(--dsw-alias-state-success-primary)}.ia-chip[data-kind=warn]{border-color:var(--dsw-alias-state-warning-primary);color:var(--dsw-alias-state-warning-primary)}.ia-chip[data-kind=danger]{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.ia-settings{flex:1;min-width:0;display:flex;overflow:hidden}.ia-settings-nav{flex:none;width:200px;border-right:1px solid var(--dsw-alias-border-l1);padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}.ia-settings-nav button{border:none;background:transparent;text-align:left;font:inherit;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);padding:8px 12px;border-radius:8px;cursor:pointer}.ia-settings-nav button:hover{background:var(--dsw-alias-interactive-bg-hover)}.ia-settings-nav button[data-active=true]{background:var(--dsw-alias-interactive-bg-hover-solid);color:var(--dsw-alias-label-primary);font-weight:600}.ia-settings-content{flex:1;min-width:0;overflow-y:auto;padding:16px 20px}.ia-form-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--dsw-alias-border-l2)}.ia-form-row:last-child{border-bottom:none}.ia-form-label{font-size:13px;color:var(--dsw-alias-label-primary)}.ia-form-hint{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px}.ia-input{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;border-radius:8px;padding:6px 10px;outline:none;min-width:180px}.ia-input:focus{border-color:var(--dsw-alias-brand-primary)}.ia-btn{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;padding:6px 12px;cursor:pointer}.ia-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}.ia-btn[data-kind=primary]{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);border-color:transparent}.ia-btn[data-kind=primary]:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}.ia-btn:disabled{opacity:.45;cursor:default}.ia-notice{font-size:12px;line-height:18px;padding:8px 10px;border-radius:8px;margin-top:10px}.ia-notice[data-kind=ok]{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}.ia-notice[data-kind=err]{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}.ia-table{width:100%;border-collapse:collapse;font-size:12px;line-height:20px}.ia-table th{text-align:left;color:var(--dsw-alias-label-tertiary);font-weight:500;padding:4px 8px;border-bottom:1px solid var(--dsw-alias-border-l2)}.ia-table td{padding:4px 8px;color:var(--dsw-alias-label-secondary);border-bottom:1px solid var(--dsw-alias-border-l2)}.ia-table tr:last-child td{border-bottom:none}";
+		const css = ".ia-shell{display:flex;flex-direction:column;height:100%;min-width:0;background:var(--dsw-alias-bg-base)}.ia-topbar{flex:none;display:flex;align-items:center;gap:4px;height:48px;padding:0 12px;border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base)}.ia-brand{display:flex;align-items:center;gap:8px;margin-right:16px;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap}.ia-brandmark{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#2f6fed,#4cc2ff);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none}.ia-nav{display:flex;align-items:center;gap:2px}.ia-navbtn{border:none;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;line-height:20px;padding:6px 12px;border-radius:8px;cursor:pointer}.ia-navbtn:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.ia-navbtn[data-active=true]{background:var(--dsw-alias-interactive-bg-hover-solid);color:var(--dsw-alias-label-primary);font-weight:600}.ia-body{flex:1;min-height:0;display:flex;position:relative}.ia-sidebar{flex:none;width:264px;display:flex;flex-direction:column;border-right:1px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base));min-width:0}.ia-sidebar-scroll{flex:1;min-height:0;overflow-y:auto;padding:8px}.ia-newbtn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;line-height:20px;padding:8px;cursor:pointer;margin-bottom:8px}.ia-newbtn:hover{background:var(--dsw-alias-interactive-bg-hover)}.ia-search{box-sizing:border-box;width:100%;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;padding:6px 10px;margin-bottom:8px;outline:none}.ia-search:focus{border-color:var(--dsw-alias-brand-primary)}.ia-session{display:flex;align-items:center;gap:8px;border-radius:8px;padding:7px 8px;cursor:pointer;color:var(--dsw-alias-label-secondary);font-size:13px;line-height:20px;margin-bottom:2px;min-width:0}.ia-session:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.ia-session[data-active=true]{background:var(--dsw-alias-interactive-bg-hover-solid);color:var(--dsw-alias-label-primary);font-weight:500}.ia-session-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ia-session-actions{flex:none;display:none;gap:2px}.ia-session:hover .ia-session-actions{display:flex}.ia-session-actions button{border:none;background:transparent;color:var(--dsw-alias-label-tertiary);font-size:11px;line-height:16px;padding:2px 5px;border-radius:5px;cursor:pointer}.ia-session-actions button:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}.ia-empty{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:18px;padding:16px 8px;text-align:center}.ia-center{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}.ia-details{flex:none;width:340px;border-left:1px solid var(--dsw-alias-border-l2);overflow-y:auto;background:var(--dsw-alias-bg-base)}.ia-page{flex:1;min-width:0;overflow-y:auto;padding:16px 20px}.ia-page-title{font-size:18px;font-weight:600;color:var(--dsw-alias-label-primary);margin:0 0 4px}.ia-page-sub{color:var(--dsw-alias-label-tertiary);font-size:13px;margin:0 0 16px}.ia-card{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-module-platform);padding:14px 16px;margin-bottom:12px}.ia-card h3{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}.ia-kv{display:flex;justify-content:space-between;font-size:13px;line-height:24px;color:var(--dsw-alias-label-secondary);border-bottom:1px dashed var(--dsw-alias-border-l2)}.ia-kv:last-child{border-bottom:none}.ia-kv b{color:var(--dsw-alias-label-primary);font-weight:600}.ia-chip{display:inline-flex;align-items:center;border:1px solid var(--dsw-alias-border-l1);border-radius:8px;padding:2px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-secondary);margin-right:6px}.ia-chip[data-kind=ok]{border-color:var(--dsw-alias-state-success-primary);color:var(--dsw-alias-state-success-primary)}.ia-chip[data-kind=warn]{border-color:var(--ia-warn);color:var(--ia-warn)}.ia-chip[data-kind=danger]{border-color:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary)}.ia-settings{flex:1;min-width:0;display:flex;overflow:hidden}.ia-settings-nav{flex:none;width:200px;border-right:1px solid var(--dsw-alias-border-l1);padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}.ia-settings-nav button{border:none;background:transparent;text-align:left;font:inherit;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary);padding:8px 12px;border-radius:8px;cursor:pointer}.ia-settings-nav button:hover{background:var(--dsw-alias-interactive-bg-hover)}.ia-settings-nav button[data-active=true]{background:var(--dsw-alias-interactive-bg-hover-solid);color:var(--dsw-alias-label-primary);font-weight:600}.ia-settings-content{flex:1;min-width:0;overflow-y:auto;padding:16px 20px}.ia-form-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--dsw-alias-border-l2)}.ia-form-row:last-child{border-bottom:none}.ia-form-label{font-size:13px;color:var(--dsw-alias-label-primary)}.ia-form-hint{font-size:11px;color:var(--dsw-alias-label-tertiary);margin-top:2px}.ia-input{box-sizing:border-box;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;border-radius:8px;padding:6px 10px;outline:none;min-width:180px}.ia-input:focus{border-color:var(--dsw-alias-brand-primary)}.ia-btn{border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;padding:6px 12px;cursor:pointer}.ia-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}.ia-btn[data-kind=primary]{background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);border-color:transparent}.ia-btn[data-kind=primary]:hover:not(:disabled){background:var(--dsw-alias-button-primary-hover)}.ia-btn:disabled{opacity:.45;cursor:default}.ia-notice{font-size:12px;line-height:18px;padding:8px 10px;border-radius:8px;margin-top:10px}.ia-notice[data-kind=ok]{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}.ia-notice[data-kind=err]{color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}.ia-table{width:100%;border-collapse:collapse;font-size:12px;line-height:20px}.ia-table th{text-align:left;color:var(--dsw-alias-label-tertiary);font-weight:500;padding:4px 8px;border-bottom:1px solid var(--dsw-alias-border-l2)}.ia-table td{padding:4px 8px;color:var(--dsw-alias-label-secondary);border-bottom:1px solid var(--dsw-alias-border-l2)}.ia-table tr:last-child td{border-bottom:none}";
 		const productCss = [
 			".ia-shell{display:grid;grid-template-columns:88px minmax(0,1fr);height:100%;min-width:0;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}",
 			".ia-rail{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:16px 9px 12px;border-right:1px solid rgba(255,255,255,.07);background:#10272b;color:#dce9e9}",
@@ -41,7 +41,7 @@ window.__ModuleLoader__.load({
 			".ia-context-link:hover{border-color:#49b9a5;color:#238f7c}.ia-context-reopen{position:absolute;right:12px;top:12px;z-index:4}",
 			".ia-page{padding:0;background:var(--dsw-alias-bg-base)}.ia-page-head{height:68px;padding:0 26px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--dsw-alias-border-l1)}",
 			".ia-page-head-copy{min-width:0}.ia-page-title{font-size:18px;font-weight:600;margin:0}.ia-page-sub{font-size:11px;margin:4px 0 0}",
-			".ia-page-status{display:inline-flex;align-items:center;gap:7px;color:var(--dsw-alias-label-tertiary);font-size:11px;white-space:nowrap}.ia-page-status-dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-success-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}.ia-page-status[data-kind=error] .ia-page-status-dot{background:var(--dsw-alias-state-error-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}.ia-page-status[data-kind=warn] .ia-page-status-dot{background:var(--dsw-alias-state-warning-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--dsw-alias-state-warning-primary) 12%,transparent)}",
+			".ia-page-status{display:inline-flex;align-items:center;gap:7px;color:var(--dsw-alias-label-tertiary);font-size:11px;white-space:nowrap}.ia-page-status-dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-success-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}.ia-page-status[data-kind=error] .ia-page-status-dot{background:var(--dsw-alias-state-error-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}.ia-page-status[data-kind=warn] .ia-page-status-dot{background:var(--ia-warn);box-shadow:0 0 0 4px color-mix(in srgb,var(--ia-warn) 12%,transparent)}",
 			".ia-page-content{padding:22px 26px 28px;max-width:1500px;margin:0 auto}.ia-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:14px}",
 			".ia-kpi{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-module-platform);padding:16px 17px}.ia-kpi-label{font-size:11px;color:var(--dsw-alias-label-tertiary)}",
 			".ia-kpi-value{margin-top:8px;font-size:22px;line-height:28px;font-weight:600;color:var(--dsw-alias-label-primary);letter-spacing:-.02em}.ia-kpi-foot{margin-top:5px;color:var(--dsw-alias-label-tertiary);font-size:10px;line-height:16px}",
@@ -60,14 +60,87 @@ window.__ModuleLoader__.load({
 			".ia-flow-pill{display:inline-flex;padding:4px 8px;border-radius:99px;background:color-mix(in srgb,#49b9a5 13%,var(--dsw-alias-bg-module-platform));color:#238f7c;font-size:10px;white-space:nowrap}",
 			".ia-flow-band{display:grid;grid-template-columns:108px minmax(0,1fr);gap:12px;padding:11px 0;border-top:1px solid var(--dsw-alias-border-l2)}.ia-flow-label{padding-top:7px;color:var(--dsw-alias-label-tertiary);font-size:10px}",
 			".ia-flow-nodes{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.ia-flow-node{min-width:86px;padding:8px 9px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px;background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base));font-size:10px;text-align:center}",
-			".ia-flow-node[data-kind=primary]{border-color:color-mix(in srgb,#49b9a5 55%,var(--dsw-alias-border-l2));background:color-mix(in srgb,#49b9a5 11%,var(--dsw-alias-bg-module-platform));color:#238f7c}.ia-flow-node[data-kind=guard]{border-color:var(--dsw-alias-state-warning-primary);color:var(--dsw-alias-state-warning-primary)}",
+			".ia-flow-node[data-kind=primary]{border-color:color-mix(in srgb,#49b9a5 55%,var(--dsw-alias-border-l2));background:color-mix(in srgb,#49b9a5 11%,var(--dsw-alias-bg-module-platform));color:#238f7c}.ia-flow-node[data-kind=guard]{border-color:var(--ia-warn);color:var(--ia-warn)}",
 			".ia-flow-arrow{color:var(--dsw-alias-label-tertiary);font-size:12px}.ia-flow-side{display:flex;flex-direction:column;gap:14px}.ia-flow-side .ia-panel{padding:16px}.ia-flow-side h3{margin:0 0 12px;font-size:13px;font-weight:600}",
-			".ia-flow-warning{padding:11px 12px;border-radius:9px;background:color-mix(in srgb,var(--dsw-alias-state-warning-primary) 11%,transparent);color:var(--dsw-alias-label-secondary);font-size:10px;line-height:17px}",
+			".ia-flow-warning{padding:11px 12px;border-radius:9px;background:color-mix(in srgb,var(--ia-warn) 11%,transparent);color:var(--dsw-alias-label-secondary);font-size:10px;line-height:17px}",
 			".ia-flow-check{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--dsw-alias-border-l2);font-size:10px}.ia-flow-check-num{width:19px;height:19px;display:grid;place-items:center;border-radius:6px;background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base));color:var(--dsw-alias-label-tertiary);font-size:9px}.ia-flow-check-state{color:var(--dsw-alias-label-tertiary)}",
 			".ia-settings-page{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column}.ia-settings-page .ia-settings{flex:1;min-height:0}.ia-settings{background:var(--dsw-alias-bg-base)}.ia-settings-nav{width:218px;padding:14px 10px;background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base))}.ia-settings-nav button{padding:9px 11px;border-radius:9px}.ia-settings-content{padding:24px 28px;max-width:1100px}",
 			".ia-card{border-radius:11px}.ia-form-row{padding:14px 0}.ia-context-chip{display:inline-flex;align-items:center;padding:3px 7px;border-radius:7px;background:color-mix(in srgb,#49b9a5 12%,var(--dsw-alias-bg-module-platform));color:#238f7c;font-size:10px}",
 			"@media(max-width:1180px){.ia-context{display:none}.ia-flow-grid{grid-template-columns:1fr}.ia-flow-side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}",
-			"@media(max-width:900px){.ia-shell{grid-template-columns:72px minmax(0,1fr)}.ia-sidebar{width:220px}.ia-navbtn{font-size:10px}.ia-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-dashboard-grid{grid-template-columns:1fr}.ia-page-content{padding:18px}.ia-page-head{padding:0 18px}}"
+			"@media(max-width:900px){.ia-shell{grid-template-columns:72px minmax(0,1fr)}.ia-sidebar{width:220px}.ia-navbtn{font-size:10px}.ia-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-dashboard-grid{grid-template-columns:1fr}.ia-page-content{padding:18px}.ia-page-head{padding:0 18px}}",
+			// ── 分析中心：主题兼容层 ───────────────────────────────────────
+			// 运行版只注入 14 个 token（docs/UPGRADE_PLAN_ANALYSIS_CENTER.md §4.2.4）：
+			// --dsw-alias-bg-module-platform / --dsw-alias-label-tertiary /
+			// --dsw-alias-interactive-bg-hover(-solid) / --dsw-alias-button-primary-fill(-hover)
+			// 都不在目录中，所以这里统一定义带 fallback 的 --ia-* 别名。
+			// 分析中心的新组件一律只用 --ia-*，不直接引用目录外的 token。
+			".ia-shell{--ia-surface:var(--dsw-alias-bg-module-platform,var(--dsw-alias-bg-layer-1,transparent));--ia-label-3:var(--dsw-alias-label-tertiary,var(--dsw-alias-label-secondary,inherit));--ia-hover:var(--dsw-alias-interactive-bg-hover,color-mix(in srgb,var(--dsw-alias-brand-primary) 10%,transparent));--ia-hover-solid:var(--dsw-alias-interactive-bg-hover-solid,var(--ia-hover));--ia-warn:var(--dsw-alias-state-warn-primary,#d97706);--ia-danger:var(--dsw-alias-state-error-primary,#ef4444);--ia-ok:var(--dsw-alias-state-success-primary,#22c55e);--ia-idle:var(--dsw-alias-state-idle-primary,var(--dsw-alias-border-l2,#94a3b8));--ia-brand:var(--dsw-alias-brand-primary,#2f6fed)}",
+			".ia-notice[data-kind=warn]{color:var(--ia-warn);background:color-mix(in srgb,var(--ia-warn) 12%,transparent)}",
+			// ── 分析中心：ia-an-* 组件 ──────────────────────────────────────
+			// 外层严格按规格 360px + minmax(0,1fr)；中间列内部再切「流程 | 报告」，
+			// 这样既保持规格里的两轨栅格，又得到三栏观感。
+			".ia-an-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;align-items:start}",
+			".ia-an-main{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start;min-width:0}",
+			".ia-an-col{display:flex;flex-direction:column;gap:14px;min-width:0}",
+			".ia-an-panel{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--ia-surface);padding:14px 16px;min-width:0}",
+			".ia-an-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}",
+			".ia-an-panel-head h3{margin:0;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}",
+			".ia-an-field{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}",
+			".ia-an-lab{font-size:11px;color:var(--ia-label-3)}",
+			".ia-an-input,.ia-an-select,.ia-an-area{box-sizing:border-box;width:100%;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--dsw-alias-bg-layer-1,transparent);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;line-height:18px;padding:7px 9px}",
+			".ia-an-area{min-height:86px;resize:vertical;font-family:ui-monospace,Consolas,monospace}",
+			".ia-an-input:focus,.ia-an-select:focus,.ia-an-area:focus{outline:none;border-color:var(--ia-brand)}",
+			".ia-an-seg{display:flex;gap:4px;padding:3px;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--dsw-alias-bg-layer-1,transparent)}",
+			".ia-an-seg button{flex:1;min-width:0;border:0;border-radius:7px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;line-height:18px;padding:5px 6px;cursor:pointer}",
+			".ia-an-seg button:hover{background:var(--ia-hover)}",
+			".ia-an-seg button[data-active=true]{background:var(--ia-hover-solid);color:var(--dsw-alias-label-primary);font-weight:600}",
+			".ia-an-note{font-size:10px;line-height:16px;color:var(--ia-label-3)}",
+			".ia-an-check{display:grid;grid-template-columns:16px minmax(0,1fr);gap:8px;align-items:start;padding:6px 0;border-top:1px solid var(--dsw-alias-border-l2);font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary)}",
+			".ia-an-check:first-child{border-top:none}",
+			".ia-an-check-mark{font-size:11px;line-height:17px;font-weight:700}",
+			".ia-an-check[data-ok=true] .ia-an-check-mark{color:var(--ia-ok)}",
+			".ia-an-check[data-ok=false] .ia-an-check-mark{color:var(--ia-warn)}",
+			".ia-an-primary{width:100%;border:0;border-radius:10px;background:var(--ia-brand);color:#fff;font:inherit;font-size:13px;font-weight:600;line-height:20px;padding:10px;cursor:pointer}",
+			".ia-an-primary:hover:not(:disabled){filter:brightness(1.08)}",
+			".ia-an-primary:disabled{opacity:.5;cursor:not-allowed}",
+			".ia-an-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}",
+			".ia-an-btn{border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--ia-surface);color:var(--dsw-alias-label-primary);font:inherit;font-size:11px;line-height:18px;padding:7px 8px;cursor:pointer}",
+			".ia-an-btn:hover:not(:disabled){background:var(--ia-hover)}",
+			".ia-an-btn:disabled{opacity:.45;cursor:not-allowed}",
+			".ia-an-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--dsw-alias-border-l1);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;overflow:hidden;margin-bottom:12px}",
+			".ia-an-kpi{padding:10px 12px;background:var(--ia-surface);min-width:0}",
+			".ia-an-kpi span{display:block;font-size:10px;color:var(--ia-label-3)}",
+			".ia-an-kpi b{display:block;margin-top:4px;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary);word-break:break-all}",
+			".ia-an-stage{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--dsw-alias-border-l2)}",
+			".ia-an-stage:first-child{border-top:none}",
+			".ia-an-stage-dot{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;font-size:11px;background:var(--ia-hover);color:var(--ia-label-3)}",
+			".ia-an-stage[data-status=running] .ia-an-stage-dot{background:color-mix(in srgb,var(--ia-brand) 16%,transparent);color:var(--ia-brand)}",
+			".ia-an-stage[data-status=completed] .ia-an-stage-dot{background:color-mix(in srgb,var(--ia-ok) 16%,transparent);color:var(--ia-ok)}",
+			".ia-an-stage[data-status=failed] .ia-an-stage-dot{background:color-mix(in srgb,var(--ia-danger) 16%,transparent);color:var(--ia-danger)}",
+			".ia-an-stage-name{font-size:12px;color:var(--dsw-alias-label-primary)}",
+			".ia-an-stage-meta{margin-top:3px;font-size:10px;line-height:15px;color:var(--ia-label-3);word-break:break-all}",
+			".ia-an-stage-time{font-size:11px;color:var(--ia-label-3);text-align:right;white-space:nowrap}",
+			".ia-an-agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:9px;margin-top:12px}",
+			".ia-an-agent{border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:9px 10px;background:var(--dsw-alias-bg-base);min-width:0}",
+			".ia-an-agent[data-status=failed]{border-color:var(--ia-danger)}",
+			".ia-an-agent[data-status=completed]{border-color:color-mix(in srgb,var(--ia-ok) 45%,var(--dsw-alias-border-l2))}",
+			".ia-an-agent-head{display:flex;align-items:center;justify-content:space-between;gap:6px}",
+			".ia-an-agent-label{font-size:11px;font-weight:600;color:var(--dsw-alias-label-primary);word-break:break-all;min-width:0}",
+			".ia-an-agent-meta{margin-top:5px;font-size:10px;line-height:15px;color:var(--ia-label-3)}",
+			".ia-an-agent-body{margin-top:5px;font-size:10px;line-height:15px;color:var(--dsw-alias-label-secondary);max-height:64px;overflow:auto;white-space:pre-wrap;word-break:break-word}",
+			".ia-an-agent[data-status=failed] .ia-an-agent-body{color:var(--ia-danger)}",
+			".ia-an-log{margin-top:12px;border-top:1px solid var(--dsw-alias-border-l2);padding-top:10px}",
+			".ia-an-log-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--ia-label-3);min-width:0}",
+			".ia-an-log-body{margin-top:8px;max-height:240px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:10px;line-height:16px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;word-break:break-word}",
+			".ia-an-report-list{margin:0;padding:0;list-style:none;max-height:280px;overflow-y:auto}",
+			".ia-an-report-item{width:100%;text-align:left;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;padding:8px 9px;cursor:pointer;display:block}",
+			".ia-an-report-item:hover{background:var(--ia-hover)}",
+			".ia-an-report-item[data-active=true]{border-color:var(--ia-brand);background:var(--ia-hover-solid)}",
+			".ia-an-report-title{font-size:11px;color:var(--dsw-alias-label-primary);word-break:break-all}",
+			".ia-an-report-meta{margin-top:3px;font-size:10px;color:var(--ia-label-3)}",
+			".ia-an-report-body{margin:10px 0 0;padding:11px;border-radius:10px;background:var(--dsw-alias-bg-layer-1,transparent);border:1px solid var(--dsw-alias-border-l2);max-height:420px;overflow:auto;font-family:ui-monospace,Consolas,monospace;font-size:11px;line-height:18px;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;word-break:break-word}",
+			"@media(max-width:1440px){.ia-an-main{grid-template-columns:minmax(0,1fr)}}",
+			"@media(max-width:1180px){.ia-an-grid{grid-template-columns:1fr}}"
 		].join("");
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin=" + JSON.stringify(CSS_ID) + "]") === null) {
 			const tag = document.createElement("style");
@@ -384,8 +457,10 @@ window.__ModuleLoader__.load({
 			risk_review: "风险辩论与裁决",
 			final_decision: "最终组合决策",
 			execution: "硬风控与模拟执行",
+			ready_for_execution: "等待批准",
 			completed: "已完成",
-			failed: "失败"
+			failed: "失败",
+			cancelled: "已停止"
 		};
 		function analysisStageLabel(stage) {
 			return analysisStageNames[stage] ?? (stage || "尚未运行");
@@ -538,6 +613,728 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsx("div", { className: "ia-context-label", children: "最近动态" }),
 							react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "下一轮" }), react_jsx_runtime.jsx("b", { children: nextRun ? marketName[nextRun[0]] + " · " + String(nextRun[1]).replace("T", " ").slice(0, 16) : "-" })] }),
 							react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "最近报告" }), react_jsx_runtime.jsx("b", { children: reports[0]?.file ?? "暂无" })] })
+						]
+					})
+				]
+			});
+		}
+
+		// ── analysis centre: manual start · live pipeline · round reports ───
+		//
+		// Consumes ONLY the product-shell proxy contract
+		// (/api/investment/analysis?action=…, /api/investment/reports?action=…),
+		// so the browser never sees the engine loopback URL or its access token.
+		// Nothing below is a hard-coded workflow diagram: the stage timeline, the
+		// sub-task cards, the logs and the report rows are all rendered straight
+		// out of the engine payload (analysis record v2 {stages, agents, logs} +
+		// reports index).  A v1 record simply carries fewer fields.
+		const ANALYSIS_MARKETS = [["cn", "A股"], ["hk", "港股"], ["us", "美股"], ["etf", "ETF"]];
+		const MAX_ANALYSIS_SYMBOLS = 40;
+		const ANALYSIS_PENDING_KEY = "ia.analysis.pending";
+		const ANALYSIS_POLL_RUNNING_MS = 2000;
+		const ANALYSIS_POLL_IDLE_MS = 8000;
+		// Display metadata only: canonical stage order + the contract's stage
+		// labels.  Statuses, durations and counts always come from the API.
+		const analysisStageOrder = ["preparing", "resuming", "base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision", "execution", "ready_for_execution"];
+		const analysisTerminalStatuses = ["completed", "failed", "cancelled"];
+		const analysisStatusNames = {
+			queued: "排队中",
+			running: "运行中",
+			ready_for_execution: "等待批准",
+			completed: "已完成",
+			failed: "失败",
+			cancelled: "已停止"
+		};
+		function analysisStatusLabel(status) {
+			const key = String(status ?? "");
+			return analysisStatusNames[key] ?? (key || "未开始");
+		}
+		function analysisStatusKind(status) {
+			const key = String(status ?? "");
+			if (key === "completed") return "ok";
+			if (key === "failed") return "danger";
+			return "warn";
+		}
+		function isAnalysisTerminal(status) {
+			return analysisTerminalStatuses.includes(String(status ?? ""));
+		}
+		function parseAnalysisSymbols(text) {
+			const values = [];
+			for (const chunk of String(text ?? "").split(/[\s,;，；、]+/)) {
+				const symbol = chunk.trim();
+				if (symbol && !values.includes(symbol)) values.push(symbol);
+			}
+			return values;
+		}
+		function newAnalysisCycleId(market, label) {
+			// crypto.randomUUID() needs a secure context (127.0.0.1 counts as
+			// one); keep a dependency-free fallback for anything else.
+			let suffix = "";
+			try {
+				if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+			} catch (error) {
+				suffix = "";
+			}
+			if (!suffix) suffix = Math.random().toString(16).slice(2, 10);
+			const safeLabel = String(label ?? "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 40) || "manual";
+			return new Date().toISOString().slice(0, 10).replace(/-/g, "") + "-" + market + "-" + safeLabel + "-" + suffix;
+		}
+		function readPendingAnalysis() {
+			try {
+				if (typeof sessionStorage === "undefined") return null;
+				const raw = sessionStorage.getItem(ANALYSIS_PENDING_KEY);
+				if (!raw) return null;
+				const value = JSON.parse(raw);
+				return value && typeof value === "object" && value.cycle_id ? value : null;
+			} catch (error) {
+				return null;
+			}
+		}
+		function writePendingAnalysis(value) {
+			try {
+				if (typeof sessionStorage !== "undefined") sessionStorage.setItem(ANALYSIS_PENDING_KEY, JSON.stringify(value));
+			} catch (error) {
+				// storage disabled: the in-memory snapshot still drives this tab
+			}
+			return value;
+		}
+		function formatDuration(ms) {
+			const value = Number(ms);
+			if (!Number.isFinite(value) || value <= 0) return "-";
+			const seconds = Math.round(value / 1000);
+			if (seconds < 60) return seconds + " 秒";
+			const minutes = Math.floor(seconds / 60);
+			if (minutes < 60) return minutes + " 分 " + String(seconds % 60).padStart(2, "0") + " 秒";
+			return Math.floor(minutes / 60) + " 时 " + String(minutes % 60).padStart(2, "0") + " 分";
+		}
+		function formatClock(value) {
+			return value ? String(value).replace("T", " ").slice(0, 19) : "-";
+		}
+		function formatBytes(value) {
+			const size = Number(value);
+			if (!Number.isFinite(size) || size <= 0) return "-";
+			if (size < 1024) return size + " B";
+			if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+			return (size / (1024 * 1024)).toFixed(1) + " MB";
+		}
+		function stageMetaText(row) {
+			// Only the fields the record actually carries are shown: a v1 record,
+			// or a terminal marker row (completed/failed/cancelled), simply has
+			// fewer parts instead of a fabricated "0/0".
+			const parts = [analysisStatusLabel(row.status)];
+			const total = Number(row.agents_total ?? 0);
+			const done = Number(row.agents_done ?? 0);
+			const failed = Number(row.agents_failed ?? 0);
+			if (total > 0 || done > 0 || failed > 0) parts.push("子任务 " + done + "/" + total + (failed > 0 ? " · 失败 " + failed : ""));
+			if (row.result_digest) parts.push(JSON.stringify(row.result_digest).slice(0, 140));
+			return parts.join(" · ");
+		}
+		function durationOf(row) {
+			// analysis record -> duration_ms; report index rows only carry
+			// started_at/finished_at, so derive the span instead of inventing one.
+			if (row && Number.isFinite(Number(row.duration_ms))) return formatDuration(row.duration_ms);
+			const start = Date.parse(String(row?.started_at ?? ""));
+			const end = Date.parse(String(row?.finished_at ?? ""));
+			if (Number.isFinite(start) && Number.isFinite(end) && end >= start) return formatDuration(end - start);
+			return "-";
+		}
+		async function fetchAnalysisRun(cycleId) {
+			if (!cycleId) return null;
+			try {
+				const payload = await jsonFetch("/api/investment/analysis?action=run&cycle_id=" + encodeURIComponent(cycleId));
+				return payload?.analysis ?? null;
+			} catch (error) {
+				// 404 = the engine has not written the record yet (round spinning up).
+				if (String(error?.message ?? error).includes("404")) return null;
+				throw error;
+			}
+		}
+
+		function useAnalysisRun(cycleId) {
+			const [state, setState] = react.useState({ data: null, error: "", loading: false });
+			const cycleRef = react.useRef(cycleId);
+			const previousCycle = react.useRef(cycleId);
+			const status = String(state.data?.status ?? "");
+			// 2s while a round runs, 8s otherwise, and no timer at all once the
+			// round reached a terminal state.
+			const intervalMs = isAnalysisTerminal(status) ? 0 : status === "running" ? ANALYSIS_POLL_RUNNING_MS : ANALYSIS_POLL_IDLE_MS;
+			const load = react.useCallback(async () => {
+				const target = cycleRef.current;
+				if (!target) return;
+				// document.hidden pauses the loop; the next tick after the tab
+				// becomes visible again performs the refresh.
+				if (typeof document !== "undefined" && document.hidden) return;
+				try {
+					const record = await fetchAnalysisRun(target);
+					if (cycleRef.current === target) setState({ data: record, error: "", loading: false });
+				} catch (error) {
+					if (cycleRef.current === target) setState((previous) => ({ ...previous, error: String(error?.message ?? error), loading: false }));
+				}
+			}, []);
+			react.useEffect(() => {
+				cycleRef.current = cycleId;
+				if (previousCycle.current !== cycleId) {
+					previousCycle.current = cycleId;
+					setState({ data: null, error: "", loading: Boolean(cycleId) });
+				}
+				if (!cycleId || intervalMs <= 0) return undefined;
+				load();
+				const timer = setInterval(load, intervalMs);
+				return () => clearInterval(timer);
+			}, [cycleId, intervalMs, load]);
+			react.useEffect(() => {
+				if (typeof document === "undefined") return undefined;
+				const onVisibility = () => {
+					if (!document.hidden) load();
+				};
+				document.addEventListener("visibilitychange", onVisibility);
+				return () => document.removeEventListener("visibilitychange", onVisibility);
+			}, [load]);
+			return { ...state, reload: load };
+		}
+
+		function useActiveRounds(intervalMs) {
+			const [state, setState] = react.useState({ rounds: [], error: "" });
+			const load = react.useCallback(async () => {
+				if (typeof document !== "undefined" && document.hidden) return;
+				try {
+					const payload = await jsonFetch("/api/investment/analysis?action=active");
+					setState({ rounds: Array.isArray(payload?.rounds) ? payload.rounds : [], error: "" });
+				} catch (error) {
+					setState((previous) => ({ rounds: previous.rounds, error: String(error?.message ?? error) }));
+				}
+			}, []);
+			react.useEffect(() => {
+				load();
+				const timer = setInterval(load, Math.max(ANALYSIS_POLL_RUNNING_MS, Number(intervalMs) || ANALYSIS_POLL_IDLE_MS));
+				return () => clearInterval(timer);
+			}, [load, intervalMs]);
+			return { ...state, reload: load };
+		}
+
+		function AnalysisPipelineView({ run, loading, error, cycleId }) {
+			const [logsOpen, setLogsOpen] = react.useState(false);
+			const stages = run && run.stages && typeof run.stages === "object" ? run.stages : {};
+			const stageRows = Object.keys(stages).map((stage) => Object.assign({ stage }, stages[stage] ?? {}));
+			stageRows.sort((a, b) => {
+				const left = analysisStageOrder.indexOf(a.stage);
+				const right = analysisStageOrder.indexOf(b.stage);
+				return (left < 0 ? 99 : left) - (right < 0 ? 99 : right);
+			});
+			const currentStage = String(run?.current_stage ?? "");
+			if (currentStage && !stageRows.some((row) => row.stage === currentStage)) {
+				// v1 records (and the instant right after start) may not carry a
+				// stages entry yet: show the run's own status for that stage.
+				stageRows.push({ stage: currentStage, status: run?.status ?? "" });
+			}
+			const agents = run && run.agents && typeof run.agents === "object" ? Object.values(run.agents).filter((value) => value && typeof value === "object") : [];
+			agents.sort((a, b) => Number(a.seq ?? 0) - Number(b.seq ?? 0) || String(a.started_at ?? "").localeCompare(String(b.started_at ?? "")));
+			const logs = Array.isArray(run?.logs) ? run.logs.filter((entry) => entry && typeof entry === "object") : [];
+			const visibleLogs = logs.slice(-200);
+			const warnings = Array.isArray(run?.warnings) ? run.warnings : [];
+			const reportMeta = run && run.report_meta && typeof run.report_meta === "object" ? run.report_meta : null;
+			return react_jsx_runtime.jsxs("section", {
+				className: "ia-an-panel",
+				children: [
+					react_jsx_runtime.jsxs("div", {
+						className: "ia-an-panel-head",
+						children: [
+							react_jsx_runtime.jsx("h3", { children: "分析流程" }),
+							react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": analysisStatusKind(run?.status), children: run ? "轮次 " + analysisStatusLabel(run.status) : "尚无轮次" })
+						]
+					}),
+					error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "读取轮次失败：" + error }) : null,
+					run?.error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "轮次失败：" + String(run.error) }) : null,
+					warnings.length > 0 ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "warn", children: "警告 " + warnings.length + " 条：" + warnings.slice(0, 3).map((item) => String(item)).join("；") }) : null,
+					react_jsx_runtime.jsxs("div", {
+						className: "ia-an-kpis",
+						children: [
+							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "轮次状态" }), react_jsx_runtime.jsx("b", { children: run ? analysisStatusLabel(run.status) : "-" })] }),
+							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "当前阶段" }), react_jsx_runtime.jsx("b", { children: run ? analysisStageLabel(run.current_stage) : "-" })] }),
+							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "子任务 完成/预期" }), react_jsx_runtime.jsx("b", { children: (run?.completed_agents ?? 0) + "/" + (run?.expected_agents ?? 0) + (run?.failed_agents ? " · 失败 " + run.failed_agents : "") })] }),
+							react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "证据条数" }), react_jsx_runtime.jsx("b", { children: run?.evidence_count ?? 0 })] })
+						]
+					}),
+					react_jsx_runtime.jsx("div", {
+						className: "ia-an-note",
+						children: run ? "轮次 " + String(run.cycle_id ?? cycleId ?? "-") + " · " + (marketName[run.market] ?? run.market ?? "-") + " · 标签 " + String(run.label ?? "-") + " · 标的 " + (Array.isArray(run.symbols) ? run.symbols.length : 0) + " 个" : (cycleId ? "轮次 " + cycleId + "：引擎尚未返回记录" : "尚未启动分析轮次")
+					}),
+					stageRows.length > 0 ? react_jsx_runtime.jsx("div", { children: stageRows.map((row) => react_jsx_runtime.jsxs("div", {
+						className: "ia-an-stage",
+						"data-status": String(row.status ?? ""),
+						children: [
+							react_jsx_runtime.jsx("span", { className: "ia-an-stage-dot", children: row.status === "completed" ? "✓" : row.status === "running" ? "↻" : row.status === "failed" ? "×" : "·" }),
+							react_jsx_runtime.jsxs("div", { children: [
+								react_jsx_runtime.jsx("div", { className: "ia-an-stage-name", children: analysisStageLabel(row.stage) }),
+								react_jsx_runtime.jsx("div", {
+									className: "ia-an-stage-meta",
+									children: stageMetaText(row)
+								})
+							]}),
+							react_jsx_runtime.jsx("div", { className: "ia-an-stage-time", children: durationOf(row) })
+						]
+					}, row.stage)) }) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: loading ? "正在读取阶段…" : cycleId ? "该轮次尚未写入阶段记录" : "尚未启动分析轮次" }),
+					agents.length > 0 ? react_jsx_runtime.jsx("div", {
+						className: "ia-an-agents",
+						children: agents.map((agent) => react_jsx_runtime.jsxs("div", {
+							className: "ia-an-agent",
+							"data-status": String(agent.status ?? ""),
+							children: [
+								react_jsx_runtime.jsxs("div", { className: "ia-an-agent-head", children: [
+									react_jsx_runtime.jsx("span", { className: "ia-an-agent-label", children: String(agent.label ?? "-") }),
+									react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": analysisStatusKind(agent.status), children: analysisStatusLabel(agent.status) })
+								]}),
+								react_jsx_runtime.jsx("div", { className: "ia-an-agent-meta", children: (agent.phase ? String(agent.phase) + " · " : "") + analysisStageLabel(agent.stage) + " · " + durationOf(agent) }),
+								agent.error ? react_jsx_runtime.jsx("div", { className: "ia-an-agent-body", children: String(agent.error) }) : agent.summary ? react_jsx_runtime.jsx("div", { className: "ia-an-agent-body", children: String(agent.summary) }) : null
+							]
+						}, String(agent.stage ?? "") + ":" + String(agent.label ?? "") + ":" + String(agent.seq ?? "")))
+					}) : null,
+					reportMeta?.round_report ? react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 10 }, children: "轮次报告：" + String(reportMeta.round_report).split(/[\\/]/).pop() + "（" + formatBytes(reportMeta.bytes) + " · " + formatClock(reportMeta.generated_at) + "）" }) : null,
+					react_jsx_runtime.jsxs("div", {
+						className: "ia-an-log",
+						children: [
+							react_jsx_runtime.jsxs("div", { className: "ia-an-log-head", children: [
+								react_jsx_runtime.jsx("span", { children: "运行日志 · " + logs.length + " 条" + (logs.length > visibleLogs.length ? "（显示最近 " + visibleLogs.length + " 条）" : "") }),
+								react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", onClick: () => setLogsOpen((open) => !open), children: logsOpen ? "收起日志" : "展开日志" })
+							]}),
+							logsOpen ? react_jsx_runtime.jsx("div", {
+								className: "ia-an-log-body",
+								children: visibleLogs.length > 0 ? visibleLogs.map((entry) => "[" + formatClock(entry.at) + "] " + String(entry.level ?? "info").toUpperCase() + (entry.stage ? " " + analysisStageLabel(entry.stage) : "") + (entry.agent ? " " + String(entry.agent) : "") + " — " + String(entry.message ?? "")).join("\n") : "暂无日志"
+							}) : null
+						]
+					})
+				]
+			});
+		}
+
+		function AnalysisReportPanel({ refreshToken, highlightCycleId }) {
+			const index = useAsync(() => jsonFetch("/api/investment/reports?action=index&limit=50"), []);
+			const [marketFilter, setMarketFilter] = react.useState("");
+			const [selected, setSelected] = react.useState("");
+			const [content, setContent] = react.useState({ loading: false, error: "", data: null });
+			const [exportError, setExportError] = react.useState("");
+			const rows = Array.isArray(index.data?.reports) ? index.data.reports : [];
+			const visibleRows = marketFilter ? rows.filter((row) => String(row?.market ?? "") === marketFilter) : rows;
+			const reloadIndex = index.reload;
+			react.useEffect(() => {
+				if (refreshToken > 0) reloadIndex();
+			}, [refreshToken, reloadIndex]);
+			react.useEffect(() => {
+				if (selected) return;
+				const match = rows.find((row) => highlightCycleId && String(row?.cycle_id ?? "") === highlightCycleId);
+				if (match) setSelected(String(match.cycle_id));
+			}, [rows, selected, highlightCycleId]);
+			react.useEffect(() => {
+				if (!selected) return undefined;
+				let cancelled = false;
+				setContent({ loading: true, error: "", data: null });
+				jsonFetch("/api/investment/reports?action=content&cycle_id=" + encodeURIComponent(selected))
+					.then((payload) => {
+						if (!cancelled) setContent({ loading: false, error: "", data: payload });
+					})
+					.catch((error) => {
+						if (!cancelled) setContent({ loading: false, error: String(error?.message ?? error), data: null });
+					});
+				return () => {
+					cancelled = true;
+				};
+			}, [selected]);
+			const handleSelect = (cycleId) => {
+				setExportError("");
+				setSelected(cycleId);
+			};
+			const handleExport = () => {
+				const payload = content.data;
+				if (!payload?.content) return;
+				const name = String(payload.file ?? (selected + ".md"));
+				try {
+					const blob = new Blob([String(payload.content)], { type: "text/markdown;charset=utf-8" });
+					const url = URL.createObjectURL(blob);
+					const anchor = document.createElement("a");
+					anchor.href = url;
+					anchor.download = name.endsWith(".md") ? name : name + ".md";
+					document.body.appendChild(anchor);
+					anchor.click();
+					document.body.removeChild(anchor);
+					setTimeout(() => URL.revokeObjectURL(url), 4000);
+					setExportError("");
+				} catch (error) {
+					setExportError("导出失败：" + String(error?.message ?? error));
+				}
+			};
+			return react_jsx_runtime.jsxs("section", {
+				className: "ia-an-panel",
+				children: [
+					react_jsx_runtime.jsxs("div", {
+						className: "ia-an-panel-head",
+						children: [
+							react_jsx_runtime.jsxs("div", { children: [
+								react_jsx_runtime.jsx("h3", { children: "轮次报告" }),
+								react_jsx_runtime.jsx("div", { className: "ia-an-note", children: rows.length + " 个轮次 · 来自 reports?action=index" })
+							]}),
+							react_jsx_runtime.jsxs("div", { style: { display: "flex", gap: 6, alignItems: "center" }, children: [
+								react_jsx_runtime.jsxs("select", {
+									className: "ia-an-select",
+									style: { width: "auto" },
+									value: marketFilter,
+									"aria-label": "按市场筛选轮次报告",
+									onChange: (event) => setMarketFilter(event.target.value),
+									children: [
+										react_jsx_runtime.jsx("option", { value: "", children: "全部市场" }, "all"),
+										...ANALYSIS_MARKETS.map(([id, name]) => react_jsx_runtime.jsx("option", { value: id, children: name }, id))
+									]
+								}),
+								react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", onClick: () => reloadIndex(), children: index.loading ? "刷新中…" : "刷新" })
+							]})
+						]
+					}),
+					index.error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "报告索引不可用：" + index.error }) : null,
+					visibleRows.length > 0 ? react_jsx_runtime.jsx("ul", {
+						className: "ia-an-report-list",
+						children: visibleRows.map((row, position) => react_jsx_runtime.jsx("li", {
+							children: react_jsx_runtime.jsxs("button", {
+								className: "ia-an-report-item",
+								type: "button",
+								"data-active": String(row?.cycle_id ?? "") === selected,
+								onClick: () => handleSelect(String(row?.cycle_id ?? "")),
+								children: [
+									react_jsx_runtime.jsx("div", { className: "ia-an-report-title", children: formatClock(row?.started_at ?? row?.finished_at) + " · " + (marketName[row?.market] ?? row?.market ?? "-") + " · " + String(row?.label ?? "-") }),
+									react_jsx_runtime.jsx("div", { className: "ia-an-report-meta", children: analysisStatusLabel(row?.status) + " · 耗时 " + durationOf(row) + " · 证据 " + (row?.evidence_count ?? 0) + " · 决策 " + (row?.decisions_count ?? 0) + (row?.report_bytes ? " · " + formatBytes(row.report_bytes) : "") })
+								]
+							})
+						}, String(row?.cycle_id ?? "") + ":" + position))
+					}) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: index.loading ? "正在读取报告索引…" : "暂无轮次报告" }),
+					selected ? react_jsx_runtime.jsxs("div", { children: [
+						react_jsx_runtime.jsxs("div", { className: "ia-an-log-head", style: { marginTop: 10 }, children: [
+							react_jsx_runtime.jsx("span", { children: content.data?.file ? String(content.data.file) : selected }),
+							react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", disabled: !content.data?.content, onClick: handleExport, children: "导出 .md" })
+						]}),
+						exportError ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: exportError }) : null,
+						content.loading ? react_jsx_runtime.jsx("div", { className: "ia-empty", children: "正在读取报告正文…" }) : null,
+						content.error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "读取报告失败：" + content.error }) : null,
+						content.data?.content ? react_jsx_runtime.jsx("pre", { className: "ia-an-report-body", children: String(content.data.content) }) : null
+					]}) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: "选择上方轮次查看报告正文" })
+				]
+			});
+		}
+
+		function AnalysisCenter() {
+			const summaryState = useInvestmentSummary(ANALYSIS_POLL_IDLE_MS);
+			const summary = summaryState.data ?? {};
+			const engineStatus = summary.status ?? {};
+			const control = engineStatus.control ?? {};
+			const engineError = summaryState.error || engineStatus.error || "";
+			const summaryRuns = Array.isArray(summary.analysisRuns) ? summary.analysisRuns : [];
+			const summaryAnalysis = summary.analysis && typeof summary.analysis === "object" ? summary.analysis : null;
+
+			const initialRef = react.useRef(null);
+			if (initialRef.current === null) initialRef.current = readPendingAnalysis();
+			const initial = initialRef.current;
+			const [pending, setPending] = react.useState(initial);
+			const [market, setMarket] = react.useState(initial?.market ?? "cn");
+			const [label, setLabel] = react.useState(initial?.label ?? "manual");
+			const [source, setSource] = react.useState(initial?.symbols_source === "screening" ? "screening" : "user");
+			const [symbolsText, setSymbolsText] = react.useState(Array.isArray(initial?.symbols) ? initial.symbols.join(",") : "");
+			const [goalId, setGoalId] = react.useState("");
+			const [submitting, setSubmitting] = react.useState(false);
+			const [notice, setNotice] = react.useState(null);
+			const [refreshToken, setRefreshToken] = react.useState(0);
+
+			const watchCycleId = String(pending?.cycle_id ?? "") || String(summaryAnalysis?.cycle_id ?? "");
+			const runState = useAnalysisRun(watchCycleId);
+			const run = runState.data && (!watchCycleId || String(runState.data.cycle_id) === watchCycleId)
+				? runState.data
+				: summaryAnalysis && (!watchCycleId || String(summaryAnalysis.cycle_id) === watchCycleId)
+					? summaryAnalysis
+					: null;
+			const runningFromSummary = summaryRuns.find((row) => String(row?.status ?? "") === "running") ?? (String(summaryAnalysis?.status ?? "") === "running" ? summaryAnalysis : null);
+			const activeState = useActiveRounds(run?.status === "running" || runningFromSummary ? ANALYSIS_POLL_RUNNING_MS : ANALYSIS_POLL_IDLE_MS);
+			// ⑤ disable condition: no running round anywhere the shell can see.
+			const runningRound = activeState.rounds.find((row) => String(row?.status ?? "") === "running") ?? runningFromSummary ?? (String(run?.status ?? "") === "running" ? run : null);
+			const hasRunningRound = Boolean(runningRound);
+
+			const symbols = parseAnalysisSymbols(symbolsText);
+			const symbolCount = symbols.length;
+			const symbolOverflow = symbolCount > MAX_ANALYSIS_SYMBOLS;
+			const killSwitch = control.kill_switch === true;
+			const engineReachable = !engineError;
+			const screenerRun = [run, ...summaryRuns].find((row) => row && Array.isArray(row.symbols) && row.symbols.length > 0 && String(row.symbols_source ?? "").toLowerCase() === "screening") ?? null;
+			const goalOptions = [];
+			for (const row of [run, ...summaryRuns]) {
+				const value = String(row?.goal_id ?? "");
+				if (value && !goalOptions.includes(value)) goalOptions.push(value);
+			}
+
+			// The five start-button preconditions, in the same order as the spec.
+			const checks = [
+				{ key: "symbols", ok: symbolCount > 0, label: "标的清单非空", detail: symbolCount > 0 ? "已识别 " + symbolCount + " 个标的" : "尚未填写标的" },
+				{ key: "limit", ok: !symbolOverflow, label: "不超过 " + MAX_ANALYSIS_SYMBOLS + " 个", detail: symbolCount + " / " + MAX_ANALYSIS_SYMBOLS + (symbolOverflow ? " · 超出上限" : "") },
+				{ key: "kill_switch", ok: !killSwitch, label: "风控未紧急停止", detail: killSwitch ? "紧急停止已开启" : control.paused ? "引擎已暂停（分析仍可启动）" : "正常" },
+				{ key: "running", ok: !hasRunningRound, label: "无运行中的轮次", detail: hasRunningRound ? "轮次 " + String(runningRound?.cycle_id ?? "-") + " 正在运行" : "无" },
+				{ key: "engine", ok: engineReachable, label: "引擎可达", detail: engineReachable ? "已连接投资引擎" : "不可达：" + engineError }
+			];
+			const canStart = !submitting && symbolCount > 0 && !symbolOverflow && !killSwitch && !hasRunningRound && engineReachable;
+			const blockReason = submitting
+				? "正在提交…"
+				: symbolCount === 0
+					? "请先填写标的清单"
+					: symbolOverflow
+						? "标的数量超过 " + MAX_ANALYSIS_SYMBOLS + " 个"
+						: killSwitch
+							? "风控紧急停止已开启，禁止启动分析"
+							: hasRunningRound
+								? "已有分析轮次正在运行"
+								: !engineReachable
+									? "投资引擎不可达：无法启动分析"
+									: "";
+			const canStop = !submitting && String(run?.status ?? "") === "running" && Boolean(run?.cycle_id);
+			const retryCycleId = String(pending?.cycle_id ?? "") || String(run?.cycle_id ?? "");
+			// 重试 targets a round the user already started: either a stored
+			// pending snapshot (a start that never reached the engine) or a round
+			// the engine parked in failed/cancelled. A completed round is not
+			// retryable — the engine would only replay it as a duplicate.
+			const retryStatus = String(run?.status ?? "");
+			const canRetry = !submitting && !hasRunningRound && Boolean(retryCycleId) && (Boolean(pending) || retryStatus === "failed" || retryStatus === "cancelled");
+
+			const refreshAll = () => {
+				runState.reload();
+				activeState.reload();
+				setRefreshToken((value) => value + 1);
+			};
+
+			const submitStart = async (options) => {
+				setSubmitting(true);
+				setNotice(null);
+				const body = {
+					cycle_id: options.cycleId,
+					market: options.market,
+					symbols: options.symbols,
+					symbols_source: options.symbolsSource,
+					label: options.label
+				};
+				if (options.goalId) body.goal_id = options.goalId;
+				try {
+					const result = await jsonFetch("/api/investment/analysis?action=start", {
+						method: "POST",
+						body: JSON.stringify(body)
+					});
+					setPending(writePendingAnalysis({
+						cycle_id: options.cycleId,
+						market: options.market,
+						label: options.label,
+						symbols: options.symbols,
+						symbols_source: options.symbolsSource,
+						goal_id: options.goalId || undefined,
+						requested_at: new Date().toISOString()
+					}));
+					setNotice({
+						kind: result?.started === false ? "warn" : "ok",
+						text: result?.resumed
+							? "已从检查点恢复该轮次（沿用同一 cycle_id）。"
+							: result?.started === false
+								? (result?.retry_deferred ? "该轮次的租约仍被占用，重试已延后；稍后再试。" : "该 cycle_id 已存在，引擎未重复启动。")
+								: "分析轮次已启动，正在拉取实时进度。"
+					});
+				} catch (error) {
+					setNotice({ kind: "err", text: "启动失败：" + String(error?.message ?? error) });
+				} finally {
+					setSubmitting(false);
+					refreshAll();
+				}
+			};
+
+			const handleStart = () => {
+				if (!canStart) return;
+				// A new click always mints a new cycle_id; the retry action below
+				// deliberately reuses the stored one.
+				submitStart({ cycleId: newAnalysisCycleId(market, label), market, label: label || "manual", symbols, symbolsSource: source, goalId });
+			};
+			const handleRetry = () => {
+				if (!canRetry) return;
+				const snapshot = pending ?? (run ? { cycle_id: run.cycle_id, market: run.market, label: run.label, symbols: run.symbols, symbols_source: run.symbols_source, goal_id: run.goal_id } : null);
+				if (!snapshot?.cycle_id) return;
+				const snapshotSymbols = Array.isArray(snapshot.symbols) && snapshot.symbols.length > 0 ? snapshot.symbols : symbols;
+				submitStart({
+					cycleId: String(snapshot.cycle_id),
+					market: String(snapshot.market ?? market) || market,
+					label: String(snapshot.label ?? label) || "manual",
+					symbols: snapshotSymbols,
+					symbolsSource: String(snapshot.symbols_source ?? source) || "user",
+					goalId: String(snapshot.goal_id ?? goalId ?? "")
+				});
+			};
+			const handleStop = async () => {
+				const cycleId = String(run?.cycle_id ?? pending?.cycle_id ?? "");
+				if (!cycleId) return;
+				setSubmitting(true);
+				setNotice(null);
+				try {
+					await jsonFetch("/api/investment/analysis?action=stop", {
+						method: "POST",
+						body: JSON.stringify({ cycle_id: cycleId, reason: "用户在产品壳手动停止分析轮次" })
+					});
+					setNotice({ kind: "ok", text: "已请求停止轮次 " + cycleId + "（仅影响分析，不影响账户）。" });
+				} catch (error) {
+					setNotice({ kind: "err", text: "停止失败：" + String(error?.message ?? error) });
+				} finally {
+					setSubmitting(false);
+					refreshAll();
+				}
+			};
+			const handleLabel = (value) => setLabel(String(value ?? "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 40));
+			const handleSource = (next) => {
+				setSource(next);
+				if (next === "screening" && screenerRun) setSymbolsText((screenerRun.symbols ?? []).join(","));
+			};
+			const sourceNote = source === "screening"
+				? screenerRun
+					? "来自选股：沿用最近一次选股轮次 " + String(screenerRun.cycle_id ?? "-") + " 的 " + (screenerRun.symbols?.length ?? 0) + " 个候选。"
+					: "来自选股：产品壳代理未暴露选股接口，也没有 symbols_source=screening 的历史轮次；请在引擎侧先运行选股，或切回手动输入。"
+				: "手动输入：逗号、空格或换行分隔，自动去重，上限 " + MAX_ANALYSIS_SYMBOLS + " 个。";
+
+			const renderStartPanel = () => react_jsx_runtime.jsxs("div", {
+				className: "ia-an-col",
+				children: [
+					react_jsx_runtime.jsxs("section", {
+						className: "ia-an-panel",
+						children: [
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-panel-head",
+								children: [
+									react_jsx_runtime.jsx("h3", { children: "开始分析" }),
+									run ? react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": analysisStatusKind(run.status), children: analysisStatusLabel(run.status) }) : react_jsx_runtime.jsx("span", { className: "ia-chip", children: "未启动" })
+								]
+							}),
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-field",
+								children: [
+									react_jsx_runtime.jsx("label", { className: "ia-an-lab", htmlFor: "ia-an-market", children: "市场" }),
+									react_jsx_runtime.jsx("select", {
+										id: "ia-an-market",
+										className: "ia-an-select",
+										value: market,
+										onChange: (event) => setMarket(event.target.value),
+										children: ANALYSIS_MARKETS.map(([id, name]) => react_jsx_runtime.jsx("option", { value: id, children: name }, id))
+									})
+								]
+							}),
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-field",
+								children: [
+									react_jsx_runtime.jsx("label", { className: "ia-an-lab", htmlFor: "ia-an-label", children: "轮次标签（仅 [A-Za-z0-9_.-]）" }),
+									react_jsx_runtime.jsx("input", { id: "ia-an-label", className: "ia-an-input", value: label, spellCheck: false, placeholder: "manual", onChange: (event) => handleLabel(event.target.value) })
+								]
+							}),
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-field",
+								children: [
+									react_jsx_runtime.jsx("span", { className: "ia-an-lab", children: "标的来源" }),
+									react_jsx_runtime.jsxs("div", {
+										className: "ia-an-seg",
+										children: [
+											react_jsx_runtime.jsx("button", { type: "button", "data-active": source === "user", onClick: () => handleSource("user"), children: "手动输入" }),
+											react_jsx_runtime.jsx("button", { type: "button", "data-active": source === "screening", onClick: () => handleSource("screening"), children: "来自选股" })
+										]
+									}),
+									react_jsx_runtime.jsx("div", { className: "ia-an-note", children: sourceNote })
+								]
+							}),
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-field",
+								children: [
+									react_jsx_runtime.jsx("label", { className: "ia-an-lab", htmlFor: "ia-an-symbols", children: "标的清单（逗号 / 空格 / 换行分隔，去重）" }),
+									react_jsx_runtime.jsx("textarea", { id: "ia-an-symbols", className: "ia-an-area", value: symbolsText, spellCheck: false, placeholder: "600519, 000858", onChange: (event) => setSymbolsText(event.target.value) }),
+									react_jsx_runtime.jsx("div", { className: "ia-an-note", children: "已识别 " + symbolCount + " 个标的" + (symbolOverflow ? "（超出上限 " + MAX_ANALYSIS_SYMBOLS + " 个）" : "") })
+								]
+							}),
+							goalOptions.length > 0 ? react_jsx_runtime.jsxs("div", {
+								className: "ia-an-field",
+								children: [
+									react_jsx_runtime.jsx("label", { className: "ia-an-lab", htmlFor: "ia-an-goal", children: "绑定目标（可选，取自历史轮次记录的目标 ID）" }),
+									react_jsx_runtime.jsxs("select", {
+										id: "ia-an-goal",
+										className: "ia-an-select",
+										value: goalId,
+										onChange: (event) => setGoalId(event.target.value),
+										children: [
+											react_jsx_runtime.jsx("option", { value: "", children: "（不绑定目标）" }, "none"),
+											...goalOptions.map((value) => react_jsx_runtime.jsx("option", { value: value, children: value }, value))
+										]
+									})
+								]
+							}) : null,
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-field",
+								children: [
+									react_jsx_runtime.jsx("span", { className: "ia-an-lab", children: "预检清单" }),
+									...checks.map((check) => react_jsx_runtime.jsxs("div", {
+										className: "ia-an-check",
+										"data-ok": check.ok,
+										children: [
+											react_jsx_runtime.jsx("span", { className: "ia-an-check-mark", children: check.ok ? "✓" : "!" }),
+											react_jsx_runtime.jsxs("span", { children: [react_jsx_runtime.jsx("b", { children: check.label }), " · " + check.detail] })
+										]
+									}, check.key))
+								]
+							}),
+							react_jsx_runtime.jsx("button", {
+								id: "ia-an-start",
+								className: "ia-an-primary",
+								type: "button",
+								disabled: !canStart,
+								title: canStart ? "开始一个分析轮次（只分析，不下单）" : blockReason,
+								onClick: handleStart,
+								children: submitting ? "提交中…" : "开始分析"
+							}),
+							notice ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": notice.kind, children: notice.text }) : null,
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-actions",
+								children: [
+									react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", disabled: !canStop, title: canStop ? "停止当前轮次（只影响分析，绝不影响账户）" : "当前没有运行中的轮次", onClick: handleStop, children: "停止" }),
+									react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", disabled: !canRetry, title: canRetry ? "沿用同一个 cycle_id 重试（引擎从检查点续跑）" : "没有可重试的轮次：仅已失败 / 已停止的轮次或尚未提交成功的轮次可重试", onClick: handleRetry, children: "重试" }),
+									react_jsx_runtime.jsx("button", { className: "ia-an-btn", type: "button", onClick: refreshAll, children: "刷新" })
+								]
+							}),
+							react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 8 }, children: hasRunningRound ? "进行中：" + String(runningRound?.cycle_id ?? "-") + " · 轮询 " + (run?.status === "running" ? "2" : "8") + " 秒" : isAnalysisTerminal(run?.status) ? "轮次已进入终态，已停止轮询。" : "当前没有运行中的轮次。" })
+						]
+					}),
+					react_jsx_runtime.jsxs("section", {
+						className: "ia-an-panel",
+						children: [
+							react_jsx_runtime.jsx("h3", { style: { margin: "0 0 8px", fontSize: 13 }, children: "契约提示" }),
+							react_jsx_runtime.jsx("div", { className: "ia-an-note", children: "分析轮次只做研究：引擎强制 submit=false，不会下任何单。需要执行时在引擎侧用同一 cycle_id 显式批准，由引擎校验决策指纹。" }),
+							react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 6 }, children: "所有请求都走产品壳代理（/api/investment/analysis、/api/investment/reports），浏览器侧看不到引擎地址与 token。" })
+						]
+					})
+				]
+			});
+
+			return react_jsx_runtime.jsxs("div", {
+				className: "ia-page",
+				children: [
+					react_jsx_runtime.jsx(PageHeader, {
+						title: "分析中心",
+						subtitle: "手动开始分析 · 实时阶段与子任务 · 每轮报告",
+						status: engineError ? "投资引擎不可达" : run ? analysisStageLabel(run.current_stage) + " · " + analysisStatusLabel(run.status) : "尚未启动分析轮次",
+						statusKind: engineError || run?.status === "failed" ? "error" : run?.status === "completed" ? "ok" : run?.status === "running" ? "warn" : "warn"
+					}),
+					react_jsx_runtime.jsxs("div", {
+						className: "ia-page-content",
+						children: [
+							engineError ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "引擎暂不可达：" + engineError }) : null,
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-grid",
+								children: [
+									renderStartPanel(),
+									react_jsx_runtime.jsxs("div", {
+										className: "ia-an-main",
+										children: [
+											react_jsx_runtime.jsx(AnalysisPipelineView, { run, loading: runState.loading, error: runState.error, cycleId: watchCycleId }),
+											react_jsx_runtime.jsx(AnalysisReportPanel, { refreshToken, highlightCycleId: String(run?.cycle_id ?? "") })
+										]
+									})
+								]
+							})
 						]
 					})
 				]
@@ -1108,6 +1905,7 @@ window.__ModuleLoader__.load({
 			const navigation = [
 				["dashboard", "▦", "Dashboard"],
 				["assistant", "◎", "投资助手"],
+				["analyze", "◈", "分析中心"],
 				["workflow", "⌁", "分析流程"],
 				["settings", "⚙", "设置"]
 			];
@@ -1141,7 +1939,7 @@ window.__ModuleLoader__.load({
 					}),
 					react_jsx_runtime.jsx("div", {
 						className: "ia-body",
-						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, {}) : page === "workflow" ? react_jsx_runtime.jsx(WorkflowPage, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
+						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, {}) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "workflow" ? react_jsx_runtime.jsx(WorkflowPage, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
 							children: [
 								renderSlot("sidebar", { collapsed: false, width: 250 }),
 								react_jsx_runtime.jsx("div", { className: "ia-center", children: renderSlot("conversation", {}) }),

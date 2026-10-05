@@ -21,6 +21,11 @@ const webUrl = String(process.argv[2] ?? "http://127.0.0.1:4567").replace(/\/+$/
 const chromePath =
   process.argv[3] ??
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+// Optional 4th arg: a `?token=…` sign-in URL for token-gated DSH web surfaces.
+const authUrl = process.argv[4] ? String(process.argv[4]) : "";
+// Optional 5th arg: reuse a prepared Chrome profile directory (keeps the
+// sign-in cookie without re-authenticating on every run).
+const chromeProfileDir = process.argv[5] ? String(process.argv[5]) : "";
 const cdpPort = 9333;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -109,7 +114,7 @@ async function evaluate(cdp, expression) {
 
 async function main() {
   console.error(`smoke-web: url=${webUrl}`);
-  const profileDir = mkdtempSync(join(tmpdir(), "ia-smoke-"));
+  const profileDir = chromeProfileDir ?? mkdtempSync(join(tmpdir(), "ia-smoke-"));
 
   const chrome = spawn(
     chromePath,
@@ -135,6 +140,31 @@ async function main() {
         return null;
       }
     }, "chrome devtools endpoint");
+
+    // ── optional sign-in step ──────────────────────────────────────────────
+    //
+    // DSH >= 0.2.0 gates the web surface behind a per-process token supplied as
+    // `?token=…`. The token is redeemed into an HttpOnly cookie, so the smoke
+    // run signs in ONCE here and then drives every assertion against the bare
+    // URL on a fresh target — which also keeps the exception/network counters
+    // below free of the sign-in navigation's own events.
+    if (authUrl) {
+      const authTarget = await (
+        await fetch(`http://127.0.0.1:${cdpPort}/json/new?${encodeURIComponent(authUrl)}`, { method: "PUT" })
+      ).json();
+      const authCdp = await connect(authTarget.webSocketDebuggerUrl);
+      await authCdp.call("Page.enable");
+      await authCdp.call("Page.navigate", { url: authUrl });
+      await sleep(9000);
+      const signedIn = await evaluate(authCdp, "document.title");
+      authCdp.close();
+      if (!String(signedIn).includes("Investment Auto")) {
+        console.error(`smoke-web: sign-in did not reach the product shell (title=${JSON.stringify(signedIn)})`);
+        process.exitCode = 1;
+        return;
+      }
+      console.error("smoke-web: signed in via token URL");
+    }
 
     const target = await (
       await fetch(`http://127.0.0.1:${cdpPort}/json/new?${encodeURIComponent(webUrl + "/")}`, { method: "PUT" })
@@ -275,6 +305,54 @@ async function main() {
       }
     }
     check(!failedRequests.some((r) => String(r.params.response.url).includes("client.js") && r.params.response.status === 404), "all client bundles served (no 404)");
+
+    // 8. Analysis centre tab (P0-5/6/7): navigation entry, ia-an-* containers,
+    //    the manual start button's five preconditions, and a clean exception
+    //    log after driving the tab. Purely additive: assertions 1-7 above are
+    //    untouched, and the exception filter repeats the one used in step 7 so
+    //    this section cannot pass by ignoring a failure.
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('分析中心'))?.click()`);
+    await sleep(1500);
+    const analyzeNav = await evaluate(cdp, `Array.from(document.querySelectorAll('.ia-navbtn')).map(b => b.textContent.trim()).join('|')`);
+    check(String(analyzeNav).includes("分析中心"), `left nav has the analysis centre entry (${analyzeNav})`);
+    const analyzeGrid = await evaluate(cdp, `document.querySelector('.ia-an-grid') ? getComputedStyle(document.querySelector('.ia-an-grid')).display : ''`);
+    check(String(analyzeGrid) === "grid", `analysis centre grid container mounted (display: ${analyzeGrid || "missing"})`);
+    const analyzeContainers = await evaluate(cdp, `document.querySelectorAll('[class*="ia-an-"]').length`);
+    check(Number(analyzeContainers) >= 3, `analysis centre ia-an-* containers render (${analyzeContainers} elements)`);
+    const analyzeText = await evaluate(cdp, "document.body.innerText");
+    check(String(analyzeText).includes("开始分析") && String(analyzeText).includes("预检清单"), "analysis centre renders the manual start panel with its preflight list");
+    check(String(analyzeText).includes("轮次报告") && String(analyzeText).includes("分析流程"), "analysis centre renders the pipeline and per-round report panels");
+    const startEmpty = await evaluate(cdp, `(() => { const b = document.querySelector('#ia-an-start'); return b ? { disabled: b.disabled, title: b.getAttribute('title') || '' } : null; })()`);
+    check(Boolean(startEmpty) && startEmpty.disabled === true, `开始分析 is disabled with an empty symbol list (${JSON.stringify(startEmpty)})`);
+    const typedSymbols = await evaluate(cdp, `(() => {
+      const el = document.querySelector('#ia-an-symbols');
+      if (!el) return 'no-textarea';
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      setter.call(el, '600519, 000858');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return 'typed';
+    })()`);
+    check(String(typedSymbols) === "typed", `analysis centre symbol box accepts input (${typedSymbols})`);
+    await sleep(600);
+    const startFilled = await evaluate(cdp, `(() => { const b = document.querySelector('#ia-an-start'); return b ? { disabled: b.disabled, title: b.getAttribute('title') || '' } : null; })()`);
+    const preflight = await evaluate(cdp, `Array.from(document.querySelectorAll('.ia-an-check')).map(el => el.getAttribute('data-ok') === 'true')`);
+    const preflightAllOk = Array.isArray(preflight) && preflight.length === 5 && preflight.every((value) => value === true);
+    if (preflightAllOk) {
+      check(Boolean(startFilled) && startFilled.disabled === false, `开始分析 enables once symbols are present and all five preconditions hold (${JSON.stringify(startFilled)})`);
+    } else {
+      // Two preconditions live outside the page (engine reachable, no round
+      // already running); when either fails the button must stay disabled
+      // rather than invite a 400 from the proxy.
+      check(Boolean(startFilled) && startFilled.disabled === true, `开始分析 stays disabled while a precondition fails (${JSON.stringify(preflight)} / ${JSON.stringify(startFilled)})`);
+      console.error("   (enabled-path assertion needs a reachable engine and no running round; this run had neither)");
+    }
+    const analyzeErrors = cdp.events.filter((e) => e.method === "Runtime.exceptionThrown" || e.method === "Log.entryAdded");
+    check(analyzeErrors.length === 0, `zero page exceptions while exercising the analysis centre (${analyzeErrors.length})`);
+    if (analyzeErrors.length > 0) {
+      for (const error of analyzeErrors.slice(0, 5)) {
+        console.error("   " + JSON.stringify(error).slice(0, 400));
+      }
+    }
 
     cdp.close();
   } finally {

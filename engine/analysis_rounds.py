@@ -113,7 +113,7 @@ def _worker(
             _active.pop(cycle_id, None)
         return
     try:
-        from engine import dsh_bridge
+        from engine import analysis_reports, dsh_bridge
 
         app_dir = dsh_bridge._resolve_app_dir()
         if app_dir is None:
@@ -151,6 +151,17 @@ def _worker(
         except Exception:  # noqa: BLE001
             pass
     finally:
+        # Write the per-round report for EVERY terminal outcome, including
+        # cancelled. This is the leg that was missing entirely: web analysis
+        # rounds never reach the scheduler or submit_decisions report writers,
+        # so they used to produce no report at all.
+        try:
+            final = analysis_runs.get(cycle_id)
+            if final is not None and not final.get("report_meta"):
+                descriptor = analysis_reports.generate(final)
+                analysis_runs.set_report_meta(cycle_id, descriptor)
+        except Exception:  # noqa: BLE001 - the report is auxiliary
+            logger.exception("[ANALYSIS-ROUND:%s] report generation failed", cycle_id)
         owned_claim.release()
         with _lock:
             _active.pop(cycle_id, None)

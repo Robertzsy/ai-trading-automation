@@ -1,6 +1,6 @@
 {
   "name": "@investment-auto/dsh-investment-ui",
-  "version": "2.0.0-p5",
+  "version": "2.1.3",
   "description": "Investment Auto 2.0 client UI: keyed tool cards for investment_status / investment_portfolio / investment_mandate in the DSH web conversation",
   "type": "module",
   "main": "lib/index.js",
