@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from zoneinfo import ZoneInfo
 
+from engine.atomic_write import write_text_atomic
 from engine.config import cfg
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,9 +42,8 @@ def save_state(state: Dict[str, Any], path: Optional[Path] = None) -> Dict[str, 
     target = path or CONTROL_FILE
     target.parent.mkdir(parents=True, exist_ok=True)
     normalized = {**DEFAULT_STATE, **state, "updated_at": _now()}
-    temporary = target.with_suffix(target.suffix + ".tmp")
-    temporary.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(target)
+    # Pause/kill switches are flipped from the UI while the engine reads them.
+    write_text_atomic(target, json.dumps(normalized, ensure_ascii=False, indent=2))
     return normalized
 
 

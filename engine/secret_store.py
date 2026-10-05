@@ -22,6 +22,7 @@ from typing import Any, Dict, Optional
 from ctypes import wintypes
 
 from engine import paths
+from engine.atomic_write import write_text_atomic
 
 _store_lock = threading.RLock()
 
@@ -91,9 +92,8 @@ def _read_store() -> Dict[str, Any]:
 def _write_store(payload: Dict[str, Any]) -> None:
     path = store_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".enc.tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
+    # The credential store is rewritten while the UI may be reading it.
+    write_text_atomic(path, json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 def save_secret(key: str, value: str) -> None:

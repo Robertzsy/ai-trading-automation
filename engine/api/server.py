@@ -531,6 +531,9 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(500, {"ok": False, "error": str(exc)[:1000]})
             return
         if self.path != "/api/commands/issue":
+            # Body not read yet: drain before answering, or the Windows teardown
+            # aborts the client's in-flight read (WinError 10053).
+            _drain_body(self)
             self._send(404, {"ok": False, "error": "not found", "path": self.path})
             return
         payload = _read_json(self)

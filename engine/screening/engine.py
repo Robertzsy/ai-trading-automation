@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence
 
+from engine.atomic_write import write_text_atomic
 from engine.data import fetcher
 from engine.screening.storage import (
     MongoScreeningStore,
@@ -76,9 +77,8 @@ def _market_setting(settings: Mapping[str, Any], key: str, market: str, default:
 
 def _write_json(path: Path, payload: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(path)
+    # Read concurrently by the UI and the DSH tools.
+    write_text_atomic(path, json.dumps(payload, ensure_ascii=False, indent=2))
 
 
 def _parse_time(value: Any) -> Optional[datetime]:

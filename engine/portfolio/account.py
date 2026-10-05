@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
+from engine.atomic_write import write_text_atomic
 from engine.runtime_lock import atomic_claim
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -87,10 +88,9 @@ def load() -> Dict[str, Any]:
 def save(data: Dict[str, Any]):
     p = _path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    temporary = p.with_suffix(p.suffix + ".tmp")
     normalized = normalize_portfolio(data)
-    temporary.write_text(json.dumps(normalized, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary.replace(p)
+    # Portfolio state is read by the dashboard while the engine updates it.
+    write_text_atomic(p, json.dumps(normalized, ensure_ascii=False, indent=2))
 
 def account(market: str) -> Dict[str, Any]:
     pf = load()

@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
 from engine import analysis_events
+from engine.atomic_write import write_text_atomic
 from engine.paths import runtime_dir
 
 _lock = threading.RLock()
@@ -70,12 +71,13 @@ def _read(path: Path) -> Optional[Dict[str, Any]]:
 
 
 def _write(path: Path, payload: Mapping[str, Any]) -> None:
-    temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(
+    # Pollers read this exact file while workers checkpoint it, so the write has
+    # to tolerate a transient share violation (unique temp name + bounded retry;
+    # see engine.atomic_write).
+    write_text_atomic(
+        path,
         json.dumps(payload, ensure_ascii=False, indent=2, default=str),
-        encoding="utf-8",
     )
-    temporary.replace(path)
 
 
 def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -> Dict[str, Any]:

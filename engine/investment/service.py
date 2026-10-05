@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional
 from zoneinfo import ZoneInfo
 
+from engine.atomic_write import atomic_replace, write_text_atomic
 from engine.config import cfg
 from engine.investment.contracts import CommandEnvelope, InvestmentCommand, normalize_market
 from engine.investment.mandate import get_mandate, set_mandate
@@ -30,9 +31,7 @@ def _write_command(command: CommandEnvelope, response: Optional[Mapping[str, Any
     payload = command.to_dict()
     if response is not None:
         payload["response"] = dict(response)
-    temporary = path.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    temporary.replace(path)
+    write_text_atomic(path, json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
 def _save_operation_mode(mode: str) -> Dict[str, Any]:
@@ -48,7 +47,7 @@ def _save_operation_mode(mode: str) -> Dict[str, Any]:
         autonomous.update({"operation_mode": normalized, "enabled": True, "auto_execute": True})
         temporary = config_path.with_suffix(config_path.suffix + ".tmp")
         temporary.write_text(yaml.safe_dump(config_data, allow_unicode=True, sort_keys=False), encoding="utf-8")
-        temporary.replace(config_path)
+        atomic_replace(temporary, config_path)
         cfg.reload()
     return {"mode": normalized, "enabled": True, "auto_execute": True}
 

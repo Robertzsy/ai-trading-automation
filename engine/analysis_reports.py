@@ -38,6 +38,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 
+from engine.atomic_write import write_text_atomic
+
 logger = logging.getLogger("investment-auto.analysis-reports")
 
 MAX_LOG_TAIL = 50
@@ -120,12 +122,7 @@ def archive_stage_results(cycle_id: str, results: Mapping[str, Any]) -> Optional
         directory.mkdir(parents=True, exist_ok=True)
         for stage, payload in results.items():
             target = directory / f"{_slug(stage, 80)}.json"
-            temporary = target.with_suffix(".json.tmp")
-            temporary.write_text(
-                json.dumps(payload, ensure_ascii=False, indent=2, default=str),
-                encoding="utf-8",
-            )
-            temporary.replace(target)
+            write_text_atomic(target, json.dumps(payload, ensure_ascii=False, indent=2, default=str))
         return str(directory)
     except Exception:  # noqa: BLE001 - the archive is auxiliary
         logger.exception("[ANALYSIS-REPORT:%s] archive write failed", cycle_id)
@@ -471,9 +468,7 @@ def _update_index(entry: Mapping[str, Any]) -> None:
     rows.append(dict(entry))
     rows.sort(key=lambda row: str(row.get("generated_at") or ""), reverse=True)
     target = _index_path()
-    temporary = target.with_suffix(".json.tmp")
-    temporary.write_text(json.dumps(rows[:500], ensure_ascii=False, indent=2, default=str), encoding="utf-8")
-    temporary.replace(target)
+    write_text_atomic(target, json.dumps(rows[:500], ensure_ascii=False, indent=2, default=str))
 
 
 def generate(
