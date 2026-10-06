@@ -395,9 +395,13 @@ window.__ModuleLoader__.load({
 			".ia-page{padding:0;background:var(--dsw-alias-bg-base)}.ia-page-head{height:68px;padding:0 26px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--dsw-alias-border-l1)}",
 			".ia-page-head-copy{min-width:0}.ia-page-title{font-size:var(--ia-fs-h3);font-weight:600;margin:0}.ia-page-sub{font-size:var(--ia-fs-caption);margin:4px 0 0}",
 			".ia-page-status{display:inline-flex;align-items:center;gap:7px;color:var(--ia-label-3);font-size:var(--ia-fs-caption);white-space:nowrap}.ia-page-status-dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-success-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}.ia-page-status[data-kind=error] .ia-page-status-dot{background:var(--dsw-alias-state-error-primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--dsw-alias-state-error-primary) 12%,transparent)}.ia-page-status[data-kind=warn] .ia-page-status-dot{background:var(--ia-warn);box-shadow:0 0 0 4px color-mix(in srgb,var(--ia-warn) 12%,transparent)}",
-			".ia-page-content{padding:22px 26px 28px;max-width:1500px;margin:0 auto}.ia-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:14px}",
-			".ia-kpi{border:1px solid var(--dsw-alias-border-l1);border-radius:var(--ia-r-card);background:var(--ia-surface-chip);padding:16px 17px;box-shadow:var(--ia-shadow-sm)}.ia-kpi-label{font-size:var(--ia-fs-caption);color:var(--ia-label-3)}",
-			".ia-kpi-value{margin-top:8px;font-size:var(--ia-fs-h2);line-height:28px;font-weight:600;color:var(--dsw-alias-label-primary);letter-spacing:-.02em}.ia-kpi-foot{margin-top:5px;color:var(--ia-label-3);font-size:var(--ia-fs-micro);line-height:16px}",
+			".ia-page-content{padding:22px 26px 28px;max-width:1500px;margin:0 auto}.ia-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:14px;align-items:stretch}",
+			/* KPI card: a full grid cell has to compose across its whole width, or
+			   the right half reads as dead space. Top accent, label, a large value,
+			   then the detail pinned to the bottom edge with margin-top:auto so all
+			   four cards line up regardless of which one has the longest text. */
+			".ia-kpi{position:relative;display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--ia-r-card);background:var(--ia-surface-chip);padding:18px 20px 16px;box-shadow:var(--ia-shadow-sm);min-height:118px}.ia-kpi::before{content:'';position:absolute;inset:0 0 auto 0;height:3px;border-radius:var(--ia-r-card) var(--ia-r-card) 0 0;background:var(--ia-grad-primary)}.ia-kpi-label{font-size:var(--ia-fs-body-sm);font-weight:500;color:var(--ia-label-3)}.ia-kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.ia-kpi-top .ia-kpi-value{margin-top:0}",
+			".ia-kpi-value{margin-top:auto;font-size:var(--ia-fs-h1);line-height:1.05;font-weight:700;color:var(--dsw-alias-label-primary);letter-spacing:-.02em;font-family:var(--ia-font-num);font-variant-numeric:tabular-nums}.ia-kpi-foot{margin-top:auto;padding-top:10px;color:var(--ia-label-3);font-size:var(--ia-fs-body-sm);line-height:1.45}",
 			".ia-dashboard-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.7fr);gap:14px}.ia-panel{border:1px solid var(--dsw-alias-border-l1);border-radius:var(--ia-r-card);background:var(--ia-surface-chip);box-shadow:var(--ia-shadow-sm);overflow:hidden}",
 			".ia-panel-head{padding:15px 17px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px}.ia-panel-head h3{margin:0;font-size:var(--ia-fs-body-sm);font-weight:600}.ia-panel-head span{color:var(--ia-label-3);font-size:var(--ia-fs-micro)}",
 			".ia-market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--dsw-alias-border-l1);border-top:1px solid var(--dsw-alias-border-l1)}",
@@ -540,7 +544,7 @@ window.__ModuleLoader__.load({
 			".ia-market-grid{grid-template-columns:repeat(4,minmax(0,1fr))}",
 			"@media(max-width:1180px){.ia-market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
 			".ia-market{display:flex;flex-direction:column;gap:2px}",
-			".ia-market-hold{font-size:var(--ia-fs-micro);color:var(--ia-label-3)}",
+			".ia-market-hold{font-size:var(--ia-fs-caption);color:var(--ia-label-3)}",
 			/* The up/down colour follows the market's own convention, so it is set
 			   here from data-kind rather than by reusing the global ok/danger
 			   semantics (which mean healthy/unhealthy everywhere else). */
@@ -556,10 +560,15 @@ window.__ModuleLoader__.load({
 			".ia-market-pnl[data-trend=flat],.ia-trend[data-trend=flat]{color:var(--ia-label-3)}",
 			".ia-market-pnl[data-red-up=true][data-trend=up],.ia-trend[data-red-up=true][data-trend=up]{color:var(--ia-danger-text)}",
 			".ia-market-pnl[data-red-up=true][data-trend=down],.ia-trend[data-red-up=true][data-trend=down]{color:var(--ia-ok-text)}",
-			".ia-market-kv{display:flex;flex-direction:column;gap:1px;margin-top:8px;font-size:var(--ia-fs-micro);color:var(--ia-label-3)}",
+			".ia-market-kv{display:flex;flex-direction:column;gap:3px;margin-top:10px;font-size:var(--ia-fs-body-sm);color:var(--ia-label-3)}",
 			".ia-market-kv span{display:flex;justify-content:space-between;gap:6px}",
 			".ia-market-kv b{font-weight:500;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}",
-			".ia-holdings-table{margin-top:8px}",
+			".ia-holdings-table{margin-top:12px;font-size:var(--ia-fs-body-sm)}",
+			/* The market name is a caption, not a leading header cell: as a <th> it
+			   gave the header one cell more than the body and shifted every value
+			   one column left of its heading. */
+			".ia-holdings-caption{text-align:left;padding:0 8px 6px;font-size:var(--ia-fs-body-sm);font-weight:600;color:var(--ia-label-3)}",
+			".ia-holdings-code{font-family:var(--ia-font-mono);font-size:var(--ia-fs-caption);color:var(--ia-label-3)}",
 			".ia-holdings-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
 			".ia-trend{font-variant-numeric:tabular-nums}",
 			/* ── workflow board: per-band progress ───────────────────────────── */
@@ -674,7 +683,7 @@ window.__ModuleLoader__.load({
 
   --ia-fs-display:48px; --ia-fs-h1:32px; --ia-fs-h2:24px; --ia-fs-h3:20px;
   --ia-fs-body:16px; --ia-fs-body-sm:14px; --ia-fs-label:14px;
-  --ia-fs-caption:12px; --ia-fs-micro:11px; --ia-fs-mono:12.5px;
+  --ia-fs-caption:12px; --ia-fs-micro:12px; --ia-fs-mono:12.5px;
   --ia-lh-tight:1.25; --ia-lh-snug:1.4; --ia-lh-body:1.6;
   --ia-fw-regular:400; --ia-fw-medium:500; --ia-fw-semibold:600; --ia-fw-bold:700;
 
@@ -1156,10 +1165,10 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsxs("div", {
 								className: "ia-kpi-grid",
 								children: [
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "模拟账户" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: marketRows.length || "-" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "A 股 / 港股 / 美股 / ETF" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "当前持仓" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: holdingsCount }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "累计成交 " + tradesCount + " 笔" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "最近报告" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: reports.length }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "展示最近 12 个轮次" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "组合风险" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: riskLabel }), react_jsx_runtime.jsxs("div", { className: "ia-kpi-foot", children: ["策略：", mandate.display_name ?? mandate.profile ?? "-"] })] })
+									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "模拟账户" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: marketRows.length || "-" })] }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "A 股 / 港股 / 美股 / ETF" })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "当前持仓" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: holdingsCount })] }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "累计成交 " + tradesCount + " 笔" })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "最近报告" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: reports.length })] }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "展示最近 12 个轮次" })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "组合风险" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: riskLabel })] }), react_jsx_runtime.jsxs("div", { className: "ia-kpi-foot", children: ["策略：", mandate.display_name ?? mandate.profile ?? "-"] })] })
 								]
 							}),
 							react_jsx_runtime.jsxs("div", {
@@ -1200,35 +1209,37 @@ window.__ModuleLoader__.load({
 														react_jsx_runtime.jsx("h3", { children: "持仓明细" }),
 														react_jsx_runtime.jsx("span", { children: holdingsCount + " 个持仓 · 合计盈亏 " + (unrealizedPnl > 0 ? "+" : "") + fmtMoney(unrealizedPnl) })
 													]}),
-													...marketRows.filter((row) => row.holdings.length > 0).map((row) => react_jsx_runtime.jsxs("table", {
-														className: "ia-table ia-holdings-table",
-														key: row.market,
-														children: [
-															react_jsx_runtime.jsx("thead", { children: react_jsx_runtime.jsxs("tr", { children: [
-																react_jsx_runtime.jsx("th", { children: marketName[row.market] }),
-																react_jsx_runtime.jsx("th", { children: "名称" }),
-																react_jsx_runtime.jsx("th", { className: "ia-num", children: "持仓" }),
-																react_jsx_runtime.jsx("th", { className: "ia-num", children: "成本" }),
-																react_jsx_runtime.jsx("th", { className: "ia-num", children: "现价" }),
-																react_jsx_runtime.jsx("th", { className: "ia-num", children: "市值" }),
-																react_jsx_runtime.jsx("th", { className: "ia-num", children: "盈亏" }),
-																react_jsx_runtime.jsx("th", { className: "ia-num", children: "幅度" })
-															]}) }),
-															react_jsx_runtime.jsx("tbody", { children: row.holdings.map((holding) => react_jsx_runtime.jsxs("tr", {
-																key: row.market + ":" + holding.code,
-																children: [
-																	react_jsx_runtime.jsx("td", { children: holding.code }),
-																	react_jsx_runtime.jsx("td", { className: "ia-holdings-name", title: holding.name, children: holding.name || "-" }),
-																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.shares) }),
-																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.costPrice) }),
-																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.lastPrice) }),
-																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.value) }),
-																	react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnl > 0 ? "+" : "") + fmtMoney(holding.pnl) }),
-																	react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnlPct > 0 ? "+" : "") + (holding.pnlPct * 100).toFixed(2) + "%" })
-																]
-															}, holding.code)) })
-														]
-													}, "holdings-" + row.market))
+													...marketRows.filter((row) => row.holdings.length > 0).map((row) => {
+														// One table per market, with the market as a CAPTION rather than
+														// a leading header cell. Putting it in <thead> gave the header
+														// one more cell than the body, so every value sat one column to
+														// the left of its own heading.
+														const columns = ["代码", "名称", "持仓", "成本", "现价", "市值", "盈亏", "幅度"];
+														return react_jsx_runtime.jsxs("table", {
+															className: "ia-table ia-holdings-table",
+															key: row.market,
+															children: [
+																react_jsx_runtime.jsx("caption", { className: "ia-holdings-caption", children: marketName[row.market] + " · " + row.holdings.length + " 个持仓" }),
+																react_jsx_runtime.jsx("thead", { children: react_jsx_runtime.jsx("tr", { children: columns.map((label, index) => react_jsx_runtime.jsx("th", {
+																	className: index === 0 ? "ia-holdings-code" : index === 1 ? "ia-holdings-name" : "ia-num",
+																	children: label
+																}, label)) }) }),
+																react_jsx_runtime.jsx("tbody", { children: row.holdings.map((holding) => react_jsx_runtime.jsxs("tr", {
+																	key: row.market + ":" + holding.code,
+																	children: [
+																		react_jsx_runtime.jsx("td", { className: "ia-holdings-code", children: holding.code }),
+																		react_jsx_runtime.jsx("td", { className: "ia-holdings-name", title: holding.name, children: holding.name || "-" }),
+																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.shares) }),
+																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.costPrice) }),
+																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.lastPrice) }),
+																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.value) }),
+																		react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnl > 0 ? "+" : "") + fmtMoney(holding.pnl) }),
+																		react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnlPct > 0 ? "+" : "") + (holding.pnlPct * 100).toFixed(2) + "%" })
+																	]
+																}, holding.code)) })
+															]
+														}, "holdings-" + row.market);
+													})
 												]
 											}) : null,
 										]
