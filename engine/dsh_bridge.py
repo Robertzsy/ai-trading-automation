@@ -179,6 +179,51 @@ def _internal_home(home: str | Path) -> Path:
     return Path(home) / "agent-home"
 
 
+# The base patch hardcodes a fallback engine URL and carries no token, because
+# the desktop shell passes both through the child environment. A headless round
+# started by this bridge cannot rely on that: measured on the desktop, a round
+# failed rc=1 with "MISSING_CREDENTIAL: no API key for provider route
+# deepseek-official" whenever IA_ACCESS_TOKEN was absent or empty, because the
+# bridge then skipped --patch entirely. Skipping it is the worst outcome, not a
+# safe default: without the patch the default `.credentials.yaml` provider is
+# left enabled and the DPAPI provider is never inserted, so no credentials
+# service exists at all.
+_SESSION_PATCH_NAME = "dpapi-credentials.session.yml"
+
+
+def _write_session_patch(base_patch: Path, target_dir: Path) -> Path:
+    """Write a round-local copy of the DPAPI patch with this session's engine
+    URL and access token baked in.
+
+    The provider reads `config.engineUrl` / `config.token` and only prefers the
+    environment when it is set, so baking both in makes the round correct even
+    when the environment is missing or stale. The token may legitimately be
+    empty (the engine then runs tokenless on loopback); an empty value must not
+    stop the patch from being applied, which is why it is written rather than
+    used as a condition.
+    """
+    template = base_patch.read_text(encoding="utf-8")
+    engine_url = os.getenv("INVESTMENT_ENGINE_URL", "").strip()
+    api_port = os.getenv("INVESTMENT_API_PORT", "").strip()
+    if not engine_url and api_port:
+        engine_url = f"http://127.0.0.1:{api_port}"
+    token = os.getenv("IA_ACCESS_TOKEN", "").strip()
+
+    lines = template.splitlines(keepends=True)
+    out: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("engineUrl:"):
+            out.append(f"        engineUrl: '{engine_url}'\n")
+            out.append(f"        token: '{token}'\n")
+        else:
+            out.append(line)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    session_patch = target_dir / _SESSION_PATCH_NAME
+    session_patch.write_text("".join(out), encoding="utf-8")
+    return session_patch
+
+
 def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path) -> None:
     """Prepare the internal home before one headless round.
 
@@ -303,13 +348,24 @@ class DshBridgeRunner:
                 logger.warning("[DSH-BRIDGE:%s] internal home sync failed: %s", market, exc)
             env["DSH_HOME"] = str(internal)
         command = [self.node, str(self.bin), "--profile", "investment"]
-        # Desktop lifecycle: credentials live in the engine DPAPI store, and
-        # the round must resolve them through the same provider the web UI
-        # writes. Dev mode (no IA_ACCESS_TOKEN) keeps the default
-        # .credentials.yaml provider.
+        # Credentials for the round. The patch is applied whenever the base file
+        # exists, keyed on nothing else: measuring the desktop found a round
+        # failing rc=1 with "MISSING_CREDENTIAL ... deepseek-official" precisely
+        # because a missing/empty IA_ACCESS_TOKEN skipped it, which left the
+        # default .credentials.yaml row enabled and the DPAPI row absent, so no
+        # credentials service existed at all. The session copy carries this
+        # round's engine URL and token, so the provider never has to fall back to
+        # the environment (which the desktop shell sets for the web process only).
         dpapi_patch = self.app_dir / "profiles" / "patches" / "dpapi-credentials.yml"
-        if dpapi_patch.exists() and os.getenv("IA_ACCESS_TOKEN", "").strip():
-            command += ["--patch", str(dpapi_patch)]
+        if dpapi_patch.exists():
+            try:
+                session_patch = _write_session_patch(dpapi_patch, self.app_dir / "runtime" / "dsh-patches")
+            except OSError as exc:
+                # A read-only install must not lose credentials: fall back to the
+                # shipped patch, which still installs the provider row.
+                logger.warning("[DSH-BRIDGE:%s] session patch write failed, using shipped patch: %s", market, exc)
+                session_patch = dpapi_patch
+            command += ["--patch", str(session_patch)]
         command.append(task)
         start_monotonic = time.time()
         start_wall = time.time()

@@ -121,31 +121,79 @@ def test_runner_passes_engine_url_from_api_port(monkeypatch, tmp_path):
     assert captured["env"].get("INVESTMENT_ENGINE_URL") == "http://127.0.0.1:8802"
 
 
-def test_runner_applies_dpapi_patch_only_with_desktop_token(monkeypatch, tmp_path):
+def test_runner_always_applies_dpapi_patch(monkeypatch, tmp_path):
+    """The patch must be applied with or without a desktop token.
+
+    This test previously asserted the opposite -- that a missing
+    ``IA_ACCESS_TOKEN`` yields a command with no ``--patch`` -- which is how the
+    desktop defect reached users: without the patch the default
+    ``.credentials.yaml`` row stays enabled and the DPAPI row is never inserted,
+    so the round has no credentials service at all and dies rc=1 with
+    ``MISSING_CREDENTIAL ... deepseek-official``. The token decides whether the
+    engine checks it, never whether the provider is installed.
+    """
     (tmp_path / "app" / "node_modules" / "@deepseek-ai" / "dsh" / "lib").mkdir(parents=True)
     (tmp_path / "app" / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js").write_text("", encoding="utf-8")
     patch_dir = tmp_path / "app" / "profiles" / "patches"
     patch_dir.mkdir(parents=True)
-    (patch_dir / "dpapi-credentials.yml").write_text("- id: credentials\n  disabled: true\n", encoding="utf-8")
+    (patch_dir / "dpapi-credentials.yml").write_text(
+        "- id: credentials\n  disabled: true\n\n- insert:\n    - id: credentials-dpapi\n"
+        "      name: '@investment-auto/dsh-dpapi-credentials'\n      config:\n"
+        "        engineUrl: 'http://127.0.0.1:8790'\n",
+        encoding="utf-8",
+    )
     captured = {"with_token": None, "without_token": None}
 
     def fake_run(command, **kwargs):
-        if "--patch" in command:
-            captured["with_token"] = list(command)
-        else:
-            captured["without_token"] = list(command)
+        key = "with_token" if "desktop-token" == captured["_token"] else "without_token"
+        captured[key] = list(command)
         return subprocess.CompletedProcess(command, 0, stdout=b"ok", stderr=b"")
 
     monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
 
+    captured["_token"] = "desktop-token"
     monkeypatch.setenv("IA_ACCESS_TOKEN", "desktop-token")
-    _runner(tmp_path)("cn", "intraday", _context())
-    monkeypatch.delenv("IA_ACCESS_TOKEN")
+    monkeypatch.setenv("INVESTMENT_API_PORT", "2028")
+    monkeypatch.delenv("INVESTMENT_ENGINE_URL", raising=False)
     _runner(tmp_path)("cn", "intraday", _context())
 
-    assert captured["with_token"] is not None and str(patch_dir / "dpapi-credentials.yml") in captured["with_token"]
-    assert captured["without_token"] is not None and "--patch" not in captured["without_token"]
+    captured["_token"] = ""
+    monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
+    _runner(tmp_path)("cn", "intraday", _context())
+
+    # Both rounds carry a patch, and it is the round-local copy rather than the
+    # shipped file, so the engine URL and token travel with it.
+    for key in ("with_token", "without_token"):
+        command = captured[key]
+        assert command is not None, f"{key}: no subprocess run captured"
+        assert "--patch" in command, f"{key}: patch was not applied"
+        applied = Path(command[command.index("--patch") + 1])
+        assert applied.name == dsh_bridge._SESSION_PATCH_NAME, f"{key}: applied {applied}"
+
+    session_patch = tmp_path / "app" / "runtime" / "dsh-patches" / dsh_bridge._SESSION_PATCH_NAME
+    text = session_patch.read_text(encoding="utf-8")
+    # Written last, so it reflects the tokenless round: empty, not omitted.
+    assert "engineUrl: 'http://127.0.0.1:2028'" in text
+    assert "token: ''" in text
+    # The shipped fallback URL must not survive into the session copy.
+    assert "8790" not in text
+
+
+def test_session_patch_prefers_explicit_engine_url(monkeypatch, tmp_path):
+    patch_dir = tmp_path / "patches"
+    patch_dir.mkdir()
+    base = patch_dir / "dpapi-credentials.yml"
+    base.write_text("      config:\n        engineUrl: 'http://127.0.0.1:8790'\n", encoding="utf-8")
+    monkeypatch.setenv("INVESTMENT_ENGINE_URL", "http://127.0.0.1:9999")
+    monkeypatch.setenv("INVESTMENT_API_PORT", "1111")
+    monkeypatch.setenv("IA_ACCESS_TOKEN", "tok")
+
+    written = dsh_bridge._write_session_patch(base, tmp_path / "out")
+    text = written.read_text(encoding="utf-8")
+    assert "engineUrl: 'http://127.0.0.1:9999'" in text
+    assert "token: 'tok'" in text
+    assert written.parent == tmp_path / "out"
 
 
 def test_runner_folds_engine_audit_into_result(monkeypatch, tmp_path):
