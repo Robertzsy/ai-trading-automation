@@ -455,10 +455,22 @@ window.__ModuleLoader__.load({
 			".ia-an-check-mark{font-size:var(--ia-fs-caption);line-height:17px;font-weight:700}",
 			".ia-an-check[data-ok=true] .ia-an-check-mark{color:var(--ia-ok-text)}",
 			".ia-an-check[data-ok=false] .ia-an-check-mark{color:var(--ia-warn-text)}",
-			".ia-an-primary{width:100%;border:0;border-radius:var(--ia-r-tab);background:var(--ia-grad-primary);color:#fff;font:inherit;font-size:var(--ia-fs-body-sm);font-weight:600;line-height:20px;padding:10px;cursor:pointer;box-shadow:var(--ia-glow-accent);transition:filter var(--ia-dur-fast) var(--ia-ease-out),transform var(--ia-dur-instant) var(--ia-ease-out)}",
-			".ia-an-primary:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px)}",
-			".ia-an-primary:active:not(:disabled){transform:scale(.985)}",
-			".ia-an-primary:disabled{opacity:.5;cursor:not-allowed}",
+			/* One-click entries: identical box, identical states. The primary action
+			   (全流程) carries the gradient, the other two are outlined; all three
+			   are the same size so the row reads as one control group. */
+			".ia-an-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px}",
+			".ia-an-quickbtn{min-height:42px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ia-fs-body-sm);font-weight:600}",
+			".ia-an-quickbtn:first-child{background:var(--ia-grad-primary);border-color:transparent;color:#fff}",
+			".ia-an-quickbtn:first-child:hover:not(:disabled){filter:brightness(1.06)}",
+			"@media(max-width:1180px){.ia-an-quick{grid-template-columns:1fr}}",
+			/* Collapsed pre-flight: one line that always explains a disabled entry. */
+			".ia-an-preflight{display:flex;align-items:center;gap:8px;width:100%;margin-top:4px;padding:9px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--ia-r-btn);background:var(--ia-surface-chip);cursor:pointer;font:inherit;font-size:var(--ia-fs-body-sm);color:var(--dsw-alias-label-secondary);text-align:left}",
+			".ia-an-preflight-mark{display:grid;place-items:center;width:18px;height:18px;border-radius:var(--ia-r-full);font-size:var(--ia-fs-caption);font-weight:700;flex:none}",
+			".ia-an-preflight[data-ok=true] .ia-an-preflight-mark{background:color-mix(in srgb,var(--ia-ok) 18%,transparent);color:var(--ia-ok-text)}",
+			".ia-an-preflight[data-ok=false] .ia-an-preflight-mark{background:color-mix(in srgb,var(--ia-warn) 20%,transparent);color:var(--ia-warn-text)}",
+			".ia-an-preflight[data-ok=false]{border-color:color-mix(in srgb,var(--ia-warn) 45%,var(--dsw-alias-border-l2))}",
+			".ia-an-preflight-caret{margin-left:auto;font-size:var(--ia-fs-caption);color:var(--ia-label-3)}",
+			".ia-an-preflight-list{margin-top:2px;padding:2px 12px 6px}",
 			".ia-an-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}",
 			".ia-an-btn{border:1px solid var(--dsw-alias-border-l2);border-radius:var(--ia-r-tab);background:var(--ia-surface);color:var(--dsw-alias-label-primary);font:inherit;font-size:var(--ia-fs-caption);line-height:18px;padding:7px 8px;cursor:pointer}",
 			".ia-an-btn:hover:not(:disabled){background:var(--ia-hover)}",
@@ -498,10 +510,6 @@ window.__ModuleLoader__.load({
 			   source: keep the height cap and scrolling, drop the monospace/pre-wrap
 			   typography (the .ia-md-* rules own the prose). */
 			".ia-an-report-body{margin:10px 0 0;padding:11px;border-radius:var(--ia-r-tab);background:var(--dsw-alias-bg-layer-1,transparent);border:1px solid var(--dsw-alias-border-l2);max-height:420px;overflow:auto}",
-			/* ── one-click entries ─────────────────────────────────────────── */
-			".ia-an-quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}",
-			".ia-an-quickbtn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-			"@media(max-width:1180px){.ia-an-quick{grid-template-columns:1fr}}",
 			/* ── progress: circular stage ring + round bar ─────────────────── */
 			".ia-an-ring{position:relative;width:24px;height:24px;display:inline-grid;place-items:center;flex:none}",
 			".ia-an-ring svg{display:block;transform:rotate(-90deg)}",
@@ -1956,6 +1964,10 @@ window.__ModuleLoader__.load({
 			// Which one-click entry is in flight. Screening loads the whole market
 			// universe and takes tens of seconds, so the button has to say so.
 			const [quickBusy, setQuickBusy] = react.useState("");
+			// Pre-flight starts collapsed and auto-expands whenever a precondition is
+			// unmet, so a disabled entry always explains itself without five green
+			// rows occupying the panel the rest of the time.
+			const [preflightOpen, setPreflightOpen] = react.useState(false);
 			const [notice, setNotice] = react.useState(null);
 			const [refreshToken, setRefreshToken] = react.useState(0);
 
@@ -1992,6 +2004,8 @@ window.__ModuleLoader__.load({
 				{ key: "running", ok: !hasRunningRound, label: "无运行中的轮次", detail: hasRunningRound ? "轮次 " + String(runningRound?.cycle_id ?? "-") + " 正在运行" : "无" },
 				{ key: "engine", ok: engineReachable, label: "引擎可达", detail: engineReachable ? "已连接投资引擎" : "不可达：" + engineError }
 			];
+			// The collapsed pre-flight line needs both a count and a way to expand.
+			const checksFailed = checks.filter((check) => !check.ok).length;
 			const canStart = !submitting && symbolCount > 0 && !symbolOverflow && !killSwitch && !hasRunningRound && engineReachable;
 			const blockReason = submitting
 				? "正在提交…"
@@ -2217,6 +2231,46 @@ window.__ModuleLoader__.load({
 									run ? react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": analysisStatusKind(run.status), children: analysisStatusLabel(run.status) }) : react_jsx_runtime.jsx("span", { className: "ia-chip", children: "未启动" })
 								]
 							}),
+							/* The three entries sit at the TOP of the panel and are the only
+							   primary actions. ② and ③ run the SAME fixed workflow as ① --
+							   analysis_rounds.py documents the tool as a thin launcher and
+							   one implementation serves web, scheduler and DSH rounds -- so
+							   they differ only in where the symbol list comes from, and ①
+							   collapses to "screen, then start" rather than a second path.
+							   The old standalone 开始分析 button is gone: it called exactly
+							   handleStart, the same handler as ③. */
+							react_jsx_runtime.jsxs("div", {
+								className: "ia-an-quick",
+								children: [
+									react_jsx_runtime.jsx("button", {
+										id: "ia-an-quick-full",
+										className: "ia-elev ia-elev-lg ia-an-btn ia-an-quickbtn",
+										type: "button",
+										disabled: !canQuick,
+										title: canQuick ? "一键运行全流程：先选股，再对选出的标的跑固定分析流程（只分析，绝不下单）" : quickBlockReason,
+										onClick: handleFullPipeline,
+										children: quickBusy === "full" ? "全流程启动中…" : "一键全流程"
+									}),
+									react_jsx_runtime.jsx("button", {
+										id: "ia-an-quick-screen",
+										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
+										type: "button",
+										disabled: !canQuick,
+										title: canQuick ? "一键筛选股票：扫描全市场并按流动性与因子选出候选，结果填入标的清单" : quickBlockReason,
+										onClick: handleScreen,
+										children: quickBusy === "screen" ? "选股中…（数十秒）" : "一键筛选股票"
+									}),
+									react_jsx_runtime.jsx("button", {
+										id: "ia-an-quick-typed",
+										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
+										type: "button",
+										disabled: !canStart,
+										title: canStart ? "一键分析指定股票：对下方清单里的标的跑固定分析流程（只分析，绝不下单）" : blockReason,
+										onClick: handleStart,
+										children: submitting ? "提交中…" : "一键分析指定股票"
+									})
+								]
+							}),
 							react_jsx_runtime.jsxs("div", {
 								className: "ia-an-field",
 								children: [
@@ -2275,68 +2329,35 @@ window.__ModuleLoader__.load({
 									})
 								]
 							}) : null,
-							react_jsx_runtime.jsxs("div", {
-								className: "ia-an-field",
-								children: [
-									react_jsx_runtime.jsx("span", { className: "ia-an-lab", children: "预检清单" }),
-									...checks.map((check) => react_jsx_runtime.jsxs("div", {
-										className: "ia-an-check",
-										"data-ok": check.ok,
-										children: [
-											react_jsx_runtime.jsx("span", { className: "ia-an-check-mark", children: check.ok ? "✓" : "!" }),
-											react_jsx_runtime.jsxs("span", { children: [react_jsx_runtime.jsx("b", { children: check.label }), " · " + check.detail] })
-										]
-									}, check.key))
-								]
-							}),
-							react_jsx_runtime.jsx("button", {
-								id: "ia-an-start",
-								className: "ia-an-primary",
+							// Pre-flight collapsed to one line. Five green rows were noise, while a
+							// greyed-out button with no explanation is worse -- so the summary is
+							// always visible and expands by itself when something is unmet.
+							react_jsx_runtime.jsxs("button", {
+								id: "ia-an-preflight",
+								className: "ia-an-preflight",
 								type: "button",
-								disabled: !canStart,
-								title: canStart ? "开始一个分析轮次（只分析，不下单）" : blockReason,
-								onClick: handleStart,
-								children: submitting ? "提交中…" : "开始分析"
-							}),
-							/* Three one-click entries. ② and ③ run the SAME fixed workflow
-							   as ① — the engine's analysis_rounds module documents that the
-							   tool is a thin launcher and one workflow implementation serves
-							   web-triggered rounds, scheduler rounds and the DSH tool alike.
-							   Only where the symbol list comes from differs, which is why ①
-							   collapses to "screen, then the normal start" rather than a
-							   second code path. */
-							react_jsx_runtime.jsxs("div", {
-								className: "ia-an-quick",
+								"data-ok": checksFailed === 0,
+								"aria-expanded": preflightOpen || checksFailed > 0,
+								onClick: () => setPreflightOpen((open) => !open),
 								children: [
-									react_jsx_runtime.jsx("button", {
-										id: "ia-an-quick-full",
-										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
-										type: "button",
-										disabled: !canQuick,
-										title: canQuick ? "一键运行全流程：先选股，再对选出的标的跑固定分析流程（只分析，绝不下单）" : quickBlockReason,
-										onClick: handleFullPipeline,
-										children: quickBusy === "full" ? "全流程启动中…" : "一键全流程"
-									}),
-									react_jsx_runtime.jsx("button", {
-										id: "ia-an-quick-screen",
-										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
-										type: "button",
-										disabled: !canQuick,
-										title: canQuick ? "一键筛选股票：扫描全市场并按流动性与因子选出候选，结果填入标的清单" : quickBlockReason,
-										onClick: handleScreen,
-										children: quickBusy === "screen" ? "选股中…（数十秒）" : "一键筛选股票"
-									}),
-									react_jsx_runtime.jsx("button", {
-										id: "ia-an-quick-typed",
-										className: "ia-elev ia-elev-md ia-an-btn ia-an-quickbtn",
-										type: "button",
-										disabled: !canStart,
-										title: canStart ? "一键分析指定股票：对上方清单里的标的跑固定分析流程（只分析，绝不下单）" : blockReason,
-										onClick: handleStart,
-										children: submitting ? "提交中…" : "一键分析指定股票"
-									})
+									react_jsx_runtime.jsx("span", { className: "ia-an-preflight-mark", children: checksFailed === 0 ? "✓" : "!" }),
+									react_jsx_runtime.jsx("span", { children: checksFailed === 0
+										? "预检 " + checks.length + "/" + checks.length + " 就绪"
+										: "预检 " + checksFailed + " 项未满足" }),
+									react_jsx_runtime.jsx("span", { className: "ia-an-preflight-caret", children: (preflightOpen || checksFailed > 0) ? "收起" : "展开" })
 								]
 							}),
+							preflightOpen || checksFailed > 0 ? react_jsx_runtime.jsx("div", {
+								className: "ia-an-preflight-list",
+								children: checks.map((check) => react_jsx_runtime.jsxs("div", {
+									className: "ia-an-check",
+									"data-ok": check.ok,
+									children: [
+										react_jsx_runtime.jsx("span", { className: "ia-an-check-mark", children: check.ok ? "✓" : "!" }),
+										react_jsx_runtime.jsxs("span", { children: [react_jsx_runtime.jsx("b", { children: check.label }), " · " + check.detail] })
+									]
+								}, check.key))
+							}) : null,
 							notice ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": notice.kind, children: notice.text }) : null,
 							react_jsx_runtime.jsxs("div", {
 								className: "ia-an-actions",

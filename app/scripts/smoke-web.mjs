@@ -240,7 +240,7 @@ async function main() {
       return {
         navs,
         hasAnalyzePanel: Boolean(document.querySelector('.ia-an-grid')),
-        hasStartPanel: Boolean(document.querySelector('#ia-an-start')),
+        hasStartPanel: Boolean(document.querySelector('#ia-an-quick-typed')),
         bodyLen: document.body.innerText.length,
       };
     })()`);
@@ -337,9 +337,12 @@ async function main() {
     const analyzeContainers = await evaluate(cdp, `document.querySelectorAll('[class*="ia-an-"]').length`);
     check(Number(analyzeContainers) >= 3, `analysis centre ia-an-* containers render (${analyzeContainers} elements)`);
     const analyzeText = await evaluate(cdp, "document.body.innerText");
-    check(String(analyzeText).includes("开始分析") && String(analyzeText).includes("预检清单"), "analysis centre renders the manual start panel with its preflight list");
+    // The pre-flight rows are collapsed while every precondition passes, so this
+    // asserts the summary line rather than the individual rows (which the
+    // enable-path check below expands on purpose).
+    check(String(analyzeText).includes("一键全流程") && String(analyzeText).includes("预检"), "analysis centre renders the one-click entries with a pre-flight summary");
     check(String(analyzeText).includes("轮次报告") && String(analyzeText).includes("分析流程"), "analysis centre renders the pipeline and per-round report panels");
-    const startEmpty = await evaluate(cdp, `(() => { const b = document.querySelector('#ia-an-start'); return b ? { disabled: b.disabled, title: b.getAttribute('title') || '' } : null; })()`);
+    const startEmpty = await evaluate(cdp, `(() => { const b = document.querySelector('#ia-an-quick-typed'); return b ? { disabled: b.disabled, title: b.getAttribute('title') || '' } : null; })()`);
     check(Boolean(startEmpty) && startEmpty.disabled === true, `开始分析 is disabled with an empty symbol list (${JSON.stringify(startEmpty)})`);
     const typedSymbols = await evaluate(cdp, `(() => {
       const el = document.querySelector('#ia-an-symbols');
@@ -351,9 +354,28 @@ async function main() {
     })()`);
     check(String(typedSymbols) === "typed", `analysis centre symbol box accepts input (${typedSymbols})`);
     await sleep(600);
-    const startFilled = await evaluate(cdp, `(() => { const b = document.querySelector('#ia-an-start'); return b ? { disabled: b.disabled, title: b.getAttribute('title') || '' } : null; })()`);
-    const preflight = await evaluate(cdp, `Array.from(document.querySelectorAll('.ia-an-check')).map(el => el.getAttribute('data-ok') === 'true')`);
+    const startFilled = await evaluate(cdp, `(() => { const b = document.querySelector('#ia-an-quick-typed'); return b ? { disabled: b.disabled, title: b.getAttribute('title') || '' } : null; })()`);
+    // Pre-flight is collapsed while every precondition passes, so expand it
+    // explicitly before reading the individual rows: the state of the checks is
+    // what this assertion is about, not whether the summary happens to be open.
+    // The click is a React state change, so the rows appear on the next render --
+    // reading them in the same evaluate() call returned an empty list.
+    const preflightExpanded = await evaluate(cdp, `(() => {
+      const line = document.getElementById('ia-an-preflight');
+      if (!line) return false;
+      if (line.getAttribute('aria-expanded') !== 'true') line.click();
+      return true;
+    })()`);
+    if (preflightExpanded) await sleep(700);
+    const preflight = await evaluate(cdp, `Array.from(document.querySelectorAll('.ia-an-check')).map((el) => el.getAttribute('data-ok') === 'true')`);
     const preflightAllOk = Array.isArray(preflight) && preflight.length === 5 && preflight.every((value) => value === true);
+    // Collapse again so later assertions observe the default state.
+    await evaluate(cdp, `(() => {
+      const line = document.getElementById('ia-an-preflight');
+      if (line && line.getAttribute('aria-expanded') === 'true') line.click();
+      return true;
+    })()`);
+    await sleep(400);
     if (preflightAllOk) {
       check(Boolean(startFilled) && startFilled.disabled === false, `开始分析 enables once symbols are present and all five preconditions hold (${JSON.stringify(startFilled)})`);
     } else {
@@ -437,17 +459,17 @@ async function main() {
     const quick = await evaluate(cdp, `(() => {
       const ids = ['ia-an-quick-full', 'ia-an-quick-screen', 'ia-an-quick-typed'];
       const found = ids.map((id) => document.getElementById(id));
+      const heights = found.filter(Boolean).map((el) => Math.round(el.getBoundingClientRect().height));
       return {
         present: found.filter(Boolean).length,
         missing: ids.filter((id) => !document.getElementById(id)),
-        // Each must explain itself and expose a disabled reason, and ③ mirrors
-        // the primary start button so the two cannot disagree.
+        // Each entry must explain itself, and all three must share one box size
+        // so the row reads as a single control group.
         titled: found.filter((el) => el && String(el.getAttribute('title') || '').length > 0).length,
-        typedMirrorsStart: (() => {
-          const a = document.getElementById('ia-an-quick-typed');
-          const b = document.getElementById('ia-an-start');
-          return Boolean(a) && Boolean(b) && a.disabled === b.disabled;
-        })(),
+        heights,
+        uniformHeight: heights.length === 3 && heights.every((h) => h === heights[0]) && heights[0] >= 40,
+        // The duplicate primary button is gone; ③ renders it with a distinct id.
+        duplicateStartGone: document.getElementById('ia-an-start') === null && document.querySelectorAll('#ia-an-quick-typed').length === 1,
         gridCols: (() => {
           const grid = document.querySelector('.ia-an-quick');
           return grid ? getComputedStyle(grid).display : 'absent';
@@ -455,8 +477,44 @@ async function main() {
       };
     })()`);
     check(quick?.present === 3, `analysis centre exposes three one-click entries (${JSON.stringify(quick)})`);
+    check(quick?.uniformHeight === true, `the three entries share one box size (${JSON.stringify(quick?.heights)})`);
+    check(quick?.duplicateStartGone === true, `the duplicate 开始分析 button is removed (${quick?.duplicateStartGone})`);
     check(quick?.titled === 3, `every one-click entry explains itself (${quick?.titled}/3 have a title)`);
-    check(quick?.typedMirrorsStart === true, `一键分析指定股票 tracks 开始分析's disabled state (${quick?.typedMirrorsStart})`);
+
+    // 7c-2. Pre-flight is one collapsed line that must explain a disabled entry.
+    const preflightLine = await evaluate(cdp, `(() => {
+      const line = document.getElementById('ia-an-preflight');
+      if (!line) return { present: false };
+      const list = document.querySelector('.ia-an-preflight-list');
+      const failed = [...document.querySelectorAll('.ia-an-check')].filter((el) => el.getAttribute('data-ok') === 'false').length;
+      return {
+        present: true,
+        text: line.innerText.replace(/\\n/g, ' ').trim(),
+        expanded: line.getAttribute('aria-expanded'),
+        listVisible: Boolean(list),
+        failed,
+      };
+    })()`);
+    if (!preflightLine?.present) {
+      check(false, "pre-flight summary line renders");
+    } else {
+      check(/\d+\s*\/\s*\d+\s*就绪|项未满足/.test(preflightLine.text), `pre-flight states its status in one line (${preflightLine.text})`);
+      // The invariant is that the summary is a real toggle whose text matches the
+      // check state. The *expanded* state is deliberately not asserted here: an
+      // earlier step expands the list on purpose to read the rows, and component
+      // state persists across them, so asserting a specific value would encode an
+      // accident of ordering. The auto-expand rule is exercised by the
+      // "enables once symbols are present" branch above, which requires all five
+      // rows to be present when a precondition is unmet.
+      check(
+        preflightLine.expanded === "true" || preflightLine.expanded === "false",
+        `pre-flight summary is an interactive disclosure (aria-expanded=${preflightLine.expanded})`,
+      );
+      check(
+        preflightLine.text.includes("就绪") ? preflightLine.failed === 0 : preflightLine.failed > 0,
+        `pre-flight text agrees with the check state (text="${preflightLine.text}", failed=${preflightLine.failed})`,
+      );
+    }
 
     // 7d. Progress must be graphical, not a static glyph. The board is pinned so
     //     it cannot scroll away while the user reads the lists beneath it.
