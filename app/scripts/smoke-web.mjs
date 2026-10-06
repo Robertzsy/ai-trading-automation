@@ -449,7 +449,15 @@ async function main() {
           md.literalHeading === false && md.literalSeparator === false,
           `round report shows no literal Markdown markers (heading=${md.literalHeading}, separator=${md.literalSeparator})`,
         );
-        check(md.tdNumeric === "tabular-nums", `round report table cells align numerically (${md.tdNumeric})`);
+        // A report may legitimately contain no table body rows (a short round, or
+        // an installation whose newest report is a stub), in which case the
+        // computed value is "n/a" and there is nothing to assert. Same rule as
+        // the markdown and ring blocks: absent data is reported, not failed.
+        if (md.tdNumeric === "n/a") {
+          console.error("   (numeric-alignment assertion skipped: this report has no table body rows)");
+        } else {
+          check(md.tdNumeric === "tabular-nums", `round report table cells align numerically (${md.tdNumeric})`);
+        }
       }
     } else {
       console.error("   (markdown assertions skipped: no round report rows in the index)");
