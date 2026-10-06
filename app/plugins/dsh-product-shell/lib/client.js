@@ -532,6 +532,63 @@ window.__ModuleLoader__.load({
 			   user want to look at it again. */
 			".ia-an-start{position:sticky;top:12px;align-self:start}",
 			"@media(max-height:760px){.ia-an-start{position:static}}",
+			/* ── dashboard: vertical market cards + holdings ─────────────────── */
+			/* Four narrow columns instead of two wide ones. The wide cards spent
+			   their whole right half on nothing while squeezing the numbers into a
+			   small left-aligned cluster; a tall column gives each figure room and
+			   lets value / P&L / cash stack where the eye expects them. */
+			".ia-market-grid{grid-template-columns:repeat(4,minmax(0,1fr))}",
+			"@media(max-width:1180px){.ia-market-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}",
+			".ia-market{display:flex;flex-direction:column;gap:2px}",
+			".ia-market-hold{font-size:var(--ia-fs-micro);color:var(--ia-label-3)}",
+			/* The up/down colour follows the market's own convention, so it is set
+			   here from data-kind rather than by reusing the global ok/danger
+			   semantics (which mean healthy/unhealthy everywhere else). */
+			".ia-market-pnl{display:flex;align-items:baseline;gap:8px;font-size:var(--ia-fs-body-sm);font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}",
+			/* Trend colour, per market convention. `data-red-up=true` means "this
+			   market quotes a RISE in red" (mainland China, Hong Kong); the US and
+			   anything else uses green-up. Note the axes are independent: A-share
+			   up renders red while its severity token would be "danger", which is
+			   why this does not reuse ok/danger -- doing so made a loss and a gain
+			   swap meanings depending on the market. */
+			".ia-market-pnl[data-trend=up],.ia-trend[data-trend=up]{color:var(--ia-ok-text)}",
+			".ia-market-pnl[data-trend=down],.ia-trend[data-trend=down]{color:var(--ia-danger-text)}",
+			".ia-market-pnl[data-trend=flat],.ia-trend[data-trend=flat]{color:var(--ia-label-3)}",
+			".ia-market-pnl[data-red-up=true][data-trend=up],.ia-trend[data-red-up=true][data-trend=up]{color:var(--ia-danger-text)}",
+			".ia-market-pnl[data-red-up=true][data-trend=down],.ia-trend[data-red-up=true][data-trend=down]{color:var(--ia-ok-text)}",
+			".ia-market-kv{display:flex;flex-direction:column;gap:1px;margin-top:8px;font-size:var(--ia-fs-micro);color:var(--ia-label-3)}",
+			".ia-market-kv span{display:flex;justify-content:space-between;gap:6px}",
+			".ia-market-kv b{font-weight:500;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}",
+			".ia-holdings-table{margin-top:8px}",
+			".ia-holdings-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+			".ia-trend{font-variant-numeric:tabular-nums}",
+			/* ── workflow board: per-band progress ───────────────────────────── */
+			/* The band is the progress display now, so it gets a state colour, a
+			   completion ratio and a bar. This is what replaced the wall of
+			   per-agent cards: same information, read at a glance. */
+			".ia-flow-band[data-status=completed] .ia-flow-label{color:var(--ia-ok-text)}",
+			".ia-flow-band[data-status=running] .ia-flow-label{color:var(--ia-accent-text);font-weight:600}",
+			".ia-flow-band[data-status=failed] .ia-flow-label{color:var(--ia-danger-text)}",
+			".ia-flow-band[data-status=idle] .ia-flow-label{color:var(--ia-label-3)}",
+			".ia-flow-band[data-status=running] .ia-flow-node{border-color:color-mix(in srgb,var(--ia-accent) 55%,var(--ia-border-subtle))}",
+			".ia-flow-band[data-status=failed] .ia-flow-node{border-color:color-mix(in srgb,var(--ia-danger) 55%,var(--ia-border-subtle))}",
+			/* Third column carries the per-band progress; the band reported only its
+			   shape before, so the diagram could not show advancement. */
+			".ia-flow-band{grid-template-columns:108px minmax(0,1fr) auto}",
+			".ia-flow-progress{display:flex;align-items:center;gap:10px;flex:none;min-width:190px;padding-top:4px}",
+			".ia-flow-progress-bar{flex:1;height:5px;border-radius:var(--ia-r-full);background:var(--ia-border-subtle);overflow:hidden}",
+			".ia-flow-progress-bar i{display:block;height:100%;border-radius:var(--ia-r-full);background:var(--ia-grad-primary);transform-origin:left center;transform:scaleX(0);transition:transform var(--ia-dur-slow) var(--ia-ease-out)}",
+			".ia-flow-progress[data-status=completed] .ia-flow-progress-bar i{background:var(--ia-ok)}",
+			".ia-flow-progress[data-status=failed] .ia-flow-progress-bar i{background:var(--ia-danger)}",
+			".ia-flow-progress-text{font-size:var(--ia-fs-micro);color:var(--ia-label-3);white-space:nowrap;font-variant-numeric:tabular-nums}",
+			"@media(max-width:1180px){.ia-flow-progress{min-width:0;margin-left:0;margin-top:6px}}",
+			/* ── 市场早报 ─────────────────────────────────────────────────────── */
+			/* The macro report is GFM. Rendering it means the .ia-md-* rules apply,
+			   so this only owns the scroll box and the heading weight. */
+			".ia-news .ia-panel-head{margin-bottom:6px}",
+			".ia-news .ia-panel-head span{font-size:var(--ia-fs-micro);color:var(--ia-label-3)}",
+			".ia-news-body{max-height:420px;overflow-y:auto}",
+			".ia-news-body .ia-md>*:first-child{margin-top:0}",
 			"@media(max-width:1440px){.ia-an-main{grid-template-columns:minmax(0,1fr)}}",
 			"@media(max-width:1180px){.ia-an-grid{grid-template-columns:1fr}}"
 		].join("");
@@ -1018,16 +1075,65 @@ window.__ModuleLoader__.load({
 				if (!account || account.error) return null;
 				const holdings = Array.isArray(account.holdings) ? account.holdings : [];
 				const trades = Array.isArray(account.tradeHistory) ? account.tradeHistory : [];
+				const equity = Array.isArray(account.equitySnapshots) ? account.equitySnapshots : [];
+				// Keep the detail, not just the counts. The previous version reduced
+				// each account to `holdings.length`, which is why the dashboard could
+				// not show market value, cost or P&L: the numbers were discarded
+				// here, one line before render.
+				const rows = holdings.map((holding) => {
+					const shares = Number(holding.shares ?? holding.quantity ?? 0);
+					const costPrice = Number(holding.costPrice ?? holding.cost ?? 0);
+					const lastPrice = Number(holding.lastPrice ?? costPrice);
+					const value = shares * lastPrice;
+					const cost = shares * costPrice;
+					const pnl = value - cost;
+					return {
+						code: String(holding.code ?? ""),
+						name: String(holding.name ?? ""),
+						shares,
+						costPrice,
+						lastPrice,
+						highPrice: Number(holding.highPrice ?? 0),
+						value,
+						cost,
+						pnl,
+						pnlPct: cost > 0 ? pnl / cost : 0
+					};
+				});
+				const value = rows.reduce((total, row) => total + row.value, 0);
+				const cost = rows.reduce((total, row) => total + row.cost, 0);
+				const pnl = value - cost;
 				return {
 					market,
-					totalCapital: account.totalCapital,
-					cash: account.cash,
-					holdings: holdings.length,
-					trades: trades.length
+					totalCapital: Number(account.totalCapital ?? 0),
+					cash: Number(account.cash ?? 0),
+					highWaterMark: Number(account.highWaterMark ?? 0),
+					holdings: rows,
+					trades,
+					equity,
+					value,
+					cost,
+					pnl,
+					pnlPct: cost > 0 ? pnl / cost : 0,
+					tradesCount: trades.length
 				};
 			}).filter(Boolean);
-			const holdingsCount = marketRows.reduce((total, row) => total + row.holdings, 0);
-			const tradesCount = marketRows.reduce((total, row) => total + row.trades, 0);
+			// Market values, summed in each market's own currency; no FX conversion
+			// is attempted because no rate source is configured, and inventing one
+			// would silently produce a wrong total.
+			const holdingsCount = marketRows.reduce((total, row) => total + row.holdings.length, 0);
+			const tradesCount = marketRows.reduce((total, row) => total + row.tradesCount, 0);
+			const investedValue = marketRows.reduce((total, row) => total + row.value, 0);
+			const investedCost = marketRows.reduce((total, row) => total + row.cost, 0);
+			const unrealizedPnl = investedValue - investedCost;
+			// Up/down colour is a per-market CONVENTION, not one global semantic:
+			// mainland China and Hong Kong quote red-for-up, the US does the
+			// opposite. It is deliberately expressed as `data-trend=up|down|flat`
+			// rather than reusing ok/danger, because reusing a severity token made
+			// an A-share loss render green (severity "ok") while reading "-2.35%".
+			// Separating the two axes keeps "green = healthy" elsewhere intact.
+			const trendOf = (value) => (value > 0 ? "up" : value < 0 ? "down" : "flat");
+			const redUp = (market) => market !== "us";
 			const riskLabel = engineError ? "未知" : control.kill_switch ? "紧急停止" : control.paused ? "已暂停" : "正常";
 			const riskKind = engineError ? "warn" : control.kill_switch ? "danger" : control.paused ? "warn" : "ok";
 			const currency = { cn: "¥", hk: "HK$", us: "US$", etf: "¥" };
@@ -1069,12 +1175,62 @@ window.__ModuleLoader__.load({
 													className: "ia-market",
 													key: row.market,
 													children: [
-														react_jsx_runtime.jsxs("div", { className: "ia-market-head", children: [react_jsx_runtime.jsx("span", { className: "ia-market-badge", children: marketName[row.market] }), react_jsx_runtime.jsx("span", { className: "ia-context-chip", children: row.holdings + " 个持仓" })] }),
-														react_jsx_runtime.jsx("div", { className: "ia-market-value", children: currency[row.market] + " " + fmtMoney(row.totalCapital) }),
-														react_jsx_runtime.jsxs("div", { className: "ia-market-meta", children: [react_jsx_runtime.jsx("span", { children: "现金 " + fmtMoney(row.cash) }), react_jsx_runtime.jsx("span", { children: row.trades + " 笔成交" })] })
+														react_jsx_runtime.jsxs("div", { className: "ia-market-head", children: [react_jsx_runtime.jsx("span", { className: "ia-market-badge", children: marketName[row.market] }), react_jsx_runtime.jsx("span", { className: "ia-market-hold", children: row.holdings.length + " 持仓" })] }),
+														react_jsx_runtime.jsx("div", { className: "ia-market-value", children: fmtMoney(row.value) }),
+														react_jsx_runtime.jsxs("div", { className: "ia-market-pnl", "data-trend": trendOf(row.pnl), "data-red-up": redUp(row.market), children: [
+															react_jsx_runtime.jsx("span", { children: (row.pnl > 0 ? "+" : "") + fmtMoney(row.pnl) }),
+															react_jsx_runtime.jsx("span", { children: (row.pnlPct > 0 ? "+" : "") + (row.pnlPct * 100).toFixed(2) + "%" })
+														]}),
+														react_jsx_runtime.jsxs("div", { className: "ia-market-kv", children: [
+															react_jsx_runtime.jsxs("span", { children: ["现金", react_jsx_runtime.jsx("b", { children: fmtMoney(row.cash) })] }),
+															react_jsx_runtime.jsxs("span", { children: ["成本", react_jsx_runtime.jsx("b", { children: fmtMoney(row.cost) })] }),
+															react_jsx_runtime.jsxs("span", { children: ["成交", react_jsx_runtime.jsx("b", { children: row.tradesCount + " 笔" })] })
+														]})
 													]
 												}, row.market)) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: "账户数据暂不可用" })
-											})
+											}),
+											// Holdings detail. The dashboard previously showed only a count per
+											// market, so "which positions do I hold and how are they doing" was
+											// unanswerable here. Derived from shares/costPrice/lastPrice, which
+											// the engine already returns.
+											holdingsCount > 0 ? react_jsx_runtime.jsxs("div", {
+												className: "ia-holdings",
+												children: [
+													react_jsx_runtime.jsxs("div", { className: "ia-panel-head", style: { marginTop: 14 }, children: [
+														react_jsx_runtime.jsx("h3", { children: "持仓明细" }),
+														react_jsx_runtime.jsx("span", { children: holdingsCount + " 个持仓 · 合计盈亏 " + (unrealizedPnl > 0 ? "+" : "") + fmtMoney(unrealizedPnl) })
+													]}),
+													...marketRows.filter((row) => row.holdings.length > 0).map((row) => react_jsx_runtime.jsxs("table", {
+														className: "ia-table ia-holdings-table",
+														key: row.market,
+														children: [
+															react_jsx_runtime.jsx("thead", { children: react_jsx_runtime.jsxs("tr", { children: [
+																react_jsx_runtime.jsx("th", { children: marketName[row.market] }),
+																react_jsx_runtime.jsx("th", { children: "名称" }),
+																react_jsx_runtime.jsx("th", { className: "ia-num", children: "持仓" }),
+																react_jsx_runtime.jsx("th", { className: "ia-num", children: "成本" }),
+																react_jsx_runtime.jsx("th", { className: "ia-num", children: "现价" }),
+																react_jsx_runtime.jsx("th", { className: "ia-num", children: "市值" }),
+																react_jsx_runtime.jsx("th", { className: "ia-num", children: "盈亏" }),
+																react_jsx_runtime.jsx("th", { className: "ia-num", children: "幅度" })
+															]}) }),
+															react_jsx_runtime.jsx("tbody", { children: row.holdings.map((holding) => react_jsx_runtime.jsxs("tr", {
+																key: row.market + ":" + holding.code,
+																children: [
+																	react_jsx_runtime.jsx("td", { children: holding.code }),
+																	react_jsx_runtime.jsx("td", { className: "ia-holdings-name", title: holding.name, children: holding.name || "-" }),
+																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.shares) }),
+																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.costPrice) }),
+																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.lastPrice) }),
+																	react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.value) }),
+																	react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnl > 0 ? "+" : "") + fmtMoney(holding.pnl) }),
+																	react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnlPct > 0 ? "+" : "") + (holding.pnlPct * 100).toFixed(2) + "%" })
+																]
+															}, holding.code)) })
+														]
+													}, "holdings-" + row.market))
+												]
+											}) : null,
 										]
 									}),
 									react_jsx_runtime.jsxs("section", {
@@ -1112,12 +1268,19 @@ window.__ModuleLoader__.load({
 									})
 								]
 							}),
+							// 市场早报 (formerly 宏观日报). The engine writes GFM, so it is
+							// rendered rather than printed: the old <p> showed "##" and ">"
+							// literally, at 11px. The subtitle states the collection time
+							// because the report covers the previous day's news.
 							macro ? react_jsx_runtime.jsxs("section", {
-								className: "ia-card",
+								className: "ia-card ia-news",
 								style: { marginTop: 14 },
 								children: [
-									react_jsx_runtime.jsx("h3", { children: "最新宏观日报摘要" }),
-									react_jsx_runtime.jsx("p", { style: { margin: 0, fontSize: 11, lineHeight: "19px", color: "var(--dsw-alias-label-secondary)", whiteSpace: "pre-wrap", maxHeight: 180, overflowY: "auto" }, children: macro.slice(0, 2200) })
+									react_jsx_runtime.jsxs("div", { className: "ia-panel-head", children: [
+										react_jsx_runtime.jsx("h3", { children: "市场早报" }),
+										react_jsx_runtime.jsx("span", { children: "每交易日 08:00 采集" })
+									]}),
+									react_jsx_runtime.jsx("div", { className: "ia-news-body", children: renderMarkdown(macro) })
 								]
 							}) : null
 						]
@@ -1126,14 +1289,52 @@ window.__ModuleLoader__.load({
 			});
 		}
 
+		// The workflow board. Each band carries the engine stages it covers, so the
+		// diagram reports real progress instead of only the shape of the pipeline.
+		// The phase string is the engine's own `agent.phase` value, which is why
+		// 02/03 share one engine stage but remain two bands: they are two distinct
+		// phases inside it. `preparing` is the only band with no engine stage.
 		const workflowBands = [
-			["01 · 数据准备", [["市场状态", "primary"], ["筛选候选"], ["持仓 / 授权"]]],
-			["02 · 标的研究", [["技术分析"], ["基本面"], ["新闻"], ["情绪"]]],
-			["03 · 研究裁决", [["多方研究员"], ["空方研究员"], ["研究经理", "primary"]]],
-			["04 · 组合构建", [["标的交易员"], ["组合经理草案", "primary"]]],
-			["05 · 风险裁决", [["激进视角"], ["保守视角"], ["中性视角"], ["风险经理", "primary"]]],
-			["06 · 决策执行", [["最终组合决策", "primary"], ["硬风险检查", "guard"], ["模拟执行 / 报告"]]]
+			["01 · 数据准备", [["市场状态", "primary"], ["筛选候选"], ["持仓 / 授权"]], [], "preparing"],
+			["02 · 标的研究", [["技术分析"], ["基本面"], ["新闻"], ["情绪"]], ["base_research"], "四类基础研究"],
+			["03 · 研究裁决", [["多方研究员"], ["空方研究员"], ["研究经理", "primary"]], ["research_debate"], "研究辩论与个股裁决"],
+			["04 · 组合构建", [["标的交易员"], ["组合经理草案", "primary"]], ["portfolio_draft"], "组合草案"],
+			["05 · 风险裁决", [["激进视角"], ["保守视角"], ["中性视角"], ["风险经理", "primary"]], ["risk_review"], "风险辩论"],
+			["06 · 决策执行", [["最终组合决策", "primary"], ["硬风险检查", "guard"], ["模拟执行 / 报告"]], ["final_decision"], "最终决策"]
 		];
+
+		/**
+		 * Progress for one workflow band, read from the round's own records.
+		 * Agents carry `phase` (band-level name) and `stage` (engine key), so the
+		 * mapping comes from the data rather than from guessing at display names.
+		 * The stage timeline is authoritative for the band state even before any
+		 * agent reports, which is what lets the diagram light up as a round
+		 * advances instead of waiting on individual roles.
+		 */
+		function bandProgress(analysis, stages, phase) {
+			const agentMap = analysis?.agents && typeof analysis.agents === "object" ? analysis.agents : {};
+			const rows = Object.values(agentMap).filter((agent) => {
+				const agentStage = String(agent?.stage ?? "");
+				const agentPhase = String(agent?.phase ?? "");
+				return (stages.length > 0 && stages.includes(agentStage)) || (phase && agentPhase === phase);
+			});
+			const statusOf = (value) => String(value ?? "");
+			const done = rows.filter((agent) => statusOf(agent?.status) === "completed").length;
+			const running = rows.filter((agent) => statusOf(agent?.status) === "running").length;
+			const failed = rows.filter((agent) => statusOf(agent?.status) === "failed").length;
+			const stageStates = stages.map((key) => statusOf(analysis?.stages?.[key]?.status));
+			let status = "idle";
+			if (stageStates.includes("running") || running > 0) status = "running";
+			else if (stageStates.includes("failed")) status = "failed";
+			else if (rows.length > 0 && failed > 0 && done + failed >= rows.length) status = "failed";
+			else if (stageStates.some((value) => value === "completed")) status = "completed";
+			else if (rows.length > 0 && done === rows.length) status = "completed";
+			// Band 01 has no engine stage: it is "in progress" while the round is
+			// booting and "done" once the first real stage reports.
+			else if (phase === "preparing" && statusOf(analysis?.status) === "running") status = "running";
+			const elapsed = stages.reduce((total, key) => total + Number(analysis?.stages?.[key]?.duration_ms ?? 0), 0);
+			return { total: rows.length, done, running, failed, status, elapsed };
+		}
 		const analysisStageNames = {
 			preparing: "准备数据",
 			resuming: "恢复检查点",
@@ -1153,112 +1354,37 @@ window.__ModuleLoader__.load({
 		}
 		function checkpointState(analysis, stages) {
 			if (!analysis) return "未运行";
-			if (stages.some((stage) => analysis?.checkpoints?.[stage]?.status === "completed")) return "已完成";
-			if (stages.includes(analysis.current_stage) && analysis.status === "running") return "运行中";
+			// Gate on the engine's own stage/cp keys. This used to be called with
+			// ["execution"], which the engine never emits -- its stages are
+			// base_research / research_debate / portfolio_draft / risk_review /
+			// final_decision -- so that row reported "等待中" forever, even on a
+			// completed round. Read both maps: `checkpoints` carries per-stage
+			// checkpoints and `stages` carries the timeline.
+			const marks = [analysis?.checkpoints ?? {}, analysis?.stages ?? {}];
+			for (const stage of stages) {
+				const done = marks.some((map) => String(map?.[stage]?.status ?? "") === "completed");
+				if (done) return "已完成";
+			}
+			const running = marks.some((map) => String(map?.[analysis?.current_stage]?.status ?? "") === "running");
+			if (stages.includes(analysis?.current_stage) && (running || analysis?.status === "running")) return "运行中";
 			return "等待中";
 		}
 
-		function WorkflowPage() {
-			const summaryState = useInvestmentSummary(5000);
-			const status = summaryState.data?.status ?? {};
-			const engineError = summaryState.error || status.error || "";
-			const reports = Array.isArray(summaryState.data?.reports?.reports) ? summaryState.data.reports.reports : [];
-			const control = status.control ?? {};
-			const nextRuns = Object.entries(status.markets ?? {}).slice(0, 4);
-			const analysis = summaryState.data?.analysis ?? null;
-			const currentStage = analysisStageLabel(analysis?.current_stage);
-			const workflowStatus = !analysis ? "尚无分析轮次" : analysis.status === "running" ? "运行中 · " + currentStage : analysis.status === "completed" ? "最近轮次已完成" : "最近轮次失败";
-			const workflowKind = !analysis ? "warn" : analysis.status === "completed" ? "ok" : analysis.status === "failed" ? "error" : "warn";
-			const checks = [
-				["角色隔离与逐标的研究", checkpointState(analysis, ["base_research"])],
-				["证据域与引用校验", (analysis?.evidence_count ?? 0) > 0 ? "已记录 " + analysis.evidence_count + " 条" : checkpointState(analysis, ["base_research"])],
-				["失败降级与安全 HOLD", checkpointState(analysis, ["final_decision"])],
-				["阶段检查点与恢复", analysis && Object.keys(analysis.checkpoints ?? {}).length > 0 ? Object.keys(analysis.checkpoints).length + " 个检查点" : "未运行"],
-				["硬风控与模拟执行", checkpointState(analysis, ["execution"])]
-			];
-			return react_jsx_runtime.jsxs("div", {
-				className: "ia-page",
-				children: [
-					react_jsx_runtime.jsx(PageHeader, {
-						title: "分析流程",
-						subtitle: "完整投资分析链路、运行状态与恢复边界",
-						status: workflowStatus,
-						statusKind: workflowKind
-					}),
-					react_jsx_runtime.jsx("div", {
-						className: "ia-page-content",
-						children: react_jsx_runtime.jsxs("div", {
-							className: "ia-flow-grid",
-							children: [
-								react_jsx_runtime.jsxs("section", {
-									className: "ia-panel ia-flow-map",
-									children: [
-										react_jsx_runtime.jsxs("div", {
-											className: "ia-flow-map-title",
-											children: [
-												react_jsx_runtime.jsxs("div", { children: [react_jsx_runtime.jsx("h3", { children: "目标完整分析链路" }), react_jsx_runtime.jsx("p", { children: "逐标的隔离研究，组合层统一决策，最终仍由 Python 引擎执行硬风险约束。" })] }),
-												react_jsx_runtime.jsx("span", { className: "ia-flow-pill", children: "原生多角色 · 阶段可恢复" })
-											]
-										}),
-										...workflowBands.map(([label, nodes]) => react_jsx_runtime.jsxs("div", {
-											className: "ia-flow-band",
-											key: label,
-											children: [
-												react_jsx_runtime.jsx("div", { className: "ia-flow-label", children: label }),
-												react_jsx_runtime.jsx("div", {
-													className: "ia-flow-nodes",
-													children: nodes.flatMap(([node, kind], index) => [
-														react_jsx_runtime.jsx("span", { className: "ia-flow-node", "data-kind": kind, children: node }, node),
-														index < nodes.length - 1 ? react_jsx_runtime.jsx("span", { className: "ia-flow-arrow", children: "→" }, node + "-arrow") : null
-													])
-												})
-											]
-										}, label))
-									]
-								}),
-								react_jsx_runtime.jsxs("aside", {
-									className: "ia-flow-side",
-									children: [
-										react_jsx_runtime.jsxs("section", {
-											className: "ia-panel",
-											children: [
-											react_jsx_runtime.jsx("h3", { children: "当前分析状态" }),
-											analysis?.error ? react_jsx_runtime.jsx("div", { className: "ia-flow-warning", children: "失败：" + analysis.error }) : null,
-											react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "分析轮次" }), react_jsx_runtime.jsx("b", { children: analysis?.cycle_id ?? "尚无记录" })] }),
-											react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "当前阶段" }), react_jsx_runtime.jsx("b", { children: currentStage })] }),
-											react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "Agent 进度" }), react_jsx_runtime.jsx("b", { children: (analysis?.completed_agents ?? 0) + "/" + (analysis?.expected_agents ?? 0) + (analysis?.failed_agents ? " · 失败 " + analysis.failed_agents : "") })] }),
-											react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "证据记录" }), react_jsx_runtime.jsx("b", { children: analysis?.evidence_count ?? 0 })] }),
-											react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "运行模式" }), react_jsx_runtime.jsx("b", { children: status.operation_mode === "automatic" ? "自动" : status.operation_mode === "manual" ? "手动" : "-" })] }),
-												react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "投资引擎" }), react_jsx_runtime.jsx("b", { children: engineError ? "不可用" : status.investment_worker_alive ? "运行中" : "未运行" })] }),
-												react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "硬风险边界" }), react_jsx_runtime.jsx("b", { children: engineError ? "未知" : control.kill_switch ? "紧急停止" : control.paused ? "已暂停" : "正常" })] }),
-												react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "最近报告" }), react_jsx_runtime.jsx("b", { children: reports.length })] })
-											]
-										}),
-										react_jsx_runtime.jsxs("section", {
-											className: "ia-panel",
-											children: [
-											react_jsx_runtime.jsx("h3", { children: "流程验收" }),
-											...checks.map(([label, state], index) => react_jsx_runtime.jsxs("div", {
-													className: "ia-flow-check",
-													key: label,
-													children: [react_jsx_runtime.jsx("span", { className: "ia-flow-check-num", children: String(index + 1).padStart(2, "0") }), react_jsx_runtime.jsx("span", { children: label }), react_jsx_runtime.jsx("span", { className: "ia-flow-check-state", children: state })]
-												}, label))
-											]
-										}),
-										react_jsx_runtime.jsxs("section", {
-											className: "ia-panel",
-											children: [
-												react_jsx_runtime.jsx("h3", { children: "下一轮计划" }),
-												nextRuns.length > 0 ? nextRuns.map(([market, info]) => react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: marketName[market] }), react_jsx_runtime.jsx("b", { children: String(info?.next_cycle ?? "-").replace("T", " ").slice(0, 16) })] }, market)) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: "尚未安排自动轮次" })
-											]
-										})
-									]
-								})
-							]
-						})
-					})
-				]
-			});
+		// The five 流程验收 rows, mapped onto the stages the engine actually writes.
+		// Kept as data so the keys cannot silently drift out of the engine again.
+		const workflowCheckKeys = [
+			["角色隔离与逐标的研究", ["base_research"]],
+			["证据域与引用校验", ["base_research"]],
+			["失败降级与安全 HOLD", ["final_decision"]],
+			["阶段检查点与恢复", []],
+			["硬风控与模拟执行", ["final_decision"]]
+		];
+
+		/** A round with a terminal success must not report every check as pending. */
+		function workflowChecksSane(rows, analysis) {
+			const status = String(analysis?.status ?? "");
+			if (status !== "completed" && status !== "ready_for_execution") return true;
+			return rows.some(([, detail]) => detail !== "等待中" && detail !== "未运行");
 		}
 
 		function AssistantContext({ onClose, onOpenWorkflow }) {
@@ -2432,7 +2558,7 @@ window.__ModuleLoader__.load({
 						className: "ia-form-row",
 						children: [
 							react_jsx_runtime.jsxs("div", {
-								children: [react_jsx_runtime.jsx("div", { className: "ia-form-label", children: "宏观日报时间" }), react_jsx_runtime.jsx("div", { className: "ia-form-hint", children: "每天生成一次宏观市场日报。" })]
+								children: [react_jsx_runtime.jsx("div", { className: "ia-form-label", children: "市场早报时间" }), react_jsx_runtime.jsx("div", { className: "ia-form-hint", children: "每个交易日生成一次市场早报（内容为前一交易日的新闻）。" })]
 							}),
 							react_jsx_runtime.jsx("input", {
 								className: "ia-input",
@@ -2818,11 +2944,14 @@ window.__ModuleLoader__.load({
 			const contextOpen = state?.contextOpen !== false;
 			// Third element is a Lucide icon key (see ICON_SVG); the visible label
 			// stays text so the smoke assertions and screen readers are unaffected.
+			// 分析流程 is no longer a destination: its board (the pipeline diagram,
+			// per-band progress and the acceptance checklist) lives inside 分析中心,
+			// where the action that starts a round already is. Keeping a second page
+			// that only displayed the same round was the duplication.
 			const navigation = [
 				["dashboard", "layoutDashboard", "Dashboard"],
 				["assistant", "messageSquare", "投资助手"],
 				["analyze", "radar", "分析中心"],
-				["workflow", "workflow", "分析流程"],
 				["settings", "settings", "设置"]
 			];
 
@@ -2855,13 +2984,13 @@ window.__ModuleLoader__.load({
 					}),
 					react_jsx_runtime.jsx("div", {
 						className: "ia-body",
-						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, {}) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "workflow" ? react_jsx_runtime.jsx(WorkflowPage, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
+						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, {}) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
 							children: [
 								renderSlot("sidebar", { collapsed: false, width: 250 }),
 								react_jsx_runtime.jsx("div", { className: "ia-center", children: renderSlot("conversation", {}) }),
 								detailsOpen ? react_jsx_runtime.jsx("div", { className: "ia-details", children: renderSlot("details", {}) }) : contextOpen ? react_jsx_runtime.jsx(AssistantContext, {
 									onClose: () => actions.setContextOpen(false),
-									onOpenWorkflow: () => actions.setPage("workflow")
+									onOpenWorkflow: () => actions.setPage("analyze")
 								}) : react_jsx_runtime.jsx("button", {
 									className: "ia-iconbtn ia-context-reopen",
 									type: "button",

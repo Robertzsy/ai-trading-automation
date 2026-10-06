@@ -198,12 +198,15 @@ async function main() {
     const hasBrand = /deepseek|harness/i.test(String(visibleText));
     check(!hasBrand, "no DeepSeek/Harness visible in page text");
 
-    // 2. Product left navigation.
+    // 2. Product left navigation. 分析流程 is not a destination any more: its
+    //    board lives inside 分析中心, so the nav is four entries and the removal
+    //    is asserted rather than merely tolerated.
     const navText = await evaluate(
       cdp,
       `Array.from(document.querySelectorAll('.ia-navbtn')).map(b => b.textContent.trim()).join('|')`,
     );
-    check(String(navText).includes("Dashboard") && String(navText).includes("投资助手") && String(navText).includes("分析流程") && String(navText).includes("设置"), `left nav renders (${navText})`);
+    check(String(navText).includes("Dashboard") && String(navText).includes("投资助手") && String(navText).includes("分析中心") && String(navText).includes("设置"), `left nav renders (${navText})`);
+    check(!String(navText).includes("分析流程"), `left nav no longer carries a separate 分析流程 tab (${navText})`);
     check(!String(navText).includes("账户"), `left nav has no account entry (${navText})`);
     const brandText = await evaluate(cdp, `document.querySelector('.ia-rail-brand') ? document.querySelector('.ia-rail-brand').getAttribute('title') : ''`);
     check(String(brandText).includes("Investment Auto"), `product brand renders (${brandText})`);
@@ -228,13 +231,27 @@ async function main() {
     check(String(dashText).includes("投资总览"), "Dashboard renders 投资总览");
     check(String(dashText).includes("四市场账户"), "Dashboard renders 四市场账户");
 
-    // 4b. Analysis workflow page.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('分析流程')).click()`);
-    await sleep(1000);
-    const workflowText = await evaluate(cdp, "document.body.innerText");
-    check(String(workflowText).includes("目标完整分析链路"), "analysis page renders the target workflow");
-    check(String(workflowText).includes("当前分析状态") && String(workflowText).includes("流程验收"), "analysis page renders real workflow telemetry");
-    check(String(workflowText).includes("原生多角色") && !String(workflowText).includes("待恢复"), "analysis page presents the restored checkpointed workflow");
+    // 4b. The workflow board moved into the analysis centre (its own nav entry is
+    //     gone). Navigate there first, then assert the merge left a working page.
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('分析中心')).click()`);
+    await sleep(2200);
+    const mergedCentre = await evaluate(cdp, `(() => {
+      const navs = Array.from(document.querySelectorAll('.ia-navbtn')).map((b) => b.textContent.trim());
+      return {
+        navs,
+        hasAnalyzePanel: Boolean(document.querySelector('.ia-an-grid')),
+        hasStartPanel: Boolean(document.querySelector('#ia-an-start')),
+        bodyLen: document.body.innerText.length,
+      };
+    })()`);
+    check(
+      mergedCentre?.hasAnalyzePanel === true && mergedCentre?.hasStartPanel === true,
+      `分析中心 is reachable after the merge (${JSON.stringify(mergedCentre)})`,
+    );
+    check(
+      Array.isArray(mergedCentre?.navs) && mergedCentre.navs.length === 4,
+      `navigation is four entries after removing 分析流程 (${JSON.stringify(mergedCentre?.navs)})`,
+    );
 
     // 5. Settings page.
     await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('设置')).click()`);
