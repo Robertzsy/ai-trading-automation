@@ -2,7 +2,27 @@
 
 [简体中文](CHANGELOG.md) | [English](CHANGELOG_EN.md)
 
-This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The exact bilingual GitHub Release body is available in [docs/RELEASE_NOTES_2.1.3.md](docs/RELEASE_NOTES_2.1.3.md).
+This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The exact bilingual GitHub Release body is available in [docs/RELEASE_NOTES_2.1.4.md](docs/RELEASE_NOTES_2.1.4.md).
+
+## 2.1.4 — Design-Tokenised UI and a Reliable Analysis Pipeline (2026-10-09, branch `dsch/2.0`)
+
+- **Rebuilt the interface on a design-token layer.** Colour, type scale, spacing, radius, elevation and motion are all tokens now rather than scattered literals, with a new gate that catches self-referential variables (`--ia-x: var(--ia-x)`, which browsers silently drop).
+- **Pinned to a single light theme** (`color-scheme: light`), removing the dark branches so colour and contrast no longer depend on the system theme.
+- **Full contrast compliance.** The audit that started this work found 124 failing text elements; the interface now scans around 490 with zero violations, and text over gradients is checked stop by stop.
+- **Raised the smallest type from 11px to 12px** (`--ia-fs-micro` carried 30 rules) and set the dashboard's key figures larger still. Added 14 built-in SVG icons in place of character placeholders, four elevation levels, and one interaction state machine.
+- **Reworked the Analysis Centre.** The three one-click entries moved to the top at one uniform size (604x42), with the primary action in gradient and the other two outlined. The "Start analysis" button was deleted as a duplicate of "Analyse these symbols" — the same action rendered twice. Pre-flight collapsed to one line that expands by itself when a condition is unmet. Progress is graphical, and round reports render as Markdown.
+- **Reworked the Dashboard.** Market cards went from two wide cards to four vertical ones (318x180); a holdings table was added with eight columns generated from the same definition as its data rows; and trend colour follows each market's own convention — red-for-up in mainland China and Hong Kong, green-for-up in the US — expressed on a separate `data-trend` axis rather than by reusing severity semantics.
+- **Macro Daily is now Market Brief**, subtitled "collected 08:00 each trading day" and rendered as Markdown; the source is GFM, so the old panel printed `##` and `>` literally.
+- **Merged the Analysis Workflow tab into the Analysis Centre**, taking the left navigation from five entries to four, and bound the pipeline diagram to the engine's stages and `agent.phase` so it reports real completion ratios and timings.
+- **Fixed analysis rounds failing at startup.** The engine bridge loaded the DPAPI credential patch only when `IA_ACCESS_TOKEN` was non-empty, and skipping it is the worst outcome rather than a safe default: the default `.credentials.yaml` provider stays enabled and the DPAPI provider is never inserted, so no credentials service exists at all and the round dies before any subagent starts. The UI showed "0/0 agents, 0 evidence", which looked like data loss. The bridge now writes a round-local patch carrying that session's real engine URL and token, and always applies it.
+- **Fixed workflow status that never advanced.** The check read a stage the engine has never emitted, so the row stayed "pending" even on a finished round.
+- **Fixed the holdings table columns not matching the data** — the header had one cell more than the body because the market name had been rendered as a `th`; it is now a `caption`, with header and body generated from one column list.
+- **A round can now be stopped.** The workflow polls run state between stages and aborts the workflow engine on cancel, which fans the stop out to pending and running child agents through DSH's own abort path; cancellation is terminal, and the engine closes the running agent rows.
+- **Other fixes:** KPI cards using only their left half, a stopped round still showing "running", recurring Windows atomic-write share violations (`WinError 5/32/33`), slow startup when the optional MongoDB is unconfigured, and rounds that could run in an inherited foreign DSH home.
+- **Regression baseline:** 376 Python tests, 28 Node plugin tests, 20 Windows desktop tests; the browser smoke gate passes, now asserting nav entry count, entry sizing, absence of the duplicate button, pre-flight consistency and holdings column alignment; plugin composition validates and both generators are current.
+
+Installer: `InvestmentAuto-Setup-x64.exe` (183,429,298 bytes)
+SHA-256: `9E447B2219926EEC07EE7D99CE2E9B13BACB9FF6D36C05503265E468A5D199B9`
 
 ## 2.1.3 — Full IA Self-Maintenance and Reliability Closure (2026-08-24, branch `dsch/2.0`)
 

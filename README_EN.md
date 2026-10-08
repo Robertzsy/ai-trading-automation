@@ -4,11 +4,11 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.1.3-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.3)
+[![Release](https://img.shields.io/badge/release-v2.1.4-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.4)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
-Investment Auto 2.1.3 is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Workflow, and Settings.
+Investment Auto 2.1.4 is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -32,18 +32,18 @@ Investment Auto 2.1.3 is a desktop application for investment research and **pap
 - **Deterministic screening**: hard filters plus a six-factor weighted score (momentum / trend / liquidity / valuation / volume / low volatility); every selected stock carries Chinese-language evidence, and weights and thresholds are configurable.
 - **13-role committee-style analysis**: four base-research tracks → bull-bear debate → research manager and per-symbol trader → portfolio draft → three-way risk debate → final decision; conclusions must cite evidence, and live stages and checkpoints are visible.
 - **Risk controls the AI cannot bypass**: three-tier strategy mandate, position capping, drawdown circuit breaker, and built-in stop-loss/take-profit; every AI decision must pass the deterministic Python risk layer and paper broker.
-- **Productized desktop app**: Dashboard, Investment Assistant, Analysis Workflow, and Settings; one-click install, single instance, tray icon, autostart, and in-place upgrades that preserve data.
+- **Productized desktop app**: Dashboard, Investment Assistant, Analysis Centre, and Settings; one-click install, single instance, tray icon, autostart, and in-place upgrades that preserve data.
 - **Conversational AI assistant**: retains DSH-native reasoning, streaming, tools, Skills, plans, and subagents; IA can also inspect logs, edit source, and run tests to maintain itself.
 
 ## Installation
 
-- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.3 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.3)
+- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.4 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.4)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
 SHA-256:
 
 ```text
-00522AA80EAEF39BB9B59F1B50B458A2177F909AD807914DDB34367A85B49560
+9E447B2219926EEC07EE7D99CE2E9B13BACB9FF6D36C05503265E468A5D199B9
 ```
 
 The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials, and sessions. The 2.1.3 on-machine upgrade check preserved all 76,167 user-data files with zero missing or changed files.
@@ -76,6 +76,27 @@ Investment Auto's investment intelligence is built from three deterministic bloc
 
 See [Investment Logic](docs/INVESTMENT_LOGIC_EN.md) for the full details: factor formulas, role responsibilities, risk parameters, and a business-value assessment.
 
+### A real worked example
+
+The complete record of one Hong Kong round on 2026-10-05 (cycle `hk-manual-20261005-1458`), with symbols taken from deterministic screening:
+
+| | Measured |
+|---|---|
+| Input | 4 Hong Kong stocks from screening: `01888`, `00700`, `09988`, `01299` |
+| Process | 5 stages · 38 subagents · **0 failures** · 185 cited evidence items |
+| Stage timings | base research 118s → research debate 190s → portfolio draft 16s → risk debate 52s → final decision 25s |
+| Outcome | **all four HOLD**, no new positions opened |
+| Terminal state | `ready_for_execution` (awaiting user approval; `submit=false`, so no trade was placed) |
+
+Each symbol came back with a specific, checkable reason rather than a vague "wait and see":
+
+- **`00700`** — the research manager's weak consensus of 0.62 fell below the confidence a long entry requires; the bearish causal chain lined up in time (results release → next-day high-volume breakdown → broker downgrade); the bullish fundamentals lacked support (Q2 adjusted net profit +9% against revenue +11%, H1 capex +82% year on year); the only positive facts (buybacks, a broker target price) were qualified by free cash flow turning negative.
+- **`09988`** — the research manager was bearish at 0.66, above the 0.55 entry threshold, but that threshold only gates long entries and a bearish call is not an entry reason; MA60 and MA250 sit far above the price, and the extreme oversold reading is short-horizon only (RSI6 18.92) while the medium horizon is neutral (RSI14 49.03), so a bounce has no cross-horizon evidence.
+- **`01299`** — the bearish case rests on first-party engine data and is internally consistent (below every moving average, a 120-day closing low, expanding negative MACD, falling on volume); the bullish load-bearing claims rest on non-engine interfaces and derived values, so they were down-weighted.
+- **`01888`** — the entry price sat at the 97.9th percentile of its 30-day range with unconfirmed volume (49.82M against a 62.37M volume MA10); the structural stop implied −12.4% for a reward-to-risk of only 0.44; the "8–10× forward PE" claim was a derived value and could not be verified.
+
+> What matters in this example is not what it picked, but that **it declined to act when the evidence was thin**: after 38 subagents and 185 evidence items, the conclusion was HOLD on all four. The evidence bar and hard risk controls outrank any obligation to produce a trade recommendation.
+
 ## Architecture
 
 ```text
@@ -105,8 +126,9 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 | 2.1.1 | Separated stock screening from security analysis. User-specified symbols now enter the fixed full workflow directly. Added asynchronous cycles, status polling, and first-generation execution idempotency to eliminate ad-hoc window analysis, long-request timeouts, and duplicate starts. |
 | 2.1.2 | Added durable broker receipts, decision fingerprints, cross-process leases, restart recovery, and strong binding between user-requested symbols and completed analysis. Internal headless and role sessions moved to an isolated DSH Home and no longer pollute the user session list. |
 | 2.1.3 | Enabled IA filesystem, PowerShell, search, background-job, and Ralph self-maintenance capabilities. Added the self-maintenance Skill and fixed workflow-schema compatibility, failed-cycle retry races, Windows atomic writes, and accidental packaging of development data. |
+| 2.1.4 | Rebuilt the interface on a design-token layer: a pinned light theme, full WCAG AA contrast, one icon set and four elevation levels, with the smallest type raised from 11px to 12px. Reworked the Analysis Centre (entries moved to the top, pre-flight collapsed, graphical progress, rounds can be stopped) and the Dashboard (four vertical market cards plus a holdings table, with trend colour following each market's convention). Merged the Analysis Workflow tab into the Analysis Centre. Fixed rounds failing at startup, workflow status that never advanced, and holdings columns offset from their data. |
 
-See the [Chinese changelog](CHANGELOG.md), [English changelog](CHANGELOG_EN.md), and [bilingual v2.1.3 release notes](docs/RELEASE_NOTES_2.1.3.md) for the complete record.
+See the [Chinese changelog](CHANGELOG.md), [English changelog](CHANGELOG_EN.md), and [bilingual v2.1.4 release notes](docs/RELEASE_NOTES_2.1.4.md) for the complete record.
 
 ## Safety Boundaries
 
@@ -121,10 +143,10 @@ IA runs with the DSH `danger-full-access` preset. Within the current Windows use
 
 ## Tests and Release Gate
 
-Investment Auto 2.1.3 passed:
+Investment Auto 2.1.4 passed:
 
-- 184 Python tests.
-- 22 Node plugin tests.
+- 376 Python tests.
+- 28 Node plugin tests.
 - 20 Windows desktop tests.
 - Skills and plugin composition checks, real-profile validation, in-place upgrade verification, and a live recovery of the complete AAPL workflow.
 

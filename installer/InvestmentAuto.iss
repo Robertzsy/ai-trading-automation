@@ -2,7 +2,7 @@
 ; Build: ISCC.exe installer\InvestmentAuto.iss
 
 #define MyAppName "Investment Auto"
-#define MyAppVersion "2.1.3"
+#define MyAppVersion "2.1.4"
 #define MyAppExeName "InvestmentAuto.Desktop.exe"
 #define MyAppPublisher "Investment Auto Contributors"
 
