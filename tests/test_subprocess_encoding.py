@@ -4,6 +4,8 @@ from __future__ import annotations
 import subprocess
 from types import SimpleNamespace
 
+import pytest
+
 from engine.data import fetcher
 from engine import main as main_module
 from engine import subprocess_utils
@@ -31,6 +33,28 @@ def test_decode_subprocess_output_accepts_utf8_and_gb18030():
     text = "贵州茅台：测试输出"
     assert decode_subprocess_output(text.encode("utf-8")) == text
     assert decode_subprocess_output(text.encode("gb18030")) == text
+
+
+@pytest.mark.parametrize("host_encoding", ["cp1252", "cp437", "ascii", "cp936"])
+def test_gb18030_decoding_does_not_depend_on_the_host_locale(monkeypatch, host_encoding):
+    """Chinese output must decode the same on an English Windows as on a Chinese one.
+
+    The encoding chain returns the first candidate that does not raise, so a
+    single-byte locale codepage in front of GB18030 wins silently: cp1252 has
+    only five undefined byte positions and ordinary Chinese text contains none of
+    them, so the bytes decode "successfully" into mojibake and the correct
+    decoding is never tried. This was live -- CI on windows-latest returned
+    ``¹óÖÝÃ©Ì¨£º²âÊÔÊä³ö`` while the same test passed on a Chinese host, which is
+    exactly why it went unnoticed. The host locale is pinned here so the
+    regression surfaces on every machine instead of only on non-CJK ones.
+    """
+    text = "贵州茅台：测试输出"
+    monkeypatch.setattr(
+        subprocess_utils.locale, "getpreferredencoding",
+        lambda do_setlocale=True: host_encoding,
+    )
+    assert decode_subprocess_output(text.encode("gb18030")) == text
+    assert decode_subprocess_output(text.encode("utf-8")) == text
 
 
 def test_hidden_subprocess_kwargs_uses_create_no_window_on_windows(monkeypatch):

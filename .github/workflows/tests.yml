@@ -2,7 +2,11 @@ name: tests
 
 on:
   push:
-    branches: [master]
+    # dsch/2.0 is the release line and the default branch. It used to be covered
+    # only incidentally, through the pull_request trigger on the long-lived
+    # dsch/2.0 -> master PR; that disappears the moment master does, which would
+    # leave pushes to the active branch with no CI at all.
+    branches: [master, dsch/2.0]
   pull_request:
 
 permissions:
@@ -45,6 +49,16 @@ jobs:
 
       - run: pip install -r requirements.txt pytest
 
+      # Installed BEFORE the Python suite, because three of its checks read the
+      # app tree: _resolve_app_dir() only reports app/ when
+      # app/node_modules/@deepseek-ai/dsh exists, and the generated-icon check
+      # reads app/node_modules/lucide-static/icon-nodes.json. With npm ci further
+      # down, those tests failed on a bare checkout while passing on any machine
+      # that already had the dependencies -- the worst kind of red.
+      - name: Install DSH app dependencies
+        working-directory: app
+        run: npm ci --no-audit --no-fund
+
       - name: Python test suite
         run: python -m pytest -q
 
@@ -62,10 +76,6 @@ jobs:
       - run: node --check scripts/macro-environment/report.js
 
       - run: node --check scripts/macro-environment/run.js
-
-      - name: Install DSH app dependencies
-        working-directory: app
-        run: npm ci --no-audit --no-fund
 
       - name: DSH plugin unit tests (node --test)
         run: node --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs"

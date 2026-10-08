@@ -411,22 +411,41 @@ def test_runner_spawns_analysis_round_with_same_env(monkeypatch, tmp_path):
 
 
 def test_resolve_app_dir_finds_repo_app():
+    """The checked-out repository must resolve its own DSH app tree.
+
+    This asserts an environment precondition, not logic, so it skips instead of
+    failing when the app dependencies are absent: on a bare checkout the failure
+    said nothing about the code. CI installs them before this suite runs, so the
+    assertion is still exercised for real there.
+    """
     resolved = dsh_bridge._resolve_app_dir()
-    assert resolved is not None
+    if resolved is None:
+        pytest.skip("app dependencies are not installed; run `npm ci` in app/ (CI does this before the suite)")
+    assert resolved.name == "app"
     assert (resolved / "node_modules" / "@deepseek-ai" / "dsh").exists()
 
 
-def test_install_dsh_runner_registers_when_enabled(monkeypatch):
+def test_install_dsh_runner_registers_when_enabled(monkeypatch, tmp_path):
+    """Registration is what is under test, so the app tree is supplied rather
+    than discovered. Reading the developer's node_modules made this pass locally
+    and fail on a bare checkout, which is a defect in the test, not the code."""
     captured = {}
 
     def fake_set_runner(runner):
         captured["runner"] = runner
 
+    app_dir = tmp_path / "app"
+    (app_dir / "node_modules" / "@deepseek-ai" / "dsh" / "lib").mkdir(parents=True)
+    (app_dir / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js").write_text("", encoding="utf-8")
+
     monkeypatch.setattr("engine.scheduler.set_cycle_runner", fake_set_runner)
     monkeypatch.setenv("INVESTMENT_AUTO_APP_DIR", "")
+    monkeypatch.setattr(dsh_bridge, "_resolve_app_dir", lambda: app_dir)
+    monkeypatch.setitem(dsh_bridge.cfg.raw.setdefault("autonomous", {}), "dsh_bridge", {"enabled": True})
     installed = dsh_bridge.install_dsh_runner()
     assert installed is True
     assert captured["runner"] is not None
+    assert captured["runner"].app_dir == app_dir
 
 
 def test_install_dsh_runner_skips_when_disabled(monkeypatch):
