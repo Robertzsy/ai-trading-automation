@@ -217,12 +217,25 @@ def test_cancel_is_terminal_and_marks_running_stage(runtime):
     assert cancelled["status"] == "cancelled"
     assert cancelled["current_stage"] == "cancelled"
     assert cancelled["stages"]["base_research"]["status"] == "cancelled"
+    assert cancelled["agents"]["base_research:a"]["status"] == "cancelled"
+    assert cancelled["agents"]["base_research:a"]["duration_ms"] is not None
     assert analysis_runs.is_cancelled(cycle) is True
     # A late worker must not resurrect it.
     analysis_runs.finish({"cycle_id": cycle, "decisions": []})
     assert analysis_runs.get(cycle)["status"] == "cancelled"
     assert any("停止" in entry["message"] for entry in analysis_runs.get(cycle)["logs"])
     assert events is analysis_events
+
+
+def test_failure_marks_unfinished_stage_failed_and_preserves_completed_stage(runtime):
+    cycle = _run()["cycle_id"]
+    analysis_runs.update({"cycle_id": cycle, "stage": "base_research", "event": "checkpoint", "result": {"ok": True}})
+    analysis_runs.update({"cycle_id": cycle, "stage": "risk_review", "event": "stage_start"})
+    run = analysis_runs.finish({"cycle_id": cycle, "error": "risk review failed"}, failed=True)
+    assert run["status"] == "failed"
+    assert run["stages"]["base_research"]["status"] == "completed"
+    assert run["stages"]["risk_review"]["status"] == "failed"
+    assert run["stages"]["risk_review"]["finished_at"]
 
 
 def test_finish_closes_dangling_stages(runtime):
@@ -327,7 +340,46 @@ def test_archive_preserves_untruncated_stage_results(runtime):
     assert len(archived) == 1
     payload = json.loads(archived[0].read_text(encoding="utf-8"))
     assert len(payload["blob"]) == 5000, "archive must keep the full payload"
-    assert f"archive" in descriptor["archive_dir"]
+    assert "archive" in descriptor["archive_dir"]
+
+
+def test_report_finds_stages_archived_by_the_workflow(runtime):
+    run = _completed_run(runtime)
+    directory = analysis_reports.archive_stage_results(run["cycle_id"], {"base_research": {"blob": "证" * 5000}})
+    descriptor = analysis_reports.generate(run)
+    assert descriptor["archive_dir"] == directory
+    assert directory in analysis_reports.read_report_content(cycle_id=run["cycle_id"])["content"]
+
+
+def test_retry_worker_replaces_failed_report_and_index(runtime, monkeypatch):
+    from types import SimpleNamespace
+    from engine import analysis_rounds, dsh_bridge
+
+    cycle = _run()["cycle_id"]
+    failed = analysis_runs.finish({"cycle_id": cycle, "error": "old failure"}, failed=True)
+    analysis_runs.set_report_meta(cycle, analysis_reports.generate(failed))
+    reopened = analysis_runs.start_or_resume({"cycle_id": cycle, "market": "cn"}, retry_failed=True)
+    assert not reopened.get("report_meta")
+
+    class Runner:
+        def run_analysis_round(self, *args, **kwargs):
+            analysis_runs.update({"cycle_id": cycle, "stage": "final_decision", "event": "execution_ready", "decisions": []})
+            return {"status": "generated"}
+
+    monkeypatch.setattr(dsh_bridge, "_resolve_app_dir", lambda: runtime.parent / "app")
+    monkeypatch.setattr(dsh_bridge, "DshBridgeRunner", lambda **kwargs: Runner())
+    analysis_rounds._worker(cycle, "cn", ["600519"], "user", "manual", claim=SimpleNamespace(release=lambda: None))
+
+    run = analysis_runs.get(cycle)
+    assert run["status"] == "ready_for_execution"
+    assert run["report_meta"]["round_report"]
+    rows = analysis_reports.read_index()
+    assert len(rows) == 1
+    assert rows[0]["status"] == "ready_for_execution"
+    assert "error" not in run
+    # Historical failure logs remain useful; the report's current status changes.
+    body = analysis_reports.read_report_content(cycle_id=cycle)["content"]
+    assert "> 轮次状态：分析完成，等待批准" in body
 
 
 def test_goal_section_renders_completion_and_deviation(runtime):

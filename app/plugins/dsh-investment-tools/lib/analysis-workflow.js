@@ -332,24 +332,55 @@ function normalizedDecisions(raw, allowedSymbols, forcedHolds) {
   return [...bySymbol.values()];
 }
 
+class AnalysisCancelled extends Error {
+  constructor(analysis) {
+    super("分析已停止");
+    this.analysis = analysis;
+  }
+}
+
+function checkCancellation(payload) {
+  if (payload?.analysis?.status === "cancelled") throw new AnalysisCancelled(payload.analysis);
+}
+
 async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents) {
-  await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"stage_start"});
+  checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"stage_start"}));
+  const controller = new AbortController();
+  const signal = exec.signal ? AbortSignal.any([exec.signal, controller.signal]) : controller.signal;
   const run = ctx.workflowEngine.start({
     script,
     meta:{name:"investment-" + stage.replaceAll("_", "-"),description:"Investment Auto fixed " + stage + " stage",phases:[{title:{base_research:"基础研究",research_debate:"研究辩论与个股决策",portfolio_draft:"组合草案",risk_review:"风险辩论",final_decision:"最终决策"}[stage]}]},
     args,
     parent:exec.agent,
-    signal:exec.signal,
+    signal,
     maxTotalAgents:Math.max(1, maxAgents),
   });
   activeRuns.set(String(run.id), {cycleId,stage});
+  // Stop both pending and running child agents through DSH's abort fanout.
+  let polling = false;
+  const timer = setInterval(async () => {
+    if (polling) return;
+    polling = true;
+    try {
+      const payload = await client.get("/api/analysis/run?cycle_id="+encodeURIComponent(cycleId), {timeoutMs:3000});
+      if (payload?.analysis?.status === "cancelled") controller.abort(new AnalysisCancelled(payload.analysis));
+    } catch { /* transient API failures do not cancel healthy research */ }
+    finally { polling = false; }
+  }, 1000);
   try {
     const settled = await run.result;
+    signal.throwIfAborted();
     if (settled.stopReason !== "completed") throw new Error(settled.error ?? ("workflow stage " + stage + " " + settled.stopReason));
+    // Archive the raw value immediately. Later stages and durable checkpoints
+    // retain the compact form, but failure/resume cannot discard this evidence.
+    try {
+      await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:settled.value}}, {timeoutMs:120000});
+    } catch { /* auxiliary: never fail research over the archive */ }
     const result = compact(settled.value);
-    await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result)});
+    checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result)}));
     return result;
   } finally {
+    clearInterval(timer);
     activeRuns.delete(String(run.id));
     await run.dispose();
   }
@@ -516,7 +547,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         const startPayload = await client.post("/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket,label:safeLabel,symbols:targets,symbols_source:symbolsSource,submit:Boolean(submit),holding_symbols:holdingSymbols,expected_agents:expectedAgents});
         started = true;
         const runState = startPayload.analysis ?? {};
-        if (runState.status === "completed") return {...runState,resumed:true};
+        if (runState.status === "completed" || runState.status === "cancelled") return {...runState,resumed:true,done:true};
         const checkpoints = runState.checkpoints ?? {};
         const mandate = mandatePayload?.mandate ?? {};
         const memory = (previousPayload?.runs ?? []).filter((row) => row.cycle_id !== cycleId).slice(0, Number(workflowConfig.memory_entries_per_role ?? 6)).map((row) => ({decisions:row.decisions??[],warnings:row.warnings??[],completed_at:row.completed_at}));
@@ -524,35 +555,17 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         const minimumCitations = Math.max(1, Number(workflowConfig.minimum_citations ?? 1));
         const requireCitations = workflowConfig.require_citations !== false;
 
-        // Untruncated stage results. `compact()` below caps strings at 1600
-        // chars before checkpointing, so the durable checkpoint is lossy by
-        // design. Keeping the raw values here lets the engine archive them
-        // verbatim (Q4-B) so a later audit can recover the full research text.
-        const rawStages = {};
-        const recordStage = (name, value) => { rawStages[name] = value; };
-        const flushArchive = async () => {
-          try {
-            await client.post("/api/analysis/runs/archive", {cycle_id:cycleId, stages:rawStages}, {timeoutMs:120000});
-          } catch { /* auxiliary: never fail the round over the archive */ }
-        };
-
         const base = checkpoints.base_research?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"base_research",BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory},targets.length*4);
-        if (checkpoints.base_research?.result === undefined) recordStage("base_research", base);
         const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations);
         const successRatio = validation.good.length / targets.length;
         const requiredRatio = Math.max(0,Math.min(1,Number(workflowConfig.minimum_symbol_research_success_ratio ?? 0.8)));
         if (successRatio < requiredRatio) throw new Error("基础研究成功率 " + successRatio.toFixed(2) + " 未达到阈值 " + requiredRatio.toFixed(2) + "，本轮按故障安全规则停止提交");
         const failedHoldings = validation.failed.filter((symbol) => holdingSymbols.includes(symbol));
         const debate = checkpoints.research_debate?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"research_debate",RESEARCH_DEBATE_SCRIPT,{research:validation.good,mandate,holdings,rounds:researchRounds},Math.max(1,validation.good.length*(2*researchRounds+2)));
-        if (checkpoints.research_debate?.result === undefined) recordStage("research_debate", debate);
         const recommendations = (Array.isArray(debate) ? debate : []).map((row) => row?.trader).filter(Boolean);
         const draft = checkpoints.portfolio_draft?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"portfolio_draft",PORTFOLIO_SCRIPT,{portfolio,mandate,recommendations},1);
-        if (checkpoints.portfolio_draft?.result === undefined) recordStage("portfolio_draft", draft);
         const risk = checkpoints.risk_review?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"risk_review",RISK_SCRIPT,{draft,portfolio,mandate,rounds:riskRounds},3*riskRounds+1);
-        if (checkpoints.risk_review?.result === undefined) recordStage("risk_review", risk);
         const finalResult = checkpoints.final_decision?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"final_decision",FINAL_SCRIPT,{risk,recommendations,mandate},1);
-        if (checkpoints.final_decision?.result === undefined) recordStage("final_decision", finalResult);
-        await flushArchive();
         const decisions = normalizedDecisions(finalResult?.decisions,targets,failedHoldings);
         const warnings = validation.failed.map((symbol) => holdingSymbols.includes(symbol) ? symbol+" 基础研究不完整，已强制 HOLD" : symbol+" 基础研究不完整，已从候选决策排除");
         // Persist the final decisions FIRST and enter ready_for_execution:
@@ -560,6 +573,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         // fingerprint and stores both. A later submission bound to this
         // cycle_id must carry exactly this content.
         const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,result:compact(finalResult)});
+        checkCancellation(readyPayload);
         const readyRun = readyPayload?.analysis ?? {};
         let execution = {status:"not_submitted",reason:"本次仅生成研究方案，未进入模拟撮合"};
         if (submit) {
@@ -578,6 +592,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         // waits for the user's explicit approval on a later submission call.
         return {...readyRun,decisions,execution,base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
       } catch (error) {
+        if (error instanceof AnalysisCancelled) return {...error.analysis,done:true};
         if (started) await client.post("/api/analysis/runs/fail",{cycle_id:cycleId,error:String(error?.message??error)}).catch(() => {});
         throw error;
       }
@@ -588,7 +603,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
   registerTool(
     ctx,
     "investment_analysis_status",
-    "查询固定分析流程轮次（investment_analysis_workflow 启动）的实时状态：阶段、检查点、Agent 进度与最终决策/成交。分析轮次在后台执行，启动后应轮询本工具直到状态为 completed 或 failed，再向用户总结。",
+    "查询固定分析流程轮次（investment_analysis_workflow 启动）的实时状态：阶段、检查点、Agent 进度与最终决策/成交。轮询直到分析完成、失败或停止，再向用户总结。",
     {
       cycle_id:{type:"string",description:"轮次幂等键；留空返回最近一次轮次"},
       market:{type:"string",description:"可选：只查某市场最近的轮次（cn/hk/us/etf）"},
@@ -604,7 +619,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
       const run = payload?.analysis ?? null;
       if (!run) return {status:"none",hint:"尚无分析轮次记录；请先调用 investment_analysis_workflow 启动固定流程"};
       const compactRun = compact(run);
-      const terminal = run.status === "completed" || run.status === "failed" || run.status === "ready_for_execution";
+      const terminal = run.status === "completed" || run.status === "failed" || run.status === "ready_for_execution" || run.status === "cancelled";
       let hint;
       if (run.status === "ready_for_execution") {
         hint = "分析已完成（ready_for_execution）。把最终决策清单呈现给用户并等待明确批准；批准后用 investment_submit_decisions 原样提交，idempotency_key 必须等于本轮的 cycle_id（" + String(run.cycle_id ?? "") + "）。";
@@ -612,6 +627,8 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         hint = "轮次仍在运行（" + String(run.current_stage ?? "preparing") + "）。稍后再次调用本工具查询，不要重复启动轮次。";
       } else if (run.status === "failed") {
         hint = "轮次失败：" + String(run.error ?? "未知错误") + "。可用同一 cycle_id 重新调用 investment_analysis_workflow 安全重试（从已有检查点继续）。";
+      } else if (run.status === "cancelled") {
+        hint = "轮次已停止。需要重新分析时请发起新轮次。";
       } else {
         hint = "轮次已结束（" + run.status + "）。向用户复述最终决策、成交/拒绝与风险提示；未经用户批准不得提交任何买卖。";
       }

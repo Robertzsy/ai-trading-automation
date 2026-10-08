@@ -52,6 +52,20 @@ def test_health_endpoint(api):
     assert payload["service"] == "investment-auto-engine"
 
 
+def test_raw_research_archive_accepts_more_than_a_compact_checkpoint(api, monkeypatch, tmp_path):
+    from engine import analysis_reports
+
+    monkeypatch.setattr(analysis_reports, "_analysis_dir", lambda: tmp_path / "analysis_runs")
+    long_text = "research evidence " * 70_000
+    status, payload = _post(api, "/api/analysis/runs/archive", {
+        "cycle_id": "large-archive", "stages": {"base_research": {"summary": long_text}},
+    })
+    assert status == 200
+    assert payload["ok"] is True
+    saved = tmp_path / "analysis_runs" / "archive" / "large-archive" / "base_research.json"
+    assert json.loads(saved.read_text(encoding="utf-8"))["summary"] == long_text
+
+
 def test_status_endpoint_reports_engine_state(api):
     payload = _get(api, "/api/status")
     assert payload["ok"] is True

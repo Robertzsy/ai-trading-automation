@@ -228,12 +228,12 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
                 existing_id, stamped_at = existing_cycle
                 if time.time() - stamped_at < TTL_SECONDS:
                     previous = analysis_runs.get(existing_id)
-                    if previous is not None and previous.get("status") not in {"completed", "ready_for_execution", "failed"}:
+                    if previous is not None and previous.get("status") == "running":
                         return {"ok": True, "started": False, "duplicate": True, "running": True, "analysis": previous}
         run = analysis_runs.get(cycle_id)
         if run is not None:
             status = run.get("status")
-            if status in {"completed", "ready_for_execution"}:
+            if status in {"completed", "ready_for_execution", "cancelled"}:
                 return {"ok": True, "started": False, "duplicate": True, "analysis": run}
             if status == "failed":
                 # Acquire the cross-process lease BEFORE reopening durable

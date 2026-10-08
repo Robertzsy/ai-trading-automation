@@ -486,6 +486,11 @@ def generate(
     cycle_id = _safe(run.get("cycle_id"), 120)
     try:
         archive_dir = archive_stage_results(cycle_id, stage_results or {}) if stage_results else None
+        if archive_dir is None:
+            # The workflow archives each stage before checkpointing it.
+            existing_archive = _analysis_dir() / "archive" / _slug(cycle_id)
+            if existing_archive.is_dir() and any(existing_archive.glob("*.json")):
+                archive_dir = str(existing_archive)
         body = render_round_report(
             run, goal=goal, goal_history=goal_history, archive_dir=archive_dir,
         )

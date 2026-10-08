@@ -103,6 +103,8 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
                 existing["status"] = "running"
                 existing["current_stage"] = "resuming"
                 existing.pop("error", None)
+                # A new attempt must replace the previous failure report.
+                existing.pop("report_meta", None)
                 existing["completed_at"] = None
                 existing["updated_at"] = _now()
                 _write(path, existing)
@@ -306,6 +308,13 @@ def cancel(cycle_id: str, *, reason: str = "") -> Dict[str, Any]:
         for stage_state in (run.get("stages") or {}).values():
             if isinstance(stage_state, dict) and stage_state.get("status") == "running":
                 _end_stage(stage_state, "cancelled", now)
+        # Late child-end events are ignored for cancelled rounds, so close the
+        # live rows here rather than leaving the timeline showing running work.
+        for agent in (run.get("agents") or {}).values():
+            if isinstance(agent, dict) and agent.get("status") == "running":
+                agent["status"] = "cancelled"
+                agent["finished_at"] = now
+                agent["duration_ms"] = analysis_events.ms_between(agent.get("started_at"), now)
         analysis_events.append_log(
             run, message=str(reason or "用户手动停止分析"), level="warn", at=now,
         )
@@ -372,11 +381,11 @@ def finish(payload: Mapping[str, Any], *, failed: bool = False) -> Dict[str, Any
         if isinstance(warnings, list):
             run["warnings"] = [str(item)[:500] for item in warnings[:50]]
         final_status = "failed" if failed else "completed"
-        for stage_name, stage_state in (run.get("stages") or {}).items():
+        for stage_state in (run.get("stages") or {}).values():
             if isinstance(stage_state, dict) and stage_state.get("status") == "running":
                 _end_stage(
                     stage_state,
-                    final_status if stage_name == run.get("current_stage") else "completed",
+                    final_status,
                     now,
                 )
         run["updated_at"] = now

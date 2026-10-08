@@ -67,6 +67,17 @@ def test_completed_run_is_replayed_not_restarted(isolate):
     assert len(isolate["spawned"]) == 1
 
 
+def test_cancelled_run_is_replayed_without_claiming_it_is_running(isolate):
+    analysis_rounds.start(_payload())
+    analysis_runs.cancel(_payload()["cycle_id"])
+    result = analysis_rounds.start(_payload())
+    assert result["started"] is False
+    assert result["duplicate"] is True
+    assert not result.get("running")
+    assert result["analysis"]["status"] == "cancelled"
+    assert len(isolate["spawned"]) == 1
+
+
 def test_ready_for_execution_run_is_replayed_not_restarted(isolate):
     analysis_rounds.start(_payload())
     analysis_runs.update({

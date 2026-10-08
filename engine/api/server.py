@@ -457,7 +457,9 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(500, {"ok": False, "error": str(exc)[:800]})
             return
         if path.startswith("/api/analysis/runs/"):
-            payload = _read_json(self)
+            # Raw research archives may exceed the compact checkpoint limit.
+            limit = 32_000_000 if path == "/api/analysis/runs/archive" else 1_000_000
+            payload = _read_json(self, limit=limit)
             if payload is None:
                 self._send(400, {"ok": False, "error": "invalid JSON body"})
                 return
