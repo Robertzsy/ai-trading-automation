@@ -64,6 +64,13 @@ for (const dir of entries) {
     failures.push(`${dir}: SKILL.md missing`);
     continue;
   }
+  // Normalise line endings before parsing. Git checks these files out with CRLF
+  // wherever core.autocrlf is on -- which is the default on Windows, and what
+  // the CI runner does -- and the frontmatter regexes below are anchored on \n.
+  // The result was that every skill reported "missing frontmatter block" on
+  // windows-latest while passing on any machine whose working copy happened to
+  // have LF, so a whole-platform failure looked like a content problem.
+  body = body.replace(/\r\n/g, "\n");
   const match = body.match(/^---\n([\s\S]*?)\n---\n?/);
   if (!match) {
     failures.push(`${dir}: missing frontmatter block`);
