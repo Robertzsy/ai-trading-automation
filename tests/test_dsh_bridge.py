@@ -36,6 +36,7 @@ def isolate(monkeypatch, tmp_path):
     # and neither is the real install.
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
     monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("INVESTMENT_AUTO_DATA_DIR", raising=False)
     return tmp_path
 
 
@@ -98,6 +99,7 @@ def test_runner_spawns_headless_profile_with_task(monkeypatch, tmp_path):
     assert "investment_analysis_workflow" in task
     assert result["status"] == "generated"
     assert result["report_text"] == "轮次总结"
+    assert result["elapsed_seconds"] >= 0
     assert result["execution"] == {"fills": [], "rejected": []}
     assert result["warnings"]
 
@@ -121,7 +123,7 @@ def test_runner_passes_engine_url_from_api_port(monkeypatch, tmp_path):
     assert captured["env"].get("INVESTMENT_ENGINE_URL") == "http://127.0.0.1:8802"
 
 
-def test_runner_always_applies_dpapi_patch(monkeypatch, tmp_path):
+def test_desktop_runner_applies_dpapi_patch_with_or_without_token(monkeypatch, tmp_path):
     """The patch must be applied with or without a desktop token.
 
     This test previously asserted the opposite -- that a missing
@@ -143,6 +145,7 @@ def test_runner_always_applies_dpapi_patch(monkeypatch, tmp_path):
         encoding="utf-8",
     )
     captured = {"with_token": None, "without_token": None}
+    monkeypatch.setenv("INVESTMENT_AUTO_DATA_DIR", str(tmp_path / "desktop-data"))
 
     def fake_run(command, **kwargs):
         key = "with_token" if "desktop-token" == captured["_token"] else "without_token"
@@ -178,6 +181,63 @@ def test_runner_always_applies_dpapi_patch(monkeypatch, tmp_path):
     assert "token: ''" in text
     # The shipped fallback URL must not survive into the session copy.
     assert "8790" not in text
+
+
+def _app_with_credentials_patch(tmp_path):
+    app = tmp_path / "app"
+    binary = app / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js"
+    binary.parent.mkdir(parents=True)
+    binary.write_text("", encoding="utf-8")
+    patch_file = app / "profiles" / "patches" / "dpapi-credentials.yml"
+    patch_file.parent.mkdir(parents=True)
+    patch_file.write_text(
+        "- id: credentials\n  disabled: true\n- insert:\n    - id: credentials-dpapi\n"
+        "      name: '@investment-auto/dsh-dpapi-credentials'\n      config:\n"
+        "        engineUrl: 'http://127.0.0.1:8790'\n", encoding="utf-8",
+    )
+    return app
+
+
+def test_source_development_uses_the_settings_pages_file_credentials(monkeypatch, tmp_path):
+    app = _app_with_credentials_patch(tmp_path)
+    main_home = app / "dev-home"
+    main_home.mkdir()
+    credentials = main_home / ".credentials.yaml"
+    credentials.write_text("DEEPSEEK_API_KEY: sk-test\n", encoding="utf-8")
+    _pin_home(monkeypatch, main_home)
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["home"] = kwargs["env"]["DSH_HOME"]
+        return subprocess.CompletedProcess(command, 0, stdout=b"ok", stderr=b"")
+
+    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    _runner(tmp_path).run_analysis_round("us", symbols=["AAPL"], symbols_source="user", label="dev", submit=False, cycle_id="dev-test")
+    assert "--patch" not in captured["command"]
+    assert (Path(captured["home"]) / ".credentials.yaml").read_bytes() == credentials.read_bytes()
+
+
+@pytest.mark.parametrize("marker", ["data_directory", "installed_home"])
+def test_tokenless_desktop_keeps_dpapi_even_with_leftover_file_credentials(monkeypatch, tmp_path, marker):
+    _app_with_credentials_patch(tmp_path)
+    main_home = tmp_path / "desktop-data" if marker == "data_directory" else tmp_path / "localappdata" / "InvestmentAuto"
+    main_home.mkdir(parents=True)
+    (main_home / ".credentials.yaml").write_text("DEEPSEEK_API_KEY: stale-test-value\n", encoding="utf-8")
+    if marker == "data_directory":
+        monkeypatch.setenv("INVESTMENT_AUTO_DATA_DIR", str(main_home))
+    _pin_home(monkeypatch, main_home)
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured["home"] = kwargs["env"]["DSH_HOME"]
+        return subprocess.CompletedProcess(command, 0, stdout=b"ok", stderr=b"")
+
+    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    _runner(tmp_path).run_analysis_round("us", symbols=["AAPL"], symbols_source="user", label="desktop", submit=False, cycle_id="desktop-test")
+    assert "--patch" in captured["command"]
+    assert not (Path(captured["home"]) / ".credentials.yaml").exists()
 
 
 def test_session_patch_prefers_explicit_engine_url(monkeypatch, tmp_path):

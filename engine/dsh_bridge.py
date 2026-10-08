@@ -179,6 +179,24 @@ def _internal_home(home: str | Path) -> Path:
     return Path(home) / "agent-home"
 
 
+def _uses_file_credentials(app_dir: Path, home: str) -> bool:
+    """Keep development's file provider without disabling desktop DPAPI.
+
+    A missing token alone does not identify development: desktop rounds may
+    still need DPAPI when the token is absent. The desktop data-directory
+    marker and installed home take precedence over any leftover plaintext file.
+    """
+    if os.getenv("IA_ACCESS_TOKEN", "").strip() or os.getenv("INVESTMENT_AUTO_DATA_DIR", "").strip():
+        return False
+    if not home:
+        return False
+    main_home = Path(home).resolve()
+    local_app_data = os.getenv("LOCALAPPDATA", "").strip()
+    if local_app_data and main_home == (Path(local_app_data) / "InvestmentAuto").resolve():
+        return False
+    return main_home == (app_dir / "dev-home").resolve() or (main_home / ".credentials.yaml").is_file()
+
+
 # The base patch hardcodes a fallback engine URL and carries no token, because
 # the desktop shell passes both through the child environment. A headless round
 # started by this bridge cannot rely on that: measured on the desktop, a round
@@ -224,7 +242,7 @@ def _write_session_patch(base_patch: Path, target_dir: Path) -> Path:
     return session_patch
 
 
-def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path) -> None:
+def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path, *, file_credentials: bool) -> None:
     """Prepare the internal home before one headless round.
 
     - Product-owned trees (profiles/presets/skills/plugins) are force-seeded
@@ -234,7 +252,7 @@ def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path) -> 
       main home so background rounds use the user's configured model; the
       session-plane files (workspace.json, session projections) are NOT
       copied — that is the isolation point.
-    - Dev mode (no IA_ACCESS_TOKEN) resolves credentials from the main
+    - Dev mode (file credential provider) resolves credentials from the main
       home's .credentials.yaml; mirror it into the internal home so the
       default credentials provider keeps working. Production rounds use the
       DPAPI overlay through the engine API and need no file.
@@ -256,7 +274,7 @@ def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path) -> 
                 shutil.copy2(child, storages_target / child.name)
             except OSError:
                 logger.debug("[DSH-BRIDGE] internal home sync skipped %s", child.name)
-    if not os.getenv("IA_ACCESS_TOKEN", "").strip():
+    if file_credentials:
         credentials = main_home / ".credentials.yaml"
         if credentials.is_file():
             try:
@@ -337,27 +355,22 @@ class DshBridgeRunner:
         if engine_url:
             env["INVESTMENT_ENGINE_URL"] = engine_url
         home = self.dsh_home or _resolve_dsh_home(self.app_dir)
+        file_credentials = _uses_file_credentials(self.app_dir, home)
         if home:
             # Isolate background rounds into an internal home (sessions never
             # surface in the product session bar) while inheriting settings
             # and dev credentials from the user's home.
             internal = _internal_home(home)
             try:
-                _sync_internal_home(self.app_dir, Path(home), internal)
+                _sync_internal_home(self.app_dir, Path(home), internal, file_credentials=file_credentials)
             except Exception as exc:  # noqa: BLE001 - sync must not kill a round
                 logger.warning("[DSH-BRIDGE:%s] internal home sync failed: %s", market, exc)
             env["DSH_HOME"] = str(internal)
         command = [self.node, str(self.bin), "--profile", "investment"]
-        # Credentials for the round. The patch is applied whenever the base file
-        # exists, keyed on nothing else: measuring the desktop found a round
-        # failing rc=1 with "MISSING_CREDENTIAL ... deepseek-official" precisely
-        # because a missing/empty IA_ACCESS_TOKEN skipped it, which left the
-        # default .credentials.yaml row enabled and the DPAPI row absent, so no
-        # credentials service existed at all. The session copy carries this
-        # round's engine URL and token, so the provider never has to fall back to
-        # the environment (which the desktop shell sets for the web process only).
+        # Desktop rounds always install DPAPI, even without a token. Source
+        # development keeps the file provider used by dev.ps1's settings page.
         dpapi_patch = self.app_dir / "profiles" / "patches" / "dpapi-credentials.yml"
-        if dpapi_patch.exists():
+        if dpapi_patch.exists() and not file_credentials:
             try:
                 session_patch = _write_session_patch(dpapi_patch, self.app_dir / "runtime" / "dsh-patches")
             except OSError as exc:
@@ -367,7 +380,7 @@ class DshBridgeRunner:
                 session_patch = dpapi_patch
             command += ["--patch", str(session_patch)]
         command.append(task)
-        start_monotonic = time.time()
+        start_monotonic = time.monotonic()
         start_wall = time.time()
         logger.info("[DSH-BRIDGE:%s] spawning headless round (label=%s)", market, label)
         try:
