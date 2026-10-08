@@ -253,7 +253,7 @@ Investment Auto 2.0 以 DeepSeek Harness（DSH）为运行底座全面重建：�
 安装包：`release/InvestmentAuto-Setup-x64.exe`（184.8 MB）
 SHA-256：`EE1C2A53266F0C41C07F346434B880E931DF4179DE15341A1F843BB6FF452451`
 
-详细架构见 `docs/ARCHITECTURE_2.0.md`、`docs/ENGINE_API.md`；1.x 保留在 `master`。
+详细架构见 `docs/ARCHITECTURE_2.0.md`、`docs/ENGINE_API.md`；1.x 的最终状态存档在 tag `legacy-1x`。
 
 ## 0.9.1 — Supervised Repair Closure（2026-08-20）
 

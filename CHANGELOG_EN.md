@@ -86,4 +86,4 @@ Investment Auto 2.0 rebuilt the application on DeepSeek Harness. Conversations, 
 - On-machine acceptance covered silent install, first-run setup, DPAPI keys, engine startup, installed conversation, and byte-for-byte user-data preservation during upgrade.
 - Regression baseline: 121 Python tests, 20 desktop tests, 6 Node plugin tests, and Skills/plugin contracts.
 
-The 1.x line remains on `master` as history and a fallback. Its original changelog is retained in [CHANGELOG.md](CHANGELOG.md).
+The 1.x line is archived at tag `legacy-1x` as history and a fallback. Its original changelog is retained in [CHANGELOG.md](CHANGELOG.md).

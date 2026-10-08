@@ -163,8 +163,10 @@ powershell -ExecutionPolicy Bypass -File scripts\release-check.ps1
 
 ## Branches and Compatibility
 
-- `dsch/2.0`: current 2.x development and release branch.
-- `master`: retained 1.x (v0.9.1) history and fallback.
+- `dsch/2.0`: current 2.x development and release branch, and the repository default.
+- `legacy-1x` (tag): the final state of 1.x, kept as history and fallback. 2.0 was a
+  complete rebuild, so the 1.x code is archive only and no longer maintained — it
+  does not need a branch of its own.
 - 1.x user data can be migrated to 2.x; migration and in-place upgrades never delete the source data.
 
 ## License
