@@ -63,7 +63,11 @@ def _is_project_root(root: Path) -> bool:
 def detect_sources() -> List[Dict[str, Any]]:
     """Find candidate legacy project roots."""
     candidates: List[Path] = []
-    env_home = __import__("os").getenv("INVESTMENT_AUTO_HOME", "")
+    # Legacy variable first: this lookup describes the *old* world. The current
+    # name is accepted as a tolerated alias only.
+    env_home = __import__("os").getenv("INVESTMENT_AUTO_HOME", "") or __import__("os").getenv(
+        "AI_TRADING_AUTOMATION_HOME", ""
+    )
     if env_home:
         candidates.append(Path(env_home))
     candidates.append(Path(r"D:\investment-auto"))
@@ -96,7 +100,7 @@ def run_migration(source: str, items: Optional[List[str]] = None) -> Dict[str, A
     """
     root = Path(source)
     if not _is_project_root(root):
-        raise ValueError(f"源目录不是 investment-auto 项目: {source}")
+        raise ValueError(f"源目录不是 ai-trading-automation 项目: {source}")
     target_root = paths.data_root()
     if root.resolve() == target_root.resolve():
         return {"status": "skipped", "reason": "源目录就是当前数据目录"}

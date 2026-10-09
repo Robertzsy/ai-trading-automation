@@ -144,7 +144,7 @@
 
 ## 4. ④ 2026 最大变量：Agent Harness + Skills + MCP
 
-这是本次调研**最重要的发现**，也是与本项目（InvestmentAuto 基于 DSH）最相关的一层。
+这是本次调研**最重要的发现**，也是与本项目（AiTradingAutomation 基于 DSH）最相关的一层。
 
 ### 4.1 OpenClaw（"龙虾"）现象
 
@@ -251,7 +251,7 @@
 
 ---
 
-## 7. 与本项目（InvestmentAuto 2.1.3）的对照
+## 7. 与本项目（AiTradingAutomation 2.1.3）的对照
 
 本项目已是"TradingAgents 式多角色 + 确定性硬风控 + 纸面撮合"的组合，方向与 2026 主流一致。差异点：
 

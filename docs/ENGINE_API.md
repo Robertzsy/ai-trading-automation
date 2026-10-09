@@ -1,4 +1,4 @@
-# 引擎 API 与 DSH 桥契约（Investment Auto 2.0）
+# 引擎 API 与 DSH 桥契约（AI Trading Automation 2.0）
 
 引擎（`engine/`）是 2.0 的执行面：行情、选股、组合优化、硬风控、纸面经纪、
 账户、调度、报告与通知。决策面是 DSH 应用（`app/`）。两面通过两条通道连接：
@@ -28,7 +28,7 @@
 
 请求体：`{"command": "<InvestmentCommand>", "payload": {...}, "requested_by": "..."}`
 
-鉴权：仅绑定回环；设置 `IA_ACCESS_TOKEN` 后要求请求头 `X-IA-Token` 匹配。
+鉴权：仅绑定回环；设置 `ATA_ACCESS_TOKEN` 后要求请求头 `X-ATA-Token` 匹配。
 
 ## 周期执行器契约（`engine.scheduler.set_cycle_runner`）
 
@@ -67,7 +67,7 @@ fail-safe 语义不变：订单只有在引擎的硬风控 + 纸面经纪路径�
 - **股票分析**：唯一入口 `investment_analysis_workflow`。手动会话中是异步
   启动器（`POST /api/analysis/rounds/start`，立即返回 cycle_id，用
   `investment_analysis_status` 轮询）；headless 自主轮次（引擎 worker 与
-  调度器，`IA_AUTONOMOUS_ROUND=1`）中同步执行同一套阶段脚本并把检查点
+  调度器，`ATA_AUTONOMOUS_ROUND=1`）中同步执行同一套阶段脚本并把检查点
   写回引擎。`symbols` + `symbols_source`（user/screening）决定目标范围，
   用户指定的标的绝不混入选股池；持仓只作为上下文。**手动入口（工具与端点
   双重）拒绝空 symbols**，自主轮次才允许内部选股。

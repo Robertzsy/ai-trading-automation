@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Optional, Sequence
 
-logger = logging.getLogger("investment-auto.screening.storage")
+logger = logging.getLogger("ai-trading-automation.screening.storage")
 
 _LOCK = threading.Lock()
 _STORES: Dict[tuple[str, str, int], "MongoScreeningStore"] = {}
@@ -75,7 +75,7 @@ class MongoScreeningStore:
         self._descending = DESCENDING
         self.client = MongoClient(
             uri,
-            appname="investment-auto",
+            appname="ai-trading-automation",
             connectTimeoutMS=timeout_ms,
             serverSelectionTimeoutMS=timeout_ms,
             socketTimeoutMS=max(timeout_ms, 3000),

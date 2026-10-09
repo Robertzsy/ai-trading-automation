@@ -1,6 +1,6 @@
 # AI-Driven Global Portfolio Optimization & Multi-Agent Trading Automation System
 
-**investment-auto**
+**ai-trading-automation**
 
 [简体中文](README.md) | [English](README_EN.md)
 
@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
-Investment Auto is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
+AI Trading Automation is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
 
 The current source and latest installer are both **2.1.5**, including the holdings-linked Dashboard.
 
@@ -40,13 +40,13 @@ The current source and latest installer are both **2.1.5**, including the holdin
 
 ## Installation
 
-- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
+- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
 ```powershell
-Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
 ```
 
 The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials, and sessions. The 2.1.3 on-machine upgrade check preserved all 76,167 user-data files with zero missing or changed files.
@@ -63,7 +63,7 @@ python -m venv .venv
 # Terminal 1: start the investment engine
 .\.venv\Scripts\python.exe -m engine.main serve
 
-# Terminal 2: start the Investment Auto web product shell
+# Terminal 2: start the AI Trading Automation web product shell
 .\app\scripts\dev.ps1 -Port 4567
 ```
 
@@ -71,7 +71,7 @@ Open `http://127.0.0.1:4567`, then configure the model and API key in Settings.
 
 ## Core Investment Logic
 
-Investment Auto's investment intelligence is built from three deterministic blocks: **exclude, score, and explain screening**, a **13-role committee-style analysis**, and **risk discipline the AI cannot bypass**.
+AI Trading Automation's investment intelligence is built from three deterministic blocks: **exclude, score, and explain screening**, a **13-role committee-style analysis**, and **risk discipline the AI cannot bypass**.
 
 - **Screening**: hard filters first (symbol normalization, minimum price / turnover / market cap, PE/PB caps, excluding ST/delisting/warrants), then a six-factor weighted ranking with Chinese-language evidence per pick;
 - **Multi-role analysis**: five stages and 13 roles (technical/fundamental/news/sentiment → bull-bear debate → research manager and trader → portfolio draft → three-way risk debate → risk manager → portfolio manager); conclusions must cite evidence, and under-researched holdings are forced to HOLD;
@@ -131,7 +131,7 @@ Each symbol came back with a specific, checkable reason rather than a vague "wai
 ```text
 Windows WPF + WebView2
           │
-Investment Auto product shell
+AI Trading Automation product shell
           │
 DSH conversation / tools / Skills / subagents / workflows
           │  token-protected loopback HTTP API
@@ -151,7 +151,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 | Version | Core changes |
 |---|---|
 | 2.0.0 | Replaced the 1.x custom Agent/window split with DSH-native conversations, tools, Skills, subagents, and workflows. Investment business logic moved into an independent Python engine, with a Windows desktop release, DPAPI credentials, and 1.x data migration. |
-| 2.1.0 | Turned “DSH plus an investment preset” into the standalone Investment Auto product. The UI gained a Dashboard, live Analysis Workflow, and Settings while removing workspace/mode selection and runtime branding. Native DSH conversation, reasoning, streaming, and tool rendering remained unchanged. |
+| 2.1.0 | Turned “DSH plus an investment preset” into the standalone AI Trading Automation product. The UI gained a Dashboard, live Analysis Workflow, and Settings while removing workspace/mode selection and runtime branding. Native DSH conversation, reasoning, streaming, and tool rendering remained unchanged. |
 | 2.1.1 | Separated stock screening from security analysis. User-specified symbols now enter the fixed full workflow directly. Added asynchronous cycles, status polling, and first-generation execution idempotency to eliminate ad-hoc window analysis, long-request timeouts, and duplicate starts. |
 | 2.1.2 | Added durable broker receipts, decision fingerprints, cross-process leases, restart recovery, and strong binding between user-requested symbols and completed analysis. Internal headless and role sessions moved to an isolated DSH Home and no longer pollute the user session list. |
 | 2.1.3 | Enabled IA filesystem, PowerShell, search, background-job, and Ralph self-maintenance capabilities. Added the self-maintenance Skill and fixed workflow-schema compatibility, failed-cycle retry races, Windows atomic writes, and accidental packaging of development data. |

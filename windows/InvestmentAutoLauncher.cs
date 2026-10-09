@@ -12,15 +12,15 @@ using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: AssemblyTitle("Investment Auto")]
-[assembly: AssemblyDescription("Investment Auto Windows launcher")]
-[assembly: AssemblyCompany("Investment Auto Contributors")]
-[assembly: AssemblyProduct("Investment Auto")]
+[assembly: AssemblyTitle("AI Trading Automation")]
+[assembly: AssemblyDescription("AI Trading Automation Windows launcher")]
+[assembly: AssemblyCompany("AI Trading Automation Contributors")]
+[assembly: AssemblyProduct("AI Trading Automation")]
 [assembly: AssemblyCopyright("MIT License")]
 [assembly: AssemblyVersion("0.9.1.0")]
 [assembly: AssemblyFileVersion("0.9.1.0")]
 
-namespace InvestmentAuto.Windows
+namespace AiTradingAutomation.Windows
 {
     internal sealed class AppStatus
     {
@@ -37,8 +37,8 @@ namespace InvestmentAuto.Windows
 
     internal static class LauncherService
     {
-        internal const string ProductName = "Investment Auto";
-        internal const string AutoStartValueName = "InvestmentAuto";
+        internal const string ProductName = "AI Trading Automation";
+        internal const string AutoStartValueName = "AiTradingAutomation";
         internal const string DashboardUrl = "http://127.0.0.1:8080";
         private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
@@ -51,11 +51,11 @@ namespace InvestmentAuto.Windows
         {
             var candidates = new List<string>();
             if (!String.IsNullOrWhiteSpace(explicitPath)) candidates.Add(explicitPath);
-            var configured = Environment.GetEnvironmentVariable("INVESTMENT_AUTO_HOME");
+            var configured = Environment.GetEnvironmentVariable("AI_TRADING_AUTOMATION_HOME");
             if (!String.IsNullOrWhiteSpace(configured)) candidates.Add(configured);
             candidates.Add(AppDomain.CurrentDomain.BaseDirectory);
             candidates.Add(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")));
-            candidates.Add(@"D:\investment-auto");
+            candidates.Add(@"D:\ai-trading-automation");
             candidates.Add(Environment.CurrentDirectory);
 
             foreach (var candidate in candidates)
@@ -154,7 +154,7 @@ namespace InvestmentAuto.Windows
         internal static string ValidateForStart(string projectRoot)
         {
             if (!File.Exists(Path.Combine(projectRoot, "src", "main.py")))
-                return "没有找到项目文件 src\\main.py。请把 EXE 放到 investment-auto 根目录，或设置 INVESTMENT_AUTO_HOME。";
+                return "没有找到项目文件 src\\main.py。请把 EXE 放到 ai-trading-automation 根目录，或设置 AI_TRADING_AUTOMATION_HOME。";
             if (FindPython(projectRoot) == null)
                 return "没有找到项目虚拟环境。请先运行 Setup-Windows.cmd 安装 Python 依赖。";
             if (!HasNode())
@@ -189,7 +189,7 @@ namespace InvestmentAuto.Windows
             }
             if (openBrowser && chatReady) OpenDashboard();
             WriteLauncherLog(projectRoot, "start", started.Count == 0 ? "already-running" : String.Join(",", started.ToArray()));
-            if (!chatReady) return "服务已启动，但对话页面在 20 秒内没有就绪。请查看 runtime\\logs\\investment-auto.log。";
+            if (!chatReady) return "服务已启动，但对话页面在 20 秒内没有就绪。请查看 runtime\\logs\\ai-trading-automation.log。";
             return started.Count == 0 ? "服务已经在运行，已打开管理页面。" : "已启动：" + String.Join("、", started.ToArray()) + "。";
         }
 
@@ -391,7 +391,7 @@ namespace InvestmentAuto.Windows
         internal LauncherForm(string projectRoot)
         {
             this.projectRoot = projectRoot;
-            Text = "Investment Auto 启动器";
+            Text = "AI Trading Automation 启动器";
             ClientSize = new Size(590, 365);
             MinimumSize = new Size(606, 404);
             StartPosition = FormStartPosition.CenterScreen;
@@ -401,7 +401,7 @@ namespace InvestmentAuto.Windows
 
             var title = new Label
             {
-                Text = "Investment Auto",
+                Text = "AI Trading Automation",
                 Font = new Font("Microsoft YaHei UI", 22F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(24, 34, 55),
                 AutoSize = true,

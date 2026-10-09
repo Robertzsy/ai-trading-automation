@@ -17,7 +17,7 @@ def test_data_root_defaults_to_app_root():
 
 
 def test_data_root_env_redirects_user_data(monkeypatch, tmp_path):
-    monkeypatch.setenv("INVESTMENT_AUTO_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_DATA_DIR", str(tmp_path))
     assert paths.data_root() == tmp_path
     assert paths.runtime_dir() == tmp_path / "runtime"
     assert paths.config_dir() == tmp_path / "config"
@@ -31,7 +31,7 @@ def test_data_root_env_redirects_user_data(monkeypatch, tmp_path):
 
 def test_relative_data_dir_resolves_against_cwd(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("INVESTMENT_AUTO_DATA_DIR", "relative-data")
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_DATA_DIR", "relative-data")
     assert paths.data_root() == (tmp_path / "relative-data").resolve()
 
 
@@ -47,7 +47,7 @@ def test_module_constants_follow_data_root_in_fresh_process(monkeypatch, tmp_pat
         "print(s.SCHEDULER_LOCK)\n"
     )
     env = dict(os.environ)
-    env["INVESTMENT_AUTO_DATA_DIR"] = str(data)
+    env["AI_TRADING_AUTOMATION_DATA_DIR"] = str(data)
     result = subprocess.run(
         [sys.executable, "-c", code],
         capture_output=True, text=True, cwd=str(ROOT), env=env,

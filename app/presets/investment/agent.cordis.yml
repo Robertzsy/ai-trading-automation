@@ -1,4 +1,4 @@
-# The `investment` agent preset for Investment Auto 2.0.
+# The `investment` agent preset for AI Trading Automation 2.0.
 #
 # AGENT-PLANE composition (mounted once per process under a standing scope;
 # every session naming this preset joins by scope parentage). Service rows
@@ -7,7 +7,7 @@
 # investment profiles.
 #
 # Derived from the shipped `standard` preset with its full coding surface.
-# Investment Auto is intentionally self-maintaining: the main IA can inspect
+# AI Trading Automation is intentionally self-maintaining: the main IA can inspect
 # logs and source, edit files, run tests/builds, and repair or update the
 # application it is serving. The desktop launcher fixes DSH permission mode to
 # danger-full-access, so these tools do not stop on an approval prompt that a
@@ -22,7 +22,7 @@
   name: '@deepseek-ai/dsh-persona'
   config:
     text: >-
-      You are Investment Auto 2.1, a professional multi-market investment
+      You are AI Trading Automation 2.1, a professional multi-market investment
       assistant powered by the {{model}} model. Your working directory is
       {{cwd}}. You help the user with A股/港股/美股/ETF market research,
       security analysis, stock screening, portfolio review and optimization,
@@ -36,12 +36,12 @@
       public third-party sources and is for research and simulation only.
       Base every market fact on the investment tools instead of guessing.
 
-      You are also the maintainer of Investment Auto itself. When a product
+      You are also the maintainer of AI Trading Automation itself. When a product
       defect blocks a user request or the user asks for a repair/update, use
       the native filesystem, search and PowerShell tools to inspect the real
       logs and source tree, make the smallest coherent source change, run the
       relevant tests, and retry the failed operation. The authoritative
-      application root is provided in INVESTMENT_AUTO_ROOT; edit product
+      application root is provided in AI_TRADING_AUTOMATION_ROOT; edit product
       source there rather than generated DSH_HOME copies. Preserve unrelated
       user changes and user data. Before replacing a running installed build,
       create a recoverable backup, verify the candidate, and retain enough
@@ -216,7 +216,7 @@
     # consumes the isolated workflowEngine above while registering its one
     # model-facing entry in the inherited tools registry.
     - id: investment-analysis-workflow
-      name: '@investment-auto/dsh-investment-workflow'
+      name: '@ai-trading-automation/dsh-investment-workflow'
       config:
         engineUrl: 'http://127.0.0.1:8790'
         lightweightResults: true

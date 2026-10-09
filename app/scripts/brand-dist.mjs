@@ -1,10 +1,10 @@
 /**
- * Investment Auto — web dist branding patch.
+ * AI Trading Automation — web dist branding patch.
  *
  * Rewrites the three user-visible brand surfaces served by dsh-web-frontend:
- *   dist/index.html          <title>            -> Investment Auto
- *   dist/manifest.webmanifest name / short_name -> Investment Auto
- *   dist/favicon.svg         fish logo          -> Investment Auto mark
+ *   dist/index.html          <title>            -> AI Trading Automation
+ *   dist/manifest.webmanifest name / short_name -> AI Trading Automation
+ *   dist/favicon.svg         fish logo          -> AI Trading Automation mark
  *
  * Run after `npm ci` (dev) and before packaging the desktop installer:
  *   node app/scripts/brand-dist.mjs [distDir]
@@ -27,15 +27,15 @@ if (!existsSync(distDir)) {
 
 const htmlPath = join(distDir, "index.html");
 let html = readFileSync(htmlPath, "utf-8");
-html = html.replace(/<title>[^<]*<\/title>/, "<title>Investment Auto</title>");
+html = html.replace(/<title>[^<]*<\/title>/, "<title>AI Trading Automation</title>");
 writeFileSync(htmlPath, html);
 console.log(`branded ${htmlPath}`);
 
 const manifestPath = join(distDir, "manifest.webmanifest");
 let manifest = readFileSync(manifestPath, "utf-8");
 manifest = manifest
-  .replace(/"name":\s*"[^"]*"/, '"name": "Investment Auto"')
-  .replace(/"short_name":\s*"[^"]*"/, '"short_name": "Investment Auto"');
+  .replace(/"name":\s*"[^"]*"/, '"name": "AI Trading Automation"')
+  .replace(/"short_name":\s*"[^"]*"/, '"short_name": "AI Trading Automation"');
 writeFileSync(manifestPath, manifest);
 console.log(`branded ${manifestPath}`);
 

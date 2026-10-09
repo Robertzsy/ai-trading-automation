@@ -73,7 +73,7 @@ const SECTOR_KEYWORDS = [
 // ========================= 工具函数 =========================
 
 const HTTP_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (compatible; InvestmentAuto/0.2)',
+  'User-Agent': 'Mozilla/5.0 (compatible; AiTradingAutomation/0.2)',
   'Accept': 'application/json,text/plain,*/*',
 };
 

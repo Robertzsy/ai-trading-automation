@@ -1,8 +1,8 @@
 using System.Threading;
-using InvestmentAuto.Desktop.Services;
+using AiTradingAutomation.Desktop.Services;
 using Xunit;
 
-namespace InvestmentAuto.Desktop.Tests;
+namespace AiTradingAutomation.Desktop.Tests;
 
 /// <summary>Test requirement #2: single-instance guard.</summary>
 public class SingleInstanceTests

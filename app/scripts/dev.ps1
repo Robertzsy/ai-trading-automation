@@ -1,4 +1,4 @@
-﻿# Investment Auto 2.0 — development launcher for the DSH web app.
+﻿# AI Trading Automation 2.0 — development launcher for the DSH web app.
 #
 # Usage:
 #   .\app\scripts\dev.ps1 [-Port 4567] [-Install] [-ForceSeed]
@@ -28,8 +28,8 @@ if ($Install -or -not (Test-Path (Join-Path $appRoot 'node_modules\@deepseek-ai\
 $env:DSH_HOME = $devHome
 $env:DSH_TELEMETRY_DISABLED = '1'
 $env:DSH_PERMISSION_MODE = 'danger-full-access'
-$env:INVESTMENT_AUTO_ROOT = $repoRoot
-$env:INVESTMENT_AUTO_APP_DIR = $appRoot
+$env:AI_TRADING_AUTOMATION_ROOT = $repoRoot
+$env:AI_TRADING_AUTOMATION_APP_DIR = $appRoot
 $env:INVESTMENT_ENGINE_APP_DIR = $appRoot
 New-Item -ItemType Directory -Force -Path $devHome | Out-Null
 

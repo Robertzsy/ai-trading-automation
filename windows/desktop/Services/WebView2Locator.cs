@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Microsoft.Win32;
 
-namespace InvestmentAuto.Desktop.Services;
+namespace AiTradingAutomation.Desktop.Services;
 
 /// <summary>
 /// Resolves the installed WebView2 Evergreen runtime folder explicitly.

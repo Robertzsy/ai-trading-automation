@@ -2,8 +2,40 @@
 
 [简体中文](CHANGELOG.md) | [English](CHANGELOG_EN.md)
 
-2.x 的整体设计、安装和使用方式见 [README.md](README.md)，2.1.5 的 GitHub Release
-正文见 [双语发行说明](docs/RELEASE_NOTES_2.1.5.md)。
+2.x 的整体设计、安装和使用方式见 [README.md](README.md)，2.2.0 的 GitHub Release
+正文见 [双语发行说明](docs/RELEASE_NOTES_2.2.0.md)。
+
+## 2.2.0 — 命名统一与共享研究数据（2026-10-09）
+
+> 本版本包含两批独立改动，分两笔提交，便于分别回退与归因。
+
+### ① 共享研究数据与更精简的模型输入
+
+- 基本面与新闻研究数据在窗口会话与自主轮次之间共享，同一份资料不再重复抓取与重复投喂。
+- 新增研究数据契约与策略层：来源切换、单位与日期规范、配置开关和使用限制集中定义。
+- 证据以检查点形式落盘，下游角色只接收压缩后的摘要，减少重复的模型输入。
+- 依赖新增 AKShare、BaoStock；`scripts/bundle-runtime.ps1` 增加两者的导入检查，确保发行包包含新依赖。
+
+### ② 命名统一（内部标识与显示名）
+
+- 技术标识统一到 `ai-trading-automation`：Python 包名与命令、npm 作用域（`@ai-trading-automation/dsh-*`、
+  5 个插件）、C# 程序集与命名空间（`AiTradingAutomation.Desktop`）、安装器脚本与产物名
+  （`AiTradingAutomation.iss`、`AiTradingAutomation-Setup-x64.exe`）、图标与单实例标识。
+- 环境变量统一到 `AI_TRADING_AUTOMATION_*`、`ATA_ACCESS_TOKEN`、请求头 `X-ATA-Token`；
+  引擎与桌面壳**同时接受改名前的旧名**（`INVESTMENT_AUTO_*`、`IA_ACCESS_TOKEN`、`X-IA-Token`），
+  桌面壳对子进程同时写入新旧两套变量，旧快捷方式与自建脚本不受影响。
+- 品牌显示名统一为 `AI Trading Automation`；官方全称（中/英）作为文档标题，技术标识作为副标题。
+- **刻意不改**：本地开发目录 `D:\investment-auto`（改名会使两个 Agent 的工作目录与历史会话键失效）、
+  安装目录 `%LocalAppData%\Programs\InvestmentAuto` 与数据目录 `%LocalAppData%\InvestmentAuto`
+  （用户数据零迁移）、DSH profile/preset 名（`investment`/`investment-web`，业务域词）、
+  领域集成变量（`INVESTMENT_API_PORT`、`INVESTMENT_ENGINE_URL`、`INVESTMENT_CYCLE_ID`）、
+  `investment_*` 工具名与 MongoDB 库名 `investment_auto`（数据标识，改名会孤立既有数据）。
+- 版本号 17 处声明由 `scripts/bump-version.ps1` 统一提升到 2.2.0。
+
+### 验证
+
+- Python 398 项通过、6 项在线测试跳过（与 2.1.5 基线一致，无回归）；插件测试 76 项通过；
+  技能检查 8 个 Skill / 19 个工具注册一致；5 个插件按新作用域通过组合检查；版本一致性检查通过。
 
 ## 2.1.5 — 持仓联动与个股可视化（2026-10-09）
 

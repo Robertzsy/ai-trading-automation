@@ -1,4 +1,4 @@
-"""Smoke tests for investment-auto core modules."""
+"""Smoke tests for ai-trading-automation core modules."""
 from __future__ import annotations
 
 import random

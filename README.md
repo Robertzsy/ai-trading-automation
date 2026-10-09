@@ -1,6 +1,6 @@
 # AI 驱动多市场投资研究与模拟交易自动化系统
 
-**investment-auto**
+**ai-trading-automation**
 
 [简体中文](README.md) | [English](README_EN.md)
 
@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
-Investment Auto 是一款面向 A 股、港股、美股和场内 ETF 的投资研究与**模拟交易**桌面应用，内置确定性选股、13 角色多智能体分析和硬风控撮合。2.x 基于 DeepSeek Harness（DSH）深度改造，对用户呈现为独立产品：只有 Dashboard、投资助手、分析中心和设置。
+AI Trading Automation 是一款面向 A 股、港股、美股和场内 ETF 的投资研究与**模拟交易**桌面应用，内置确定性选股、13 角色多智能体分析和硬风控撮合。2.x 基于 DeepSeek Harness（DSH）深度改造，对用户呈现为独立产品：只有 Dashboard、投资助手、分析中心和设置。
 
 当前源码与最新安装包均为 **2.1.5**，包含持仓联动 Dashboard。
 
@@ -40,13 +40,13 @@ Investment Auto 是一款面向 A 股、港股、美股和场内 ETF 的投资�
 
 ## 安装
 
-- 下载 [v2.1.5 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5) 中的 `InvestmentAuto-Setup-x64.exe`
+- 下载 [v2.1.5 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5) 中的 `AiTradingAutomation-Setup-x64.exe`
 - 支持 Windows 10/11 x64；安装包内置 Python、Node.js、.NET 桌面运行时与 WebView2 兜底安装程序
 
-校验文件：[InvestmentAuto-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
+校验文件：[AiTradingAutomation-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/AiTradingAutomation-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
 
 ```powershell
-Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
 ```
 
 程序默认安装到 `%LocalAppData%\Programs\InvestmentAuto`，用户数据保存在 `%LocalAppData%\InvestmentAuto`。覆盖升级不改动账户、持仓、报告、配置、凭据和会话；2.1.3 升级实测 76,167 个用户数据文件零丢失。
@@ -63,7 +63,7 @@ python -m venv .venv
 # 终端 1：启动投资引擎
 .\.venv\Scripts\python.exe -m engine.main serve
 
-# 终端 2：启动 Investment Auto Web 产品壳
+# 终端 2：启动 AI Trading Automation Web 产品壳
 .\app\scripts\dev.ps1 -Port 4567
 ```
 
@@ -71,7 +71,7 @@ python -m venv .venv
 
 ## 核心投资逻辑
 
-Investment Auto 的投资智能由三段确定性逻辑构成：**先排除、再打分、后解释的选股**，**13 角色委员会式分析**，以及**不可绕过的风控纪律**。
+AI Trading Automation 的投资智能由三段确定性逻辑构成：**先排除、再打分、后解释的选股**，**13 角色委员会式分析**，以及**不可绕过的风控纪律**。
 
 - **选股**：先硬筛选（代码归一化、最低价 / 成交额 / 市值、PE/PB 上限、排除 ST/退市/权证），再按六因子加权评分排序，每只入选股附中文证据；
 - **多角色分析**：五阶段 13 角色（技术面/基本面/新闻/情绪 → 多空辩论 → 研究经理与交易员 → 组合草案 → 三方风险辩论 → 风险经理 → 组合经理），结论强制引用证据，研究不足的持仓强制 HOLD；
@@ -131,7 +131,7 @@ flowchart TD
 ```text
 Windows WPF + WebView2
           │
-Investment Auto 产品外壳
+AI Trading Automation 产品外壳
           │
 DSH 对话 / 工具 / Skills / 子代理 / 工作流
           │  本机令牌保护的回环 HTTP API
@@ -151,7 +151,7 @@ Python 投资引擎
 | 版本 | 核心变化 |
 |---|---|
 | 2.0.0 | 从 1.x 的自研 Agent/窗口双层架构切换为 DSH 原生对话、工具、Skills、子代理与工作流；原投资业务收敛为独立 Python 引擎，并完成 Windows 桌面发行、DPAPI 密钥和 1.x 数据迁移。 |
-| 2.1.0 | 把“DSH + 投资 preset”产品化为 Investment Auto：重做 UI，加入 Dashboard、分析流程和设置，删除工作区/模式选择与底座标识，同时保持 DSH 原生对话、思考、流式输出和工具展示不变。 |
+| 2.1.0 | 把“DSH + 投资 preset”产品化为 AI Trading Automation：重做 UI，加入 Dashboard、分析流程和设置，删除工作区/模式选择与底座标识，同时保持 DSH 原生对话、思考、流式输出和工具展示不变。 |
 | 2.1.1 | 把“选股”和“分析股票”拆成明确入口；用户指定股票直接接入固定完整分析流程。引入异步轮次、轮询状态和初版交易幂等，解决窗口 AI 自行分析、长请求超时和重复启动问题。 |
 | 2.1.2 | 强化成交回执、决策指纹、跨进程租约、失败/重启恢复和用户标的绑定；内部 headless 与角色会话迁入独立 DSH Home，不再污染用户会话栏。 |
 | 2.1.3 | 开放 IA 的文件、PowerShell、搜索、后台任务与 Ralph 自维护能力；加入自维护 Skill，修复工作流 schema 兼容、失败轮次重试竞态、Windows 原子写入和安装器误打包开发数据等问题。 |

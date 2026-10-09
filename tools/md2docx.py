@@ -19,8 +19,8 @@ from docx.shared import Pt, RGBColor, Inches
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-SRC = Path(r"D:\investment-auto\docs\PROJECT_REPORT.md")
-DST = Path(r"C:\Users\zheng siyuan\Desktop\Investment Auto 2.1.3 项目报告.docx")
+SRC = Path(r"D:\ai-trading-automation\docs\PROJECT_REPORT.md")
+DST = Path(r"C:\Users\zheng siyuan\Desktop\AI Trading Automation 2.1.3 项目报告.docx")
 
 ACCENT = RGBColor(0x10, 0x27, 0x2B)   # title: product dark teal
 HEAD = RGBColor(0x1F, 0x38, 0x64)     # headings: dark blue
@@ -138,7 +138,7 @@ def main():
 
     # title
     title = doc.add_paragraph()
-    tr = title.add_run("Investment Auto 2.1.3 项目报告")
+    tr = title.add_run("AI Trading Automation 2.1.3 项目报告")
     tr.bold = True
     tr.font.size = Pt(24)
     tr.font.color.rgb = ACCENT

@@ -1,4 +1,4 @@
-# Investment Auto 2.0 — DSH 应用侧
+# AI Trading Automation 2.0 — DSH 应用侧
 
 本目录是 2.0 的 DeepSeek Harness 应用壳：
 
@@ -12,7 +12,7 @@
 | `skills/` | 8 个产品 Skills（SKILL.md）：7 个投资 Skills + self-maintenance 自维护 Skill |
 | `plugins/dsh-investment-tools/` | 主机层引擎桥：17 个 `investment_*` 事实与纸面边界工具 |
 | `plugins/dsh-investment-workflow/` | 会话层固定多角色分析入口：使用原生子 Agent/工作流，阶段检查点可恢复 |
-| `plugins/dsh-product-shell/` | Investment Auto 产品 UI、Dashboard、分析流程、设置与引擎代理 |
+| `plugins/dsh-product-shell/` | AI Trading Automation 产品 UI、Dashboard、分析流程、设置与引擎代理 |
 | `plugins/dsh-dpapi-credentials/` | DPAPI 凭据 provider：实现 harness `credentials` 服务，密钥经引擎 DPAPI 加密存储 |
 | `plugins/dsh-investment-ui/` | 客户端 UI 插件：`tool.call.toolview` 键控卡片（investment_status / portfolio / mandate） |
 | `scripts/seed.ps1` | 把 profiles/presets/skills/plugins 播种进 `$DSH_HOME`（开发与安装版共用；已存在不覆盖，`-Force` 刷新） |
@@ -24,7 +24,7 @@
 `app/dev-home`（gitignored）。
 
 桌面与无头 IA 固定使用 DSH `danger-full-access` 权限预设，可直接读取日志、
-修改 `INVESTMENT_AUTO_ROOT` 下的权威源码、运行测试与构建并恢复原任务。交易批准、
+修改 `AI_TRADING_AUTOMATION_ROOT` 下的权威源码、运行测试与构建并恢复原任务。交易批准、
 成交幂等和 Python 硬风控仍由引擎独立执行，不随系统权限放宽。
 
 ## 开发
@@ -43,7 +43,7 @@
 ## 检查组合后的配置（不启动）
 
 ```powershell
-$env:DSH_HOME = 'D:\investment-auto\app\dev-home'
+$env:DSH_HOME = 'D:\ai-trading-automation\app\dev-home'
 node app\node_modules\@deepseek-ai\dsh\lib\bin.js --profile investment-web --dump-config
 node app\node_modules\@deepseek-ai\dsh\lib\bin.js --profile investment --dump-config
 ```

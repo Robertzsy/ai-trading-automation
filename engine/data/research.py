@@ -11,7 +11,7 @@ from typing import Any, Dict, Mapping, Optional
 
 import requests
 
-logger = logging.getLogger("investment-auto.research-data")
+logger = logging.getLogger("ai-trading-automation.research-data")
 ROOT = Path(__file__).resolve().parents[2]
 from engine.atomic_write import write_text_atomic
 from engine.paths import runtime_dir

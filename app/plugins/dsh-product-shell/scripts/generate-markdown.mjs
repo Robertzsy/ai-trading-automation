@@ -1,5 +1,5 @@
 /**
- * Investment Auto — Markdown renderer generator.
+ * AI Trading Automation — Markdown renderer generator.
  *
  * Splices a small Markdown → React renderer into `lib/client.js` between the
  * MARKDOWN markers, right below the generated icon block, so the report body

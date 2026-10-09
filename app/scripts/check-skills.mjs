@@ -1,5 +1,5 @@
 /**
- * Structural check for Investment Auto 2.0 skills.
+ * Structural check for AI Trading Automation 2.0 skills.
  *
  * Verifies: directory layout + SKILL.md frontmatter (name/description,
  * kebab-case, dir/name agreement) and that every `investment_*` tool a skill

@@ -10,7 +10,7 @@
 1. **"freqtrade-mcp" 不是官方项目，也不是一个项目**：GitHub 上同名实现至少 4 个，定位分成两类——**交易遥控器**（给 LLM 下单/启停机器人的权限）与**只读内省**（让 LLM 读懂 Freqtrade 源码以写策略）。两者风险等级差一个数量级。
 2. **最出名的那个（kukapay，146★）恰恰是最不该用的**：单文件（10.6 KB）、无测试无 CI、最后提交 2025-12-06（停滞约 10 个月），且其下单工具在当前 Freqtrade 上大概率直接报错（见 §3 代码级核查）。
 3. **真正有长期价值的是父项目 Freqtrade 本体**（55.0k★，2026-10-03 仍在提交）：它把"数据下载 → 回测 → 超参优化 → 前视偏差分析"的量化研究闭环做成了工业级工具，这部分能力与 MCP 无关，也**拿不到**（MCP 只转发 REST API，回测/hyperopt 走 CLI）。
-4. **对本项目（investment-auto）的结论：不建议引入任何交易遥控器型 MCP**。本项目只有纸面撮合、唯一执行入口是带幂等键与决策指纹的 `POST /api/commands/issue`；外挂一个能 `forceenter/stop/start` 的 MCP 等于在硬风控之外开一扇门。市场也不匹配（本项目 cn/hk/us/etf，Freqtrade 只做加密）。
+4. **对本项目（ai-trading-automation）的结论：不建议引入任何交易遥控器型 MCP**。本项目只有纸面撮合、唯一执行入口是带幂等键与决策指纹的 `POST /api/commands/issue`；外挂一个能 `forceenter/stop/start` 的 MCP 等于在硬风控之外开一扇门。市场也不匹配（本项目 cn/hk/us/etf，Freqtrade 只做加密）。
 5. **可安全借鉴的是三件事**：Freqtrade 的研究闭环设计、[QuantDesk](https://github.com/0xbet-ai/QuantDesk) 的产品立场（AI 只做研究与验证，paper 是终点、实盘是明确 non-goal）、以及 dasein108 那种"agent 自己跑回测/超参"的闭环思路。
 6. **底座能力已就绪**：本机 DSH 内置 `@deepseek-ai/dsh-mcp-client`（实机核查，见 §6），真要接 MCP 服务器，是 profile 配置一行的事，不需要改引擎。但本仓库当前 MCP 配置为零。
 
@@ -131,7 +131,7 @@ if amend_last_stake_amount and available > stake * last_stake_amount_min_ratio:
 
 ### 2.5.7 与本项目的对照
 
-| 维度 | Freqtrade + MCP | investment-auto |
+| 维度 | Freqtrade + MCP | ai-trading-automation |
 |---|---|---|
 | 因子/指标算在哪 | 策略文件里（开发者自写） | 引擎内确定性计算（六因子加权评分等） |
 | AI 的角色 | 可拿到裸 K 线 + 强制下单权 | 只做解释与取舍，结论必须引用证据 |
@@ -139,7 +139,7 @@ if amend_last_stake_amount and available > stake * last_stake_amount_min_ratio:
 | AI 能否绕过风控 | **能**（`forceenter` 绕过策略信号） | 不能（授权书 + Python 硬风控 + 幂等键） |
 | 优化方法 | hyperopt（optuna + loss） | 参数可配置，未见自动超参搜索 |
 
-两者其实在解同一个问题——**"别让 LLM 直接算数、直接下单"**——只是切分点不同：Freqtrade 把不确定性关进策略文件，investment-auto 把不确定性关进因子引擎与风控层。
+两者其实在解同一个问题——**"别让 LLM 直接算数、直接下单"**——只是切分点不同：Freqtrade 把不确定性关进策略文件，ai-trading-automation 把不确定性关进因子引擎与风控层。
 
 ---
 
@@ -204,7 +204,7 @@ Freqtrade bot  /api/v1  (127.0.0.1:8080, Basic Auth)
 - 工程上：所有脚本跑在隔离 Docker 容器里、per-desk git 版本化、每次 run 绑定 commit hash 保证可复现、引擎可插拔（Freqtrade=经典 TA，Nautilus=事件驱动 tick 级，Generic=让 agent 自己写脚本）。
 - 技术栈：Express + PostgreSQL(embedded) + React 19 + Claude/Codex CLI 子进程。
 
-> 对本项目的映射：QuantDesk 的"Analyst → Risk Manager → Paper"与 investment-auto 的"13 角色委员会 → 硬风控 → 纸面撮合"是同一个产品哲学；差别是它把容器隔离和版本可复现做成了默认。
+> 对本项目的映射：QuantDesk 的"Analyst → Risk Manager → Paper"与 ai-trading-automation 的"13 角色委员会 → 硬风控 → 纸面撮合"是同一个产品哲学；差别是它把容器隔离和版本可复现做成了默认。
 
 ---
 
@@ -213,7 +213,7 @@ Freqtrade bot  /api/v1  (127.0.0.1:8080, Basic Auth)
 **事实核查结论：能力已内置，配置为零。**
 
 - DSH 发行包内含 MCP 客户端插件 `@deepseek-ai/dsh-mcp-client`（含 `lib/index.js` 35 KB、`README.zh.md` 17 KB、`package.json`，捆绑版本 `0.2.0-rc.2`；本机安装树 `D:\DeepSeek\dsh\profiles\node_modules\@deepseek-ai\` 下也有 `dsh-mcp-client` / `dsh-mcp-resources` 链接）。
-- 本仓库 `app/`、`config/`、`engine/` 内 **MCP 相关命中为零**（仅有 package-lock 的传递依赖与 `engine/api/__init__.py` 里 "MCP bridge (P1)" 的规划注释）。当前的"AI 调工具"实际是回环 HTTP + `X-IA-Token` 的 MCP **式**桥，不是真 MCP。
+- 本仓库 `app/`、`config/`、`engine/` 内 **MCP 相关命中为零**（仅有 package-lock 的传递依赖与 `engine/api/__init__.py` 里 "MCP bridge (P1)" 的规划注释）。当前的"AI 调工具"实际是回环 HTTP + `X-ATA-Token` 的 MCP **式**桥，不是真 MCP。
 
 **接入写法**（profile patch 的一行 `insert`，与 [`app/profiles/investment/cordis.patch.yml`](../app/profiles/investment/cordis.patch.yml) 同构）：
 

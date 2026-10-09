@@ -1,8 +1,8 @@
 # AI-Driven Global Portfolio Optimization & Multi-Agent Trading Automation System — Investment Logic Explained
 
-> **investment-auto**
+> **ai-trading-automation**
 
-This document explains the core investment intelligence of Investment Auto 2.1.3: **screening logic**, the **multi-role analysis pipeline**, **decision and risk control**, and a **business-value assessment** for each.
+This document explains the core investment intelligence of AI Trading Automation 2.1.3: **screening logic**, the **multi-role analysis pipeline**, **decision and risk control**, and a **business-value assessment** for each.
 
 > This document covers the investment logic itself; reliability mechanisms (checkpoint recovery, idempotent receipts, credential storage) are covered in the [2.0 architecture](ARCHITECTURE_2.0.md).
 

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Generate 'Business Value x Code Value' report for Investment Auto 2.1.3."""
+"""Generate 'Business Value x Code Value' report for AI Trading Automation 2.1.3."""
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-DST = r"C:\Users\zheng siyuan\Desktop\Investment Auto 2.1.3 商业价值与代码价值报告.docx"
+DST = r"C:\Users\zheng siyuan\Desktop\AI Trading Automation 2.1.3 商业价值与代码价值报告.docx"
 
 TEAL = "10272B"
 NAVY = "1F3864"
@@ -152,7 +152,7 @@ def main():
     tp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     tp.paragraph_format.space_after = Pt(0)
     shade_par(tp, TEAL)
-    r = tp.add_run("\nInvestment Auto 2.1.3")
+    r = tp.add_run("\nAI Trading Automation 2.1.3")
     r.bold = True
     r.font.size = Pt(21)
     r.font.color.rgb = WHITE
@@ -299,14 +299,14 @@ def main():
     r.bold = True
     r.font.color.rgb = TEAL_RGB
     set_ea(r)
-    r = cp.add_run("Investment Auto 的商业价值，本质上来自一个工程判断——「把不可靠的 AI 装进可靠的确定性边界里」。投资者得到机构级流程、风控纪律与可信模拟盘；开发者得到一套经过真实故障锤炼的开源工程样板；而这两者，都由同一段可审计的代码在兑现。")
+    r = cp.add_run("AI Trading Automation 的商业价值，本质上来自一个工程判断——「把不可靠的 AI 装进可靠的确定性边界里」。投资者得到机构级流程、风控纪律与可信模拟盘；开发者得到一套经过真实故障锤炼的开源工程样板；而这两者，都由同一段可审计的代码在兑现。")
     r.font.size = Pt(10)
     set_ea(r)
 
     fp = doc.add_paragraph()
     fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     fp.paragraph_format.space_before = Pt(8)
-    r = fp.add_run("— 完 · 配套阅读：《Investment Auto 2.1.3 核心亮点简报.docx》 —")
+    r = fp.add_run("— 完 · 配套阅读：《AI Trading Automation 2.1.3 核心亮点简报.docx》 —")
     r.font.size = Pt(8.5)
     r.font.color.rgb = GRAY
     set_ea(r)

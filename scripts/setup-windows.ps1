@@ -27,4 +27,4 @@ if (-not $SkipPortfolioInit -and -not (Test-Path "runtime\data\portfolio.json"))
 }
 
 Write-Host ""
-Write-Host "初始化完成。请在 .env 或设置页面填写模型 API Key，然后双击 InvestmentAuto.exe。" -ForegroundColor Green
+Write-Host "初始化完成。请在 .env 或设置页面填写模型 API Key，然后双击 AiTradingAutomation.exe。" -ForegroundColor Green

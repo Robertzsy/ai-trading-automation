@@ -1,13 +1,13 @@
 using System;
 using Microsoft.Win32;
 
-namespace InvestmentAuto.Desktop.Services;
+namespace AiTradingAutomation.Desktop.Services;
 
 /// <summary>Per-user "start with Windows" toggle (HKCU Run key, no admin).</summary>
 internal static class AutoStart
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "InvestmentAuto";
+    private const string ValueName = "AiTradingAutomation";
 
     public static bool IsEnabled()
     {
@@ -15,7 +15,7 @@ internal static class AutoStart
         // name, so a foreign command must not read as "enabled".
         var command = ReadCommand();
         return command is not null
-            && command.Contains("InvestmentAuto.Desktop.exe", StringComparison.OrdinalIgnoreCase);
+            && command.Contains("AiTradingAutomation.Desktop.exe", StringComparison.OrdinalIgnoreCase);
     }
 
     public static void Enable(string exePath, string appRoot, string dataRoot)

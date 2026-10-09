@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-logger = logging.getLogger("investment-auto.dsh-home")
+logger = logging.getLogger("ai-trading-automation.dsh-home")
 
 
 def _copy_tree(source: Path, target: Path, *, force: bool) -> None:
@@ -77,7 +77,7 @@ def seed_dsh_home(app_dir: str | Path, dsh_home: str | Path, *, force: bool = Fa
 
 
 def seed_from_env() -> bool:
-    """Seed from INVESTMENT_AUTO_APP_DIR/DSH_HOME when the app dir exists.
+    """Seed from AI_TRADING_AUTOMATION_APP_DIR/DSH_HOME when the app dir exists.
 
     The installed product owns profiles/presets/skills/plugins (the product
     exposes no editor for them; the user's override layer is the home-level
@@ -88,7 +88,9 @@ def seed_from_env() -> bool:
     user DATA (sessions, workspaces, credentials, config) lives outside these
     trees and is never touched.
     """
-    app_dir = os.getenv("INVESTMENT_AUTO_APP_DIR", "").strip()
+    app_dir = (
+        os.getenv("AI_TRADING_AUTOMATION_APP_DIR") or os.getenv("INVESTMENT_AUTO_APP_DIR") or ""
+    ).strip()
     dsh_home = os.getenv("DSH_HOME", "").strip()
     if not app_dir or not dsh_home:
         return False

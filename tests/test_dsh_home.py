@@ -16,7 +16,7 @@ def _make_app(tmp_path):
     (app / "skills" / "security-analysis" / "SKILL.md").write_text("---\nname: security-analysis\ndescription: test skill\n---\nbody\n", encoding="utf-8")
     plugin = app / "plugins" / "dsh-test-plugin"
     plugin.mkdir(parents=True)
-    (plugin / "package.json").write_text(json.dumps({"name": "@investment-auto/dsh-test-plugin"}), encoding="utf-8")
+    (plugin / "package.json").write_text(json.dumps({"name": "@ai-trading-automation/dsh-test-plugin"}), encoding="utf-8")
     return app
 
 
@@ -29,7 +29,7 @@ def test_seed_populates_profiles_presets_skills_and_plugins(tmp_path):
     assert (home / "profiles" / "investment-web" / "cordis.patch.yml").exists()
     assert (home / ".agent-presets" / "investment" / "preset.yml").exists()
     assert (home / "skills" / "security-analysis" / "SKILL.md").exists()
-    plugin_target = home / "profiles" / "investment-web" / "node_modules" / "@investment-auto" / "dsh-test-plugin"
+    plugin_target = home / "profiles" / "investment-web" / "node_modules" / "@ai-trading-automation" / "dsh-test-plugin"
     assert (plugin_target / "package.json").exists()
 
 
@@ -49,7 +49,7 @@ def test_seed_never_overwrites_user_files_without_force(tmp_path):
 
 def test_seed_from_env_requires_both_vars(monkeypatch, tmp_path):
     app = _make_app(tmp_path)
-    monkeypatch.setenv("INVESTMENT_AUTO_APP_DIR", str(app))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_APP_DIR", str(app))
     monkeypatch.delenv("DSH_HOME", raising=False)
     assert dsh_home.seed_from_env() is False
 
@@ -67,7 +67,7 @@ def test_seed_from_env_refreshes_shipped_files(monkeypatch, tmp_path):
     stale = home / "profiles" / "investment-web" / "cordis.patch.yml"
     stale.write_text("# stale shipped file\n", encoding="utf-8")
 
-    monkeypatch.setenv("INVESTMENT_AUTO_APP_DIR", str(app))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_APP_DIR", str(app))
     monkeypatch.setenv("DSH_HOME", str(home))
     assert dsh_home.seed_from_env() is True
     assert stale.read_text(encoding="utf-8") != "# stale shipped file\n"
@@ -80,6 +80,6 @@ def test_seed_from_env_refreshes_shipped_files(monkeypatch, tmp_path):
 
 
 def test_seed_from_env_ignores_missing_app(monkeypatch, tmp_path):
-    monkeypatch.setenv("INVESTMENT_AUTO_APP_DIR", str(tmp_path / "nope"))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_APP_DIR", str(tmp_path / "nope"))
     monkeypatch.setenv("DSH_HOME", str(tmp_path / "home"))
     assert dsh_home.seed_from_env() is False

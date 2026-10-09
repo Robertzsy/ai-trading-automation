@@ -1,7 +1,7 @@
 /** Minimal JSON client for the engine loopback API. */
 export class EngineClient {
   /** @param {string} baseUrl engine API base, e.g. http://127.0.0.1:8790 */
-  /** @param {string} token optional X-IA-Token value */
+  /** @param {string} token optional X-ATA-Token value */
   constructor(baseUrl, token = "") {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
     this.token = token;
@@ -13,7 +13,7 @@ export class EngineClient {
     try {
       const response = await fetch(this.baseUrl + path, {
         signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
-        headers: this.token ? { "X-IA-Token": this.token } : {},
+        headers: this.token ? { "X-ATA-Token": this.token } : {},
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -33,7 +33,7 @@ export class EngineClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(this.token ? { "X-IA-Token": this.token } : {}),
+          ...(this.token ? { "X-ATA-Token": this.token } : {}),
         },
         body: JSON.stringify(payload),
         signal: controller.signal,
@@ -56,7 +56,7 @@ export class EngineClient {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(this.token ? { "X-IA-Token": this.token } : {}),
+          ...(this.token ? { "X-ATA-Token": this.token } : {}),
         },
         body: JSON.stringify({ command, payload, requested_by: requestedBy }),
         signal: controller.signal,

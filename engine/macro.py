@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent.parent
 from engine.paths import runtime_dir
 DATA_ROOT = runtime_dir() / "macro"
 SCRIPT = ROOT / "scripts" / "macro-environment" / "run.js"
-logger = logging.getLogger("investment-auto.macro")
+logger = logging.getLogger("ai-trading-automation.macro")
 
 
 def _now(value: Optional[datetime] = None) -> datetime:

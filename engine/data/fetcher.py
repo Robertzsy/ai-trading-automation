@@ -13,7 +13,7 @@ from engine.subprocess_utils import decode_subprocess_output, hidden_subprocess_
 ROOT = Path(__file__).resolve().parent.parent.parent
 FETCHER_JS = ROOT / "scripts" / "stock-fetcher.js"
 
-logger = logging.getLogger("investment-auto.data.fetcher")
+logger = logging.getLogger("ai-trading-automation.data.fetcher")
 
 
 def _run_node(args: List[str], *, timeout: int = 50) -> Any:

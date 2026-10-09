@@ -21,7 +21,7 @@ REPORT_DIR = runtime_dir() / "reports"
 SCHEDULER_LOCK = runtime_dir() / "scheduler.lock"
 _active_scheduler: Optional[_BgScheduler] = None
 
-# ── cycle runner plug (Investment Auto 2.0) ─────────────────────────────────
+# ── cycle runner plug (AI Trading Automation 2.0) ─────────────────────────────────
 #
 # The AI decision layer moved to the DSH app. The engine scheduler keeps the
 # market-hours triggering, report/reflection/notification lifecycle and the

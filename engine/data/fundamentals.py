@@ -25,7 +25,7 @@ from engine.atomic_write import write_text_atomic
 from engine.data.providers.base import coerce_float, resolve_symbol, to_iso_date
 from engine.paths import APP_ROOT, runtime_dir
 
-logger = logging.getLogger("investment-auto.fundamentals")
+logger = logging.getLogger("ai-trading-automation.fundamentals")
 CACHE_DIR = runtime_dir() / "data" / "fundamentals-v1"
 SCHEMA_VERSION = 1
 POLICY = "primary-then-fallback-v1"
@@ -224,7 +224,7 @@ def normalize_sec(payload: Mapping, cik: int, today: date) -> list[dict]:
 
 def _fetch_sec(symbol: str) -> list[dict]:
     # Public EDGAR data requires a declared app identity, not an account token.
-    identity = os.getenv("IA_SEC_USER_AGENT", "").strip() or "InvestmentAuto/2.1 (https://github.com/Robertzsy/ai-trading-automation)"
+    identity = os.getenv("IA_SEC_USER_AGENT", "").strip() or "AiTradingAutomation/2.1 (https://github.com/Robertzsy/ai-trading-automation)"
     headers = {"User-Agent": identity}
     tickers = requests.get("https://www.sec.gov/files/company_tickers.json", headers=headers, timeout=(5, 15))
     tickers.raise_for_status()

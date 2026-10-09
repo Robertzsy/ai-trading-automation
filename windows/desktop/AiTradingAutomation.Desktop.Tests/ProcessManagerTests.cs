@@ -1,8 +1,8 @@
 using System.IO;
-using InvestmentAuto.Desktop.Services;
+using AiTradingAutomation.Desktop.Services;
 using Xunit;
 
-namespace InvestmentAuto.Desktop.Tests;
+namespace AiTradingAutomation.Desktop.Tests;
 
 /// <summary>Test requirement #3: process-manager lifecycle plumbing
 /// (roots, token, first-run flag, log seeding) without spawning python.</summary>
@@ -24,7 +24,7 @@ public class ProcessManagerTests
         Assert.Equal(app, pm.AppRoot);
         Assert.Equal(data, pm.DataRoot);
         Assert.False(string.IsNullOrEmpty(pm.AccessToken));
-        Assert.Equal(pm.AccessToken, Environment.GetEnvironmentVariable("IA_ACCESS_TOKEN"));
+        Assert.Equal(pm.AccessToken, Environment.GetEnvironmentVariable("ATA_ACCESS_TOKEN"));
         Assert.True(pm.IsFirstRun);
         Assert.True(File.Exists(Path.Combine(data, "runtime", "logs", "desktop.log")));
         Assert.Equal("http://127.0.0.1:" + pm.WebUrl.Split(':')[2], pm.WebUrl);
@@ -87,13 +87,13 @@ public class ProcessManagerTests
     [Fact]
     public void Ctor_DefaultRoots_FallBackToExeDirectory()
     {
-        var oldData = Environment.GetEnvironmentVariable("INVESTMENT_AUTO_DATA_DIR");
+        var oldData = Environment.GetEnvironmentVariable("AI_TRADING_AUTOMATION_DATA_DIR");
         var oldPath = Environment.GetEnvironmentVariable("PATH");
         try
         {
-            Environment.SetEnvironmentVariable("INVESTMENT_AUTO_DATA_DIR", null);
+            Environment.SetEnvironmentVariable("AI_TRADING_AUTOMATION_DATA_DIR", null);
             // Can't set BaseDirectory; verify env fallback only.
-            Environment.SetEnvironmentVariable("INVESTMENT_AUTO_DATA_DIR", @"C:\nonexistent-ia-data");
+            Environment.SetEnvironmentVariable("AI_TRADING_AUTOMATION_DATA_DIR", @"C:\nonexistent-ia-data");
             // Hermetic node resolution for the ctor on any machine.
             using var root = new TempDir();
             var pathDir = Path.Combine(root.Path, "pathbin");
@@ -106,7 +106,7 @@ public class ProcessManagerTests
         }
         finally
         {
-            Environment.SetEnvironmentVariable("INVESTMENT_AUTO_DATA_DIR", oldData);
+            Environment.SetEnvironmentVariable("AI_TRADING_AUTOMATION_DATA_DIR", oldData);
             Environment.SetEnvironmentVariable("PATH", oldPath);
         }
     }

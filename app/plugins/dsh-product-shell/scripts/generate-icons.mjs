@@ -1,5 +1,5 @@
 /**
- * Investment Auto — icon set generator.
+ * AI Trading Automation — icon set generator.
  *
  * Reads the Lucide icon *node* data (shipped by `lucide-static`, a dev-only
  * dependency) and emits a static module containing only the icons this shell

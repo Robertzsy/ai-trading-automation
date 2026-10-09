@@ -14,8 +14,8 @@ from engine.api import server
 @pytest.fixture
 def api(monkeypatch):
     # Deterministic auth surface: every test starts token-free regardless of
-    # any ambient IA_ACCESS_TOKEN left by unrelated tooling.
-    monkeypatch.setenv("IA_ACCESS_TOKEN", "")
+    # any ambient ATA_ACCESS_TOKEN left by unrelated tooling.
+    monkeypatch.setenv("ATA_ACCESS_TOKEN", "")
     httpd = server.ThreadingHTTPServer(("127.0.0.1", 0), server._Handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
@@ -62,7 +62,7 @@ def test_fundamentals_route_validates_input_and_uses_the_key_free_provider(api, 
 def test_health_endpoint(api):
     payload = _get(api, "/api/health")
     assert payload["ok"] is True
-    assert payload["service"] == "investment-auto-engine"
+    assert payload["service"] == "ai-trading-automation-engine"
 
 
 def test_raw_research_archive_accepts_more_than_a_compact_checkpoint(api, monkeypatch, tmp_path):
@@ -114,7 +114,7 @@ def test_unknown_command_returns_dispatch_error(api):
 
 
 def test_authorized_mode_rejects_missing_token(monkeypatch, api):
-    monkeypatch.setenv("IA_ACCESS_TOKEN", "secret-token")
+    monkeypatch.setenv("ATA_ACCESS_TOKEN", "secret-token")
     status, payload = _post(api, "/api/commands/issue", {"command": "status", "payload": {}})
     assert status == 403
 

@@ -92,7 +92,7 @@ class ProcessLease:
         except (OSError, BlockingIOError) as exc:
             if handle is not None:
                 handle.close()
-            raise RuntimeError("另一个 investment-auto 调度器已经在运行") from exc
+            raise RuntimeError("另一个 ai-trading-automation 调度器已经在运行") from exc
         self.handle = handle
 
     def release(self) -> None:

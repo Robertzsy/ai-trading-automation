@@ -1,5 +1,5 @@
 window.__ModuleLoader__.load({
-	id: "@investment-auto/dsh-investment-ui",
+	id: "@ai-trading-automation/dsh-investment-ui",
 	factory: (require) => {
 		var module = { exports: {} };
 		var exports = module.exports;
@@ -8,7 +8,7 @@ window.__ModuleLoader__.load({
 		let react = require("react");
 
 		// ── styles (design-token based, injected once per page load) ──────
-		const CSS_ID = "@investment-auto/dsh-investment-ui/style";
+		const CSS_ID = "@ai-trading-automation/dsh-investment-ui/style";
 		const css = ".inv-ui-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0;padding:2px 0}.inv-ui-chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--dsw-alias-border-l1, #2a3350);background:var(--dsw-alias-bg-base, transparent);color:var(--dsw-alias-label-secondary, inherit);border-radius:8px;padding:2px 8px;font-size:12px;line-height:18px;white-space:nowrap}.inv-ui-chip[data-kind=warn]{border-color:var(--dsw-alias-state-warning-primary, #d97706);color:var(--dsw-alias-state-warning-primary, #d97706)}.inv-ui-chip[data-kind=danger]{border-color:var(--dsw-alias-state-error-primary, #ef4444);color:var(--dsw-alias-state-error-primary, #ef4444)}.inv-ui-chip[data-kind=ok]{border-color:var(--dsw-alias-state-success-primary, #22c55e);color:var(--dsw-alias-state-success-primary, #22c55e)}.inv-ui-raw{white-space:pre-wrap;word-break:break-word;color:var(--dsw-alias-label-secondary, inherit);font-size:12px;font-family:var(--dsw-font-markdown-code-block-small, monospace);margin:0;padding:4px 0}.inv-ui-title{font-size:12px;font-weight:600;color:var(--dsw-alias-label-primary, inherit);margin-right:6px}";
 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin=" + JSON.stringify(CSS_ID) + "]") === null) {
 			const tag = document.createElement("style");
@@ -108,7 +108,7 @@ window.__ModuleLoader__.load({
 		}
 
 		// ── plugin ─────────────────────────────────────────────────────────
-		const name = "@investment-auto/dsh-investment-ui";
+		const name = "@ai-trading-automation/dsh-investment-ui";
 		const inject = ["slots"];
 		function apply(ctx) {
 			// Keyed tool views: the slot routes by the tool name; a keyed hit

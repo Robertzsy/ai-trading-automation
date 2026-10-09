@@ -58,12 +58,12 @@ function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheck
 }
 
 async function headless(body) {
-  const previous = process.env.IA_AUTONOMOUS_ROUND;
-  process.env.IA_AUTONOMOUS_ROUND = "1";
+  const previous = process.env.ATA_AUTONOMOUS_ROUND;
+  process.env.ATA_AUTONOMOUS_ROUND = "1";
   try { return await body(); }
   finally {
-    if (previous === undefined) delete process.env.IA_AUTONOMOUS_ROUND;
-    else process.env.IA_AUTONOMOUS_ROUND = previous;
+    if (previous === undefined) delete process.env.ATA_AUTONOMOUS_ROUND;
+    else process.env.ATA_AUTONOMOUS_ROUND = previous;
   }
 }
 

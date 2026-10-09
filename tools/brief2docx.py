@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Generate the concise highlights brief (Investment Auto 2.1.3) as a styled .docx."""
+"""Generate the concise highlights brief (AI Trading Automation 2.1.3) as a styled .docx."""
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-DST = r"C:\Users\zheng siyuan\Desktop\Investment Auto 2.1.3 核心亮点简报.docx"
+DST = r"C:\Users\zheng siyuan\Desktop\AI Trading Automation 2.1.3 核心亮点简报.docx"
 
 TEAL = "10272B"        # product dark teal
 TEAL_RGB = RGBColor(0x10, 0x27, 0x2B)
@@ -140,7 +140,7 @@ def main():
     tp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     tp.paragraph_format.space_after = Pt(2)
     shade_par(tp, TEAL)
-    r = tp.add_run("\nInvestment Auto 2.1.3")
+    r = tp.add_run("\nAI Trading Automation 2.1.3")
     r.bold = True
     r.font.size = Pt(22)
     r.font.color.rgb = WHITE
@@ -274,7 +274,7 @@ def main():
     fp = doc.add_paragraph()
     fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     fp.paragraph_format.space_before = Pt(10)
-    r = fp.add_run("— 完 · 详细版见《Investment Auto 2.1.3 项目报告.docx》 —")
+    r = fp.add_run("— 完 · 详细版见《AI Trading Automation 2.1.3 项目报告.docx》 —")
     r.font.size = Pt(8.5)
     r.font.color.rgb = GRAY
     set_ea(r)

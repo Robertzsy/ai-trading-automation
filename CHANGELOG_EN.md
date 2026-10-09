@@ -2,7 +2,30 @@
 
 [简体中文](CHANGELOG.md) | [English](CHANGELOG_EN.md)
 
-This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The bilingual release notes are available in [docs/RELEASE_NOTES_2.1.5.md](docs/RELEASE_NOTES_2.1.5.md).
+This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The bilingual release notes are available in [docs/RELEASE_NOTES_2.2.0.md](docs/RELEASE_NOTES_2.2.0.md).
+
+## 2.2.0 — Naming Unification and Shared Research Data (2026-10-09)
+
+> This release bundles two independent changes as two separate commits so either can be reverted and attributed on its own.
+
+### ① Shared research data and leaner model input
+
+- Fundamental and news research data is shared between window sessions and autonomous cycles, so the same material is no longer fetched and fed to the model repeatedly.
+- Added a research-data contract and policy layer: source switching, unit and date conventions, configuration switches and usage limits live in one place.
+- Evidence is persisted as checkpoints; downstream roles receive only a compressed summary, cutting duplicate model input.
+- Added the AKShare and BaoStock dependencies, with import checks in `scripts/bundle-runtime.ps1` so release archives carry them.
+
+### ② Naming unification (internal identifiers and display name)
+
+- Technical identifiers unified on `ai-trading-automation`: the Python package and CLI, the npm scope (`@ai-trading-automation/dsh-*`, five plugins), the C# assembly and namespaces (`AiTradingAutomation.Desktop`), the installer script and artefacts (`AiTradingAutomation.iss`, `AiTradingAutomation-Setup-x64.exe`), the icon and the single-instance identifiers.
+- Environment variables unified on `AI_TRADING_AUTOMATION_*`, `ATA_ACCESS_TOKEN` and the `X-ATA-Token` header. The engine and desktop shell **still accept the pre-rename names** (`INVESTMENT_AUTO_*`, `IA_ACCESS_TOKEN`, `X-IA-Token`), and the shell exports both sets to child processes, so existing shortcuts and local scripts keep working.
+- Brand display name unified as `AI Trading Automation`; the official full names (Chinese/English) serve as document titles with the technical identifier as the subtitle.
+- **Deliberately unchanged**: the local checkout folder `D:\investment-auto` (renaming it would invalidate both agents' working directory and the session keys derived from it), the install directory `%LocalAppData%\Programs\InvestmentAuto` and the data directory `%LocalAppData%\InvestmentAuto` (zero data migration), the DSH profile/preset names (`investment`/`investment-web`), domain integration variables (`INVESTMENT_API_PORT`, `INVESTMENT_ENGINE_URL`, `INVESTMENT_CYCLE_ID`), the `investment_*` tool names and the MongoDB database name `investment_auto` (renaming a data identifier would orphan existing data).
+- All 17 version declarations moved to 2.2.0 through `scripts/bump-version.ps1`.
+
+### Validation
+
+- 398 Python tests passed with six online checks skipped (identical to the 2.1.5 baseline, no regression); 76 plugin tests passed; the skill check confirmed eight Skills against 19 registered tools; five plugins composed under the new scope; the version gate passed.
 
 ## 2.1.5 — Holdings-Linked Stock Visualisation (2026-10-09)
 

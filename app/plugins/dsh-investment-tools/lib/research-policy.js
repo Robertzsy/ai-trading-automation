@@ -261,7 +261,7 @@ export function installResearchPolicy(ctx, { schemas, strictEvidence = true, uni
       if (row.child?.structured_committed) return;
       if (row.child.empty_output_repairs) throw new Error("角色仍未提交 structured_output，不能标记为完成");
       row.child.empty_output_repairs = 1;
-      agent.steer(createUserMessage({ source: { kind: "plugin", plugin: "@investment-auto/research-policy" },
+      agent.steer(createUserMessage({ source: { kind: "plugin", plugin: "@ai-trading-automation/research-policy" },
         content: [{ type: "text", text: "尚未提交结构化结果。必须现在调用 structured_output，不能只回复文字。保持本角色的 schema、证据 id 和 source 完整；资料不足也应在结果中报告缺口。这是唯一一次补交机会。" }] }));
     });
   });

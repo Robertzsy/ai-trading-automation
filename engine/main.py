@@ -1,5 +1,5 @@
 """
-investment-auto 2.0 — Multi-market paper-trading investment engine.
+ai-trading-automation 2.0 — Multi-market paper-trading investment engine.
 
 This process is the non-bypassable execution plane: market data, screening,
 portfolio optimization, hard risk controls, paper broker, scheduler, and the
@@ -86,7 +86,7 @@ def _configure_logging() -> logging.Logger:
     log_dir = runtime_dir() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
-    file_handler = logging.FileHandler(log_dir / "investment-auto.log", encoding="utf-8")
+    file_handler = logging.FileHandler(log_dir / "ai-trading-automation.log", encoding="utf-8")
     file_handler.setFormatter(formatter)
     handlers: list[logging.Handler] = [file_handler]
     if sys.stderr is not None:
@@ -94,11 +94,11 @@ def _configure_logging() -> logging.Logger:
         stream.setFormatter(formatter)
         handlers.insert(0, stream)
     logging.basicConfig(level=logging.INFO, handlers=handlers, force=True)
-    return logging.getLogger("investment-auto")
+    return logging.getLogger("ai-trading-automation")
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="investment-auto")
+    parser = argparse.ArgumentParser(prog="ai-trading-automation")
     parser.add_argument(
         "command",
         nargs="?",
@@ -133,7 +133,7 @@ def main() -> None:
     if args.command == "version":
         from engine.version import __version__
 
-        print(f"investment-auto {__version__}")
+        print(f"ai-trading-automation {__version__}")
         return
 
     if args.command in {"run", "serve", "once", "catchup", "macro", "optimizer", "screen"} and not shutil.which("node"):
@@ -148,7 +148,7 @@ def main() -> None:
         from engine.dsh_home import seed_from_env
 
         if seed_from_env():
-            logger.info("DSH home seeded from %s", os.getenv("INVESTMENT_AUTO_APP_DIR", ""))
+            logger.info("DSH home seeded from %s", os.getenv("AI_TRADING_AUTOMATION_APP_DIR", ""))
     except Exception:
         logger.debug("DSH home seeding skipped", exc_info=True)
 
@@ -269,7 +269,9 @@ def main() -> None:
     if args.command == "migrate":
         from engine.migration import detect_sources, plan_migration, run_migration
 
-        source = args.from_path or os.getenv("INVESTMENT_AUTO_HOME", "")
+        source = args.from_path or os.getenv("INVESTMENT_AUTO_HOME", "") or os.getenv(
+            "AI_TRADING_AUTOMATION_HOME", ""
+        )
         if not source:
             sources = detect_sources()
             if not sources:

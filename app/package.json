@@ -1,8 +1,8 @@
 {
-  "name": "investment-auto-app",
+  "name": "ai-trading-automation-app",
   "private": true,
-  "version": "2.1.5",
-  "description": "Investment Auto 2.0 — DeepSeek Harness application shell (custom profiles, investment agent preset, skills)",
+  "version": "2.2.0",
+  "description": "AI Trading Automation 2.0 — DeepSeek Harness application shell (custom profiles, investment agent preset, skills)",
   "type": "module",
   "engines": {
     "node": ">=22"

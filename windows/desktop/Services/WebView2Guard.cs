@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Management;
 
-namespace InvestmentAuto.Desktop.Services;
+namespace AiTradingAutomation.Desktop.Services;
 
 /// <summary>
 /// Recovers from orphaned WebView2 browser processes. When the desktop shell
@@ -13,7 +13,7 @@ namespace InvestmentAuto.Desktop.Services;
 /// The guard only runs after the single-instance mutex is acquired, so no live
 /// copy of this app can exist at that point; any msedgewebview2.exe whose
 /// command line references our app (its user-data folder lives under the
-/// InvestmentAuto data root) is therefore an orphan and safe to kill.
+/// AiTradingAutomation data root) is therefore an orphan and safe to kill.
 /// Unrelated WebView2 hosts (Windows Search, other apps) never match.
 /// </summary>
 internal static class WebView2Guard
@@ -33,7 +33,7 @@ internal static class WebView2Guard
                 {
                     var commandLine = mo["CommandLine"] as string;
                     if (commandLine == null
-                        || !commandLine.Contains("InvestmentAuto", StringComparison.OrdinalIgnoreCase))
+                        || !commandLine.Contains("AiTradingAutomation", StringComparison.OrdinalIgnoreCase))
                         continue;
 
                     var pid = Convert.ToInt32(mo["ProcessId"]);

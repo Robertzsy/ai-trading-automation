@@ -1,5 +1,5 @@
 /**
- * Headless acceptance smoke for the Investment Auto product shell.
+ * Headless acceptance smoke for the AI Trading Automation product shell.
  *
  * Launches headless Chrome, loads the investment-web profile, and verifies
  * what the browser actually renders:
@@ -158,7 +158,7 @@ async function main() {
       await sleep(9000);
       const signedIn = await evaluate(authCdp, "document.title");
       authCdp.close();
-      if (!String(signedIn).includes("Investment Auto")) {
+      if (!String(signedIn).includes("AI Trading Automation")) {
         console.error(`smoke-web: sign-in did not reach the product shell (title=${JSON.stringify(signedIn)})`);
         process.exitCode = 1;
         return;
@@ -191,7 +191,7 @@ async function main() {
 
     // 1. Branding: page title and visible text.
     const title = await evaluate(cdp, "document.title");
-    check(String(title).includes("Investment Auto"), `page title is Investment Auto (got: ${title})`);
+    check(String(title).includes("AI Trading Automation"), `page title is AI Trading Automation (got: ${title})`);
     check(!String(title).includes("Harness"), `page title has no Harness (got: ${title})`);
 
     const visibleText = await evaluate(cdp, "document.body ? document.body.innerText : ''");
@@ -209,7 +209,7 @@ async function main() {
     check(!String(navText).includes("分析流程"), `left nav no longer carries a separate 分析流程 tab (${navText})`);
     check(!String(navText).includes("账户"), `left nav has no account entry (${navText})`);
     const brandText = await evaluate(cdp, `document.querySelector('.ia-rail-brand') ? document.querySelector('.ia-rail-brand').getAttribute('title') : ''`);
-    check(String(brandText).includes("Investment Auto"), `product brand renders (${brandText})`);
+    check(String(brandText).includes("AI Trading Automation"), `product brand renders (${brandText})`);
 
     // 3. Conversation kernel (投资助手 default page): sidebar + conversation area.
     const sidebarText = await evaluate(cdp, `document.querySelector('.ia-sidebar') ? document.querySelector('.ia-sidebar').innerText.slice(0, 200) : ''`);

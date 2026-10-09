@@ -1,10 +1,10 @@
-# Investment Auto 桌面应用改造实施计划
+# AI Trading Automation 桌面应用改造实施计划
 
-> 目标：普通用户安装后双击桌面「Investment Auto」图标，在独立桌面窗口内使用整个系统，全程不需要浏览器、CMD、PowerShell、Python、Node。
+> 目标：普通用户安装后双击桌面「AI Trading Automation」图标，在独立桌面窗口内使用整个系统，全程不需要浏览器、CMD、PowerShell、Python、Node。
 
 ## 0. 现状调研结论（已核实）
 
-1. **launcher 已存在且成熟**：`windows/InvestmentAutoLauncher.cs` 是 WinForms 启动器（启动/停止/开机自启/状态检测），但用旧 CodeDom 编译（拿不到 WebView2），且最后 `OpenDashboard()` 跳外部浏览器。
+1. **launcher 已存在且成熟**：`windows/AiTradingAutomationLauncher.cs` 是 WinForms 启动器（启动/停止/开机自启/状态检测），但用旧 CodeDom 编译（拿不到 WebView2），且最后 `OpenDashboard()` 跳外部浏览器。
 2. **路径依赖是最大改造点**：约 **36 处** `ROOT / "runtime"`（用户数据：审计/账户/记忆/checkpoint/报告/选股缓存/bus/mandate/锁）+ 3 处 `ROOT / "scripts"`（代码）+ 5 处 `ROOT / "config"`（用户配置），其中 `ROOT = Path(__file__).resolve().parents[2]` 分布在 ~25 个模块。**代码和数据耦合在同一个根**。
 3. **端口已支持环境变量**：`CHAT_PORT`（main.py）、`CHAT_HOST`（默认 localhost）已存在；launcher 可用动态端口传给 python。
 4. **进程锁已具备**：`scheduler.lock` + `runtime_lock.py` 的 ProcessLease/atomic_claim 已防重复调度器；launcher 读 `worker.json` 判 agent 存活。
@@ -21,7 +21,7 @@
 ```python
 ROOT = Path(__file__).resolve().parents[2]        # 代码根（安装目录，只读）
 def data_root() -> Path:                            # 用户数据根
-    env = os.getenv("INVESTMENT_AUTO_DATA_DIR")
+    env = os.getenv("AI_TRADING_AUTOMATION_DATA_DIR")
     return Path(env) if env else ROOT
 ```
 
@@ -34,7 +34,7 @@ def data_root() -> Path:                            # 用户数据根
 - `ROOT / "scripts"` 保持代码根（stock-fetcher.js、macro run.js）
 - `config.yaml` 位置：默认 `data_root()/config/config.yaml`，`CONFIG_PATH` 仍可覆盖；`market/*.yaml` 首次从代码根模板拷到数据目录，之后读写数据目录
 - `.env` 位置：`data_root()/.env`（开发模式 = ROOT/.env 不变）
-- **开发模式零改动**：不设 `INVESTMENT_AUTO_DATA_DIR` 时 `data_root()==ROOT`，D:\investment-auto 直接跑行为完全不变
+- **开发模式零改动**：不设 `AI_TRADING_AUTOMATION_DATA_DIR` 时 `data_root()==ROOT`，D:\ai-trading-automation 直接跑行为完全不变
 
 ### B. 进程模型 —— P0/P1
 
@@ -70,7 +70,7 @@ def data_root() -> Path:                            # 用户数据根
 
 - 窗口内 WebView 加载 `setup.html`（新页面），十步：模型商/API Key 测试/快慢模型/策略/模式/市场/风控确认/webhook/初始化账户/启动
 - API Key 用 **DPAPI**（`CryptProtectData`，Windows 内置，ctypes 调用，无需额外依赖）加密存 `data_root()/secrets.enc`，不写安装目录、不进日志、不进 .env 明文
-- 首次检测 `D:\investment-auto` → 允许导入 config/.env/runtime/账户/报告/记忆，导入前备份，不删原目录
+- 首次检测 `D:\ai-trading-automation` → 允许导入 config/.env/runtime/账户/报告/记忆，导入前备份，不删原目录
 
 ## 2. 阶段计划（每阶段可回退提交 + 测试）
 
@@ -105,7 +105,7 @@ def data_root() -> Path:                            # 用户数据根
 
 | 项 | 内容 |
 |---|---|
-| 新增 | `installer/InvestmentAuto.iss`（每用户、图标、卸载保留数据、[Run] 静默 pip） |
+| 新增 | `installer/AiTradingAutomation.iss`（每用户、图标、卸载保留数据、[Run] 静默 pip） |
 | 修改 | launcher 托盘 + 开机自启（复用现有 Run 键逻辑，改为 WPF 托盘） |
 | 测试 | ⑪桌面快捷方式启动；⑧升级保留配置/账户；⑦旧 D 盘数据迁移；⑨ API Key 不进日志/安装目录 |
 
@@ -122,13 +122,13 @@ def data_root() -> Path:                            # 用户数据根
 
 | 项 | 内容 |
 |---|---|
-| 新增 | 中英文安装文档、CHANGELOG、`InvestmentAuto-Setup-x64.exe` + `Portable-x64.zip` + SHA-256 |
+| 新增 | 中英文安装文档、CHANGELOG、`AiTradingAutomation-Setup-x64.exe` + `Portable-x64.zip` + SHA-256 |
 | 验证 | 干净 Win10/11 x64 VM 全流程：安装→向导→桌面窗口→模拟分析→报告→托盘→重启→自动恢复→卸载 |
 | 回归 | ⑭现有 Python 全量测试全部通过；开发启动方式 `python -m src.main run/chat`、Docker 不变 |
 
 ## 3. 预计修改/新增文件清单
 
-**新增（约 20 个）**：`src/paths.py`、`src/secret_store.py`、`src/ui/setup.html`、`windows/desktop/`（WPF 项目 ~8 文件）、`installer/InvestmentAuto.iss`、`scripts/build-desktop.ps1`、`scripts/fetch-embeddable-runtime.ps1`、`scripts/bundle-runtime.ps1`、文档 ×2。
+**新增（约 20 个）**：`src/paths.py`、`src/secret_store.py`、`src/ui/setup.html`、`windows/desktop/`（WPF 项目 ~8 文件）、`installer/AiTradingAutomation.iss`、`scripts/build-desktop.ps1`、`scripts/fetch-embeddable-runtime.ps1`、`scripts/bundle-runtime.ps1`、文档 ×2。
 
 **修改（约 30 个）**：`src/config.py`、`src/main.py` + ~25 个 `ROOT/"runtime"` 模块（改为 `paths.data_root()`）；`scripts/build-windows-release.ps1`（保留旧链直到验收）。
 
@@ -146,7 +146,7 @@ def data_root() -> Path:                            # 用户数据根
 
 ## 5. 验收门槛
 
-全部 14 项测试通过 + 干净 VM 全流程通过，才生成正式 `InvestmentAuto-Setup-x64.exe`。旧 `InvestmentAuto.exe` 与 build-windows-release.ps1 保留到新版验收，GitHub 现有 EXE Release 不动。
+全部 14 项测试通过 + 干净 VM 全流程通过，才生成正式 `AiTradingAutomation-Setup-x64.exe`。旧 `AiTradingAutomation.exe` 与 build-windows-release.ps1 保留到新版验收，GitHub 现有 EXE Release 不动。
 
 ## 6. 验收状态矩阵（2026-08-15，随开发持续更新）
 
@@ -169,7 +169,7 @@ def data_root() -> Path:                            # 用户数据根
 | ⑮ | 现有 Python 全量测试通过 | 252 项 × .venv + 捆绑运行时 | ✅ 自动化 |
 
 - 一键门禁：`scripts\release-check.ps1`（C# 18 项 + .venv 261 + 捆绑 261 + 升级保数据 + 哈希清单；失败退出码 1 已实测）
-- 首次向导端到端（2026-08-17 验收修复后实测）：检测 D:\investment-auto ✓；模型下拉数据 ✓；
+- 首次向导端到端（2026-08-17 验收修复后实测）：检测 D:\ai-trading-automation ✓；模型下拉数据 ✓；
   模型/策略/模式/市场写入经深合并 ✓；portfolio.json 实际创建 ✓；向导完成前不启动投资
   Agent、完成后 5 秒内自动启动 ✓（HTTP 全链路模拟，见 `tests/test_setup_flow.py` 9 项）
 - 剩余：⑤⑩ 交互/干净环境项在 Win10/11 VM 验收（清单见 docs/DESKTOP_USAGE.md 第五节）；

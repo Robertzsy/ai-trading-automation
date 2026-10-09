@@ -2,7 +2,7 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace InvestmentAuto.Desktop.Services;
+namespace AiTradingAutomation.Desktop.Services;
 
 /// <summary>System tray icon with the full management menu.</summary>
 internal sealed class TrayIcon : IDisposable
@@ -41,7 +41,7 @@ internal sealed class TrayIcon : IDisposable
 
         _icon = new NotifyIcon
         {
-            Text = "Investment Auto - AI 自主模拟投资",
+            Text = "AI Trading Automation - AI 自主模拟投资",
             Icon = SystemIcons.Application,
             ContextMenuStrip = menu,
             Visible = true,
@@ -51,21 +51,21 @@ internal sealed class TrayIcon : IDisposable
 
     public void ShowMinimizedBalloon()
     {
-        _icon.BalloonTipTitle = "Investment Auto";
+        _icon.BalloonTipTitle = "AI Trading Automation";
         _icon.BalloonTipText = "已最小化到托盘，后台自动投资继续运行。";
         _icon.ShowBalloonTip(2500);
     }
 
     public void ShowAutoStartBalloon(bool enabled)
     {
-        _icon.BalloonTipTitle = "Investment Auto";
+        _icon.BalloonTipTitle = "AI Trading Automation";
         _icon.BalloonTipText = enabled ? "已开启开机自启。" : "已关闭开机自启。";
         _icon.ShowBalloonTip(2500);
     }
 
     public void ShowErrorBalloon(string message)
     {
-        _icon.BalloonTipTitle = "Investment Auto";
+        _icon.BalloonTipTitle = "AI Trading Automation";
         _icon.BalloonTipText = message;
         _icon.ShowBalloonTip(4000);
     }

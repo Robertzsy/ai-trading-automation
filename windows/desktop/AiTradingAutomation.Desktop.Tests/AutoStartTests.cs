@@ -1,15 +1,15 @@
-using InvestmentAuto.Desktop.Services;
+using AiTradingAutomation.Desktop.Services;
 using Microsoft.Win32;
 using Xunit;
 
-namespace InvestmentAuto.Desktop.Tests;
+namespace AiTradingAutomation.Desktop.Tests;
 
 /// <summary>Autostart toggle: HKCU Run key round-trip, non-destructive to any
 /// pre-existing value (e.g. the legacy project's own entry).</summary>
 public class AutoStartTests : IDisposable
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
-    private const string ValueName = "InvestmentAuto";
+    private const string ValueName = "AiTradingAutomation";
     private readonly string? _original;
 
     public AutoStartTests()
@@ -32,12 +32,12 @@ public class AutoStartTests : IDisposable
         AutoStart.Disable();
         Assert.False(AutoStart.IsEnabled());
 
-        AutoStart.Enable(@"C:\Temp\App\InvestmentAuto.Desktop.exe", @"C:\Temp\App", @"C:\Temp\Data");
+        AutoStart.Enable(@"C:\Temp\App\AiTradingAutomation.Desktop.exe", @"C:\Temp\App", @"C:\Temp\Data");
         Assert.True(AutoStart.IsEnabled());
 
         using var key = Registry.CurrentUser.OpenSubKey(RunKeyPath);
         var command = Assert.IsType<string>(key?.GetValue(ValueName));
-        Assert.Contains("InvestmentAuto.Desktop.exe", command);
+        Assert.Contains("AiTradingAutomation.Desktop.exe", command);
         Assert.Contains("--app-root", command);
         Assert.Contains("--data-root", command);
         Assert.Contains("--autostart", command);
@@ -60,7 +60,7 @@ public class AutoStartTests : IDisposable
         // The legacy project reused the same Run-key value name with a
         // different command line; that must not read as our autostart.
         using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath);
-        key.SetValue(ValueName, "\"D:\\old\\InvestmentAuto.exe\" --start --minimized");
+        key.SetValue(ValueName, "\"D:\\old\\AiTradingAutomation.exe\" --start --minimized");
 
         Assert.False(AutoStart.IsEnabled());
     }

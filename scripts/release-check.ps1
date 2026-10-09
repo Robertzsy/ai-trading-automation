@@ -6,7 +6,7 @@ param(
     [switch]$SkipDotNet,
     [switch]$SkipWeb,
     [string]$WebUrl = "http://127.0.0.1:4567",
-    [string]$Installer = "release\InvestmentAuto-Setup-x64.exe"
+    [string]$Installer = "release\AiTradingAutomation-Setup-x64.exe"
 )
 
 # Release-candidate gate (P5): runs every automated acceptance check and
@@ -76,7 +76,7 @@ if ($SkipDotNet) {
         if (Test-Path $candidate) { $dotnet = $candidate; break }
     }
     Run-Step "C# desktop tests (dotnet test)" {
-        & $dotnet test "windows\desktop\InvestmentAuto.Desktop.Tests\InvestmentAuto.Desktop.Tests.csproj" -c Release --nologo | Out-Null
+        & $dotnet test "windows\desktop\AiTradingAutomation.Desktop.Tests\AiTradingAutomation.Desktop.Tests.csproj" -c Release --nologo | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "dotnet test exit code $LASTEXITCODE" }
     }
 }

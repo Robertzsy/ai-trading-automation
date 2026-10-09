@@ -1,5 +1,5 @@
 """Engine-unit tests kept from the 1.x suite: mandate overlays, hard risk caps,
-and delayed-outcome investment memory (Investment Auto 2.0 engine plane)."""
+and delayed-outcome investment memory (AI Trading Automation 2.0 engine plane)."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta

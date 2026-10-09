@@ -1,7 +1,7 @@
 param(
-    [string]$Installer = "release\InvestmentAuto-Setup-x64.exe",
+    [string]$Installer = "release\AiTradingAutomation-Setup-x64.exe",
     [string]$AppDir = "$env:LOCALAPPDATA\Programs\InvestmentAuto",
-    [string]$DataDir = "$env:LOCALAPPDATA\InvestmentAuto"
+    [string]$DataDir = "$env:LOCALAPPDATA\AiTradingAutomation"
 )
 
 # Upgrade-preserves-data acceptance check (desktop requirement #8):
@@ -34,8 +34,8 @@ $before = Get-Snapshot $DataDir
 "   files: $($before.Count)"
 
 "== Snapshot program dir ($AppDir)"
-$exePath = Join-Path $AppDir "InvestmentAuto.Desktop.exe"
-$dllPath = Join-Path $AppDir "InvestmentAuto.Desktop.dll"
+$exePath = Join-Path $AppDir "AiTradingAutomation.Desktop.exe"
+$dllPath = Join-Path $AppDir "AiTradingAutomation.Desktop.dll"
 $exeBefore = if (Test-Path $exePath) { (Get-FileHash $exePath -Algorithm SHA256).Hash } else { $null }
 $dllBefore = if (Test-Path $dllPath) { (Get-FileHash $dllPath -Algorithm SHA256).Hash } else { $null }
 "   exe hash: $exeBefore"
@@ -76,7 +76,7 @@ if ($exeBefore -and $dllBefore -and $exeAfter -eq $exeBefore -and $dllAfter -eq 
 
 # Cross-check against the publish output: the installer must carry what the
 # build pipeline just produced (catches a stale installer).
-$pubDll = Join-Path $projectRoot "windows\desktop\bin\Release\net8.0-windows\win-x64\publish\InvestmentAuto.Desktop.dll"
+$pubDll = Join-Path $projectRoot "windows\desktop\bin\Release\net8.0-windows\win-x64\publish\AiTradingAutomation.Desktop.dll"
 if (Test-Path $pubDll) {
     $pubDllHash = (Get-FileHash $pubDll -Algorithm SHA256).Hash
     if ($dllAfter -ne $pubDllHash) {

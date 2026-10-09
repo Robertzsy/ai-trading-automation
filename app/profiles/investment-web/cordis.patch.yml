@@ -1,4 +1,4 @@
-# Investment Auto 2.0 — web profile patch layer.
+# AI Trading Automation 2.0 — web profile patch layer.
 #
 # Applied over the bundle layers (dsh-base then dsh-web-app), before the
 # home-level $DSH_HOME/cordis.patch.yml and any --patch overlays.
@@ -11,7 +11,7 @@
 - id: system-prompt
   config:
     persona: >-
-      You are Investment Auto 2.1, a professional multi-market investment
+      You are AI Trading Automation 2.1, a professional multi-market investment
       assistant powered by the {{model}} model. Your working directory is
       {{cwd}}. Deep or complete analysis of specific securities always runs
       through the fixed workflow investment_analysis_workflow (user symbols
@@ -53,7 +53,7 @@
 # INVESTMENT_ENGINE_URL environment variable.
 - insert:
     - id: investment-tools
-      name: '@investment-auto/dsh-investment-tools'
+      name: '@ai-trading-automation/dsh-investment-tools'
       config:
         engineUrl: 'http://127.0.0.1:8790'
 
@@ -64,13 +64,13 @@
 # node half scans this row into window.__DSH_BOOT__ and serves its client.js.
 - insert:
     - id: investment-ui
-      name: '@investment-auto/dsh-investment-ui'
+      name: '@ai-trading-automation/dsh-investment-ui'
 
 # ── product shell: replace the DSH default frame ────────────────────────────
 #
-# The product ships as Investment Auto, not as a DSH interface: the layout /
+# The product ships as AI Trading Automation, not as a DSH interface: the layout /
 # sidebar / workspace / mode-preset / plugin surfaces are disabled and the
-# @investment-auto/dsh-product-shell plugin takes over the `root` slot with
+# @ai-trading-automation/dsh-product-shell plugin takes over the `root` slot with
 # the product left navigation (Dashboard / 投资助手 / 分析流程 / 设置), a flat
 # session list, investment context, and the product settings shell. The conversation kernel
 # (ui-conversation) and every thinking/streaming/tool-chain component are
@@ -121,4 +121,4 @@
 # half: fixed workspace + /api/investment/* engine proxy).
 - insert:
     - id: product-shell
-      name: '@investment-auto/dsh-product-shell'
+      name: '@ai-trading-automation/dsh-product-shell'

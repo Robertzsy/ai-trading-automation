@@ -1,17 +1,17 @@
 ---
 name: self-maintenance
-description: 检查并维护 Investment Auto 自身，包括读取运行日志和源码、定位确定性故障、修改源码与配置、运行测试、构建更新、恢复失败任务，以及迭代提示词、Skills 和固定工作流。
+description: 检查并维护 AI Trading Automation 自身，包括读取运行日志和源码、定位确定性故障、修改源码与配置、运行测试、构建更新、恢复失败任务，以及迭代提示词、Skills 和固定工作流。
 whenToUse: 产品自身报错、既定流程被代码缺陷阻断，或用户要求修复、更新、升级、重构、自我改进时加载。
 ---
 
-# Investment Auto 自维护
+# AI Trading Automation 自维护
 
 你拥有 DSH 的文件、搜索、PowerShell、后台任务、子代理和工作流能力，并运行在 `danger-full-access` 权限模式。维护目标是让当前用户请求真正恢复，而不是只给出诊断报告。
 
 ## 工作位置
 
-- `INVESTMENT_AUTO_ROOT` 是权威产品根目录；源码修改、测试和构建都从这里开始。
-- `INVESTMENT_AUTO_APP_DIR` 指向 DSH 应用层；`DSH_HOME` 是运行数据与播种副本，不是产品源码。
+- `AI_TRADING_AUTOMATION_ROOT` 是权威产品根目录；源码修改、测试和构建都从这里开始。
+- `AI_TRADING_AUTOMATION_APP_DIR` 指向 DSH 应用层；`DSH_HOME` 是运行数据与播种副本，不是产品源码。
 - 日志和轮次记录位于用户数据根的 `runtime/`。可以读取它们定位问题，但不得把密钥、凭据或完整用户数据写入报告。
 
 ## 修复与恢复

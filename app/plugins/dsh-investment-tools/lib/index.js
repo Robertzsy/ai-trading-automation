@@ -1,5 +1,5 @@
 /**
- * Investment Auto 2.0 engine bridge tools.
+ * AI Trading Automation 2.0 engine bridge tools.
  *
  * Registers the investment tool surface on `ctx.tools`:
  *   - read-only facts: status, portfolio, market data, screening, optimizer,
@@ -10,7 +10,7 @@
  *
  * The full analysis cycle has exactly ONE model-facing entry —
  * investment_analysis_workflow — registered by the companion
- * @investment-auto/dsh-investment-workflow plugin (same implementation for
+ * @ai-trading-automation/dsh-investment-workflow plugin (same implementation for
  * web sessions and headless autonomous rounds). This plugin deliberately
  * does not re-expose the legacy run_cycle command to the model.
  *
@@ -20,12 +20,12 @@
  * risk controls; the model can never bypass them here.
  *
  * Row config: { engineUrl, token } — env overrides INVESTMENT_ENGINE_URL /
- * IA_ACCESS_TOKEN.
+ * ATA_ACCESS_TOKEN.
  */
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { EngineClient } from "./engine-client.js";
 
-export const name = "@investment-auto/dsh-investment-tools";
+export const name = "@ai-trading-automation/dsh-investment-tools";
 export const inject = ["tools"];
 
 /** Permissive object result schema for free-form engine payloads. */
@@ -71,7 +71,7 @@ export function apply(ctx, config) {
   const engineUrl =
     process.env.INVESTMENT_ENGINE_URL ??
     (typeof config?.engineUrl === "string" ? config.engineUrl : "http://127.0.0.1:8790");
-  const token = process.env.IA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
+  const token = process.env.ATA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
   const client = new EngineClient(engineUrl, token);
 
   registerTool(

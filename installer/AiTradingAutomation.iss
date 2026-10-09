@@ -1,10 +1,10 @@
-; Investment Auto 2.1 desktop installer (per-user, no admin, no PowerShell at runtime)
-; Build: ISCC.exe installer\InvestmentAuto.iss
+; AI Trading Automation 2.1 desktop installer (per-user, no admin, no PowerShell at runtime)
+; Build: ISCC.exe installer\AiTradingAutomation.iss
 
-#define MyAppName "Investment Auto"
-#define MyAppVersion "2.1.5"
-#define MyAppExeName "InvestmentAuto.Desktop.exe"
-#define MyAppPublisher "Investment Auto Contributors"
+#define MyAppName "AI Trading Automation"
+#define MyAppVersion "2.2.0"
+#define MyAppExeName "AiTradingAutomation.Desktop.exe"
+#define MyAppPublisher "AI Trading Automation Contributors"
 
 [Setup]
 AppId={{B4E0A1F6-7C3E-4A8B-9D12-5F6E7A8B9C0D}
@@ -17,11 +17,11 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\release
-OutputBaseFilename=InvestmentAuto-Setup-x64
+OutputBaseFilename=AiTradingAutomation-Setup-x64
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=..\windows\desktop\InvestmentAuto.ico
+SetupIconFile=..\windows\desktop\AiTradingAutomation.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible

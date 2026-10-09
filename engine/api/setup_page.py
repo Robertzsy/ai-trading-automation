@@ -9,7 +9,7 @@ SETUP_PAGE_HTML = """<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>Investment Auto 2.1 — 首次配置</title>
+<title>AI Trading Automation 2.1 — 首次配置</title>
 <style>
   body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #0f1420; color: #e8ecf4;
          display: flex; justify-content: center; padding: 40px 16px; margin: 0; }
@@ -34,7 +34,7 @@ SETUP_PAGE_HTML = """<!doctype html>
 </head>
 <body>
 <div class="card">
-  <h1>Investment Auto <span class="v2">2.1</span></h1>
+  <h1>AI Trading Automation <span class="v2">2.1</span></h1>
   <p class="sub">多市场模拟投资助手 · 首次配置</p>
   <ul>
     <li>初始化四个市场（A股/港股/美股/ETF）的模拟账户，每账户 500,000 初始资金。</li>
@@ -43,7 +43,7 @@ SETUP_PAGE_HTML = """<!doctype html>
     <li>完成配置前不会启动任何自动投资轮次。</li>
   </ul>
   <label for="importFrom">旧版数据目录（可选，留空跳过）</label>
-  <input type="text" id="importFrom" placeholder="D:\\investment-auto（自动检测，也可手动填写）">
+  <input type="text" id="importFrom" placeholder="D:\\ai-trading-automation（自动检测，也可手动填写）">
   <div class="hint">检测到旧版项目时会自动填入；数据只复制、不删除。</div>
   <button id="finish">完成初始化</button>
   <div class="status" id="status"></div>
@@ -52,7 +52,7 @@ SETUP_PAGE_HTML = """<!doctype html>
   const params = new URLSearchParams(location.search);
   const token = params.get("token") || "";
   const headers = { "Content-Type": "application/json" };
-  if (token) headers["X-IA-Token"] = token;
+  if (token) headers["X-ATA-Token"] = token;
 
   async function detectLegacy() {
     try {

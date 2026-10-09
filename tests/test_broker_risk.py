@@ -1,6 +1,6 @@
 """Engine-unit tests kept from the 1.x suite: hard risk controls, the paper
 broker (T+1, fills, persistence, fail-safe mode checks) and trading controls
-(Investment Auto 2.0 engine plane — the non-bypassable execution boundary)."""
+(AI Trading Automation 2.0 engine plane — the non-bypassable execution boundary)."""
 from __future__ import annotations
 
 import json

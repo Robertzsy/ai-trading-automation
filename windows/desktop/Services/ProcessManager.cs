@@ -10,7 +10,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace InvestmentAuto.Desktop.Services;
+namespace AiTradingAutomation.Desktop.Services;
 
 /// <summary>
 /// Owns the 2.0 background processes and their lifecycle:
@@ -40,12 +40,16 @@ internal sealed class ProcessManager : IDisposable
     {
         _appRoot = appRoot ?? AppDomain.CurrentDomain.BaseDirectory;
         _dataRoot = dataRoot
+            ?? Environment.GetEnvironmentVariable("AI_TRADING_AUTOMATION_DATA_DIR")
             ?? Environment.GetEnvironmentVariable("INVESTMENT_AUTO_DATA_DIR")
             ?? _appRoot;
         _pythonW = LocatePythonW(_appRoot);
         _node = LocateNode(_appRoot);
-        _token = Environment.GetEnvironmentVariable("IA_ACCESS_TOKEN")
+        _token = Environment.GetEnvironmentVariable("ATA_ACCESS_TOKEN")
+            ?? Environment.GetEnvironmentVariable("IA_ACCESS_TOKEN")
             ?? Convert.ToBase64String(Guid.NewGuid().ToByteArray()).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        Environment.SetEnvironmentVariable("ATA_ACCESS_TOKEN", _token);
+        // Legacy alias: keep readers that still look up the pre-rename name working.
         Environment.SetEnvironmentVariable("IA_ACCESS_TOKEN", _token);
         Log($"init: appRoot={_appRoot} dataRoot={_dataRoot} python={_pythonW} node={_node}");
     }
@@ -174,11 +178,13 @@ internal sealed class ProcessManager : IDisposable
         {
             ["PYTHONUTF8"] = "1",
             ["PYTHONNOUSERSITE"] = "1",
-            ["INVESTMENT_AUTO_DATA_DIR"] = _dataRoot,
-            ["INVESTMENT_AUTO_ROOT"] = _appRoot,
-            ["INVESTMENT_AUTO_APP_DIR"] = Path.Combine(_appRoot, "app"),
+            ["AI_TRADING_AUTOMATION_DATA_DIR"] = _dataRoot,
+            ["INVESTMENT_AUTO_DATA_DIR"] = _dataRoot,          // legacy alias
+            ["AI_TRADING_AUTOMATION_ROOT"] = _appRoot,
+            ["AI_TRADING_AUTOMATION_APP_DIR"] = Path.Combine(_appRoot, "app"),
             ["INVESTMENT_API_PORT"] = _enginePort.ToString(),
-            ["IA_ACCESS_TOKEN"] = _token,
+            ["ATA_ACCESS_TOKEN"] = _token,
+            ["IA_ACCESS_TOKEN"] = _token,                       // legacy alias
             ["DSH_HOME"] = _dataRoot,
             ["DSH_PERMISSION_MODE"] = "danger-full-access",
         };
@@ -243,9 +249,11 @@ internal sealed class ProcessManager : IDisposable
         info.Environment["DSH_HOME"] = _dataRoot;
         info.Environment["DSH_TELEMETRY_DISABLED"] = "1";
         info.Environment["DSH_PERMISSION_MODE"] = "danger-full-access";
-        info.Environment["IA_ACCESS_TOKEN"] = _token;
-        info.Environment["INVESTMENT_AUTO_ROOT"] = _appRoot;
-        info.Environment["INVESTMENT_AUTO_APP_DIR"] = Path.Combine(_appRoot, "app");
+        info.Environment["ATA_ACCESS_TOKEN"] = _token;
+        info.Environment["IA_ACCESS_TOKEN"] = _token;                 // legacy alias
+        info.Environment["AI_TRADING_AUTOMATION_ROOT"] = _appRoot;
+        info.Environment["AI_TRADING_AUTOMATION_APP_DIR"] = Path.Combine(_appRoot, "app");
+        info.Environment["INVESTMENT_AUTO_APP_DIR"] = Path.Combine(_appRoot, "app");  // legacy alias
         info.Environment["INVESTMENT_ENGINE_URL"] = EngineUrl;
         info.Environment["INVESTMENT_ENGINE_APP_DIR"] = Path.Combine(_appRoot, "app");
         var nodeDir = Path.GetDirectoryName(_node);
@@ -356,7 +364,7 @@ internal sealed class ProcessManager : IDisposable
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
             using var request = new HttpRequestMessage(HttpMethod.Get, EngineUrl + "/api/status");
-            request.Headers.Add("X-IA-Token", _token);
+            request.Headers.Add("X-ATA-Token", _token);
             var response = await client.SendAsync(request);
             if (response.IsSuccessStatusCode)
             {

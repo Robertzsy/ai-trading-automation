@@ -1,11 +1,11 @@
 [project]
-name = "investment-auto"
-version = "2.1.5"  # keep in sync with engine/version.py
+name = "ai-trading-automation"
+version = "2.2.0"  # keep in sync with engine/version.py
 description = "Multi-market paper-trading investment automation with multi-agent research and portfolio optimization"
 requires-python = ">=3.10"
 readme = "README.md"
 license = {text = "MIT"}
-authors = [{name = "Investment Auto Contributors"}]
+authors = [{name = "AI Trading Automation Contributors"}]
 dependencies = [
   "requests>=2.32.0",
   "PyYAML>=6.0.2",
@@ -21,7 +21,7 @@ dependencies = [
 ]
 
 [project.scripts]
-investment-auto = "engine.main:main"
+ai-trading-automation = "engine.main:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

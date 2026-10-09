@@ -38,8 +38,8 @@ test("cancelled collection does not swallow the cancellation as a data gap", asy
 });
 
 test("real Cordis-loaded workflow collects shared news through the optional service", async () => {
-  const previous = process.env.IA_AUTONOMOUS_ROUND;
-  process.env.IA_AUTONOMOUS_ROUND = "1";
+  const previous = process.env.ATA_AUTONOMOUS_ROUND;
+  process.env.ATA_AUTONOMOUS_ROUND = "1";
   const root = new Context(), tools = [], searches = [];
   let stageArgs;
   root.provide("tools", { register(tool) { tools.push(tool); } });
@@ -67,7 +67,7 @@ test("real Cordis-loaded workflow collects shared news through the optional serv
   } finally {
     await root.fiber.dispose();
     await new Promise(resolve => server.close(resolve));
-    if (previous === undefined) delete process.env.IA_AUTONOMOUS_ROUND; else process.env.IA_AUTONOMOUS_ROUND = previous;
+    if (previous === undefined) delete process.env.ATA_AUTONOMOUS_ROUND; else process.env.ATA_AUTONOMOUS_ROUND = previous;
   }
 });
 

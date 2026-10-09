@@ -31,7 +31,7 @@ from typing import Any, Dict, Mapping, Optional
 from engine import analysis_runs
 from engine.runtime_lock import AtomicClaim
 
-logger = logging.getLogger("investment-auto.analysis-rounds")
+logger = logging.getLogger("ai-trading-automation.analysis-rounds")
 
 _MARKETS = {"cn", "hk", "us", "etf"}
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$")

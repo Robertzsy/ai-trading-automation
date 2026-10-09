@@ -26,7 +26,7 @@ from engine.atomic_write import write_text_atomic
 from engine.config import cfg
 from engine.paths import runtime_dir
 
-logger = logging.getLogger("investment-auto.decisions")
+logger = logging.getLogger("ai-trading-automation.decisions")
 AUDIT_DIR = runtime_dir() / "trading" / "audit"
 IDEMPOTENCY_DIR = runtime_dir() / "trading" / "idempotency"
 _idempotency_lock = threading.RLock()

@@ -1,6 +1,6 @@
 """Screening preview helper: the command surface behind ``RUN_SCREENING``.
 
-Investment Auto 2.0 keeps the deterministic screening engine and exposes it
+AI Trading Automation 2.0 keeps the deterministic screening engine and exposes it
 as one small, dependency-light entry point used by the CLI, the HTTP command
 API, and the DSH tools bridge.
 """

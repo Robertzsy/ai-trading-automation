@@ -10,7 +10,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
-DST = r"C:\Users\zheng siyuan\Desktop\Investment Auto 2.1.3 核心投资逻辑与商业价值.docx"
+DST = r"C:\Users\zheng siyuan\Desktop\AI Trading Automation 2.1.3 核心投资逻辑与商业价值.docx"
 
 TEAL = "10272B"
 NAVY = "1F3864"
@@ -162,7 +162,7 @@ def main():
     tp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     tp.paragraph_format.space_after = Pt(0)
     shade_par(tp, TEAL)
-    r = tp.add_run("\nInvestment Auto 2.1.3")
+    r = tp.add_run("\nAI Trading Automation 2.1.3")
     r.bold = True
     r.font.size = Pt(21)
     r.font.color.rgb = WHITE

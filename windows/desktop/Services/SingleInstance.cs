@@ -2,7 +2,7 @@ using System;
 using System.IO.Pipes;
 using System.Threading;
 
-namespace InvestmentAuto.Desktop.Services;
+namespace AiTradingAutomation.Desktop.Services;
 
 /// <summary>
 /// Single-instance guard.  A second launch signals the running instance
@@ -10,8 +10,8 @@ namespace InvestmentAuto.Desktop.Services;
 /// </summary>
 internal static class SingleInstance
 {
-    internal const string MutexName = "InvestmentAuto.Desktop.Singleton";
-    internal const string PipeName = "InvestmentAuto.Desktop.Pipe";
+    internal const string MutexName = "AiTradingAutomation.Desktop.Singleton";
+    internal const string PipeName = "AiTradingAutomation.Desktop.Pipe";
 
     public static bool TryAcquire(out Mutex mutex)
         => TryAcquire(MutexName, out mutex);

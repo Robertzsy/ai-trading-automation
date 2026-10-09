@@ -26,7 +26,7 @@ param(
 #     changed. Dependency versions (including ms@2.1.3) remain untouched.
 #   * Files are round-tripped byte-for-byte through UTF-8 with their original
 #     BOM state preserved; PowerShell's default ANSI encoding would mangle the
-#     Chinese text in InvestmentAuto.iss and app/package.json.
+#     Chinese text in AiTradingAutomation.iss and app/package.json.
 
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -62,18 +62,18 @@ $declarations = @(
     [pscustomobject]@{ Path = "pyproject.toml"
                        Pattern = '(?m)^version\s*=\s*"([^"]+)"' }
     # 3. Inno Setup installer
-    [pscustomobject]@{ Path = "installer/InvestmentAuto.iss"
+    [pscustomobject]@{ Path = "installer/AiTradingAutomation.iss"
                        Pattern = '(?m)^#define\s+MyAppVersion\s+"([^"]+)"' }
     # 4. portable-archive builder default
     [pscustomobject]@{ Path = "scripts/build-windows-release.ps1"
                        Pattern = '(?m)^\s*\[string\]\$Version\s*=\s*"([^"]+)"' }
     # 5-7. desktop shell assembly metadata (Version is 3-part, the other two 4-part)
-    [pscustomobject]@{ Path = "windows/desktop/InvestmentAuto.Desktop.csproj"
+    [pscustomobject]@{ Path = "windows/desktop/AiTradingAutomation.Desktop.csproj"
                        Pattern = '(?m)^\s*<Version>([^<]+)</Version>' }
-    [pscustomobject]@{ Path = "windows/desktop/InvestmentAuto.Desktop.csproj"
+    [pscustomobject]@{ Path = "windows/desktop/AiTradingAutomation.Desktop.csproj"
                        Pattern = '(?m)^\s*<AssemblyVersion>([^<]+)</AssemblyVersion>'
                        Assembly = $true }
-    [pscustomobject]@{ Path = "windows/desktop/InvestmentAuto.Desktop.csproj"
+    [pscustomobject]@{ Path = "windows/desktop/AiTradingAutomation.Desktop.csproj"
                        Pattern = '(?m)^\s*<FileVersion>([^<]+)</FileVersion>'
                        Assembly = $true }
     # 8. DSH app shell
@@ -116,7 +116,7 @@ if ($Version -notmatch '^\d+\.\d+\.\d+(-[0-9A-Za-z.]+)?$') {
 $numeric = ($Version -split '-')[0]
 $assembly = "$numeric.0"
 
-Write-Host "== Investment Auto version declarations"
+Write-Host "== AI Trading Automation version declarations"
 Write-Host ("   source of truth ({0}): {1}" -f $versionSource, $current)
 if ($Check) {
     Write-Host "   mode: -Check (nothing is written)"

@@ -14,11 +14,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlsplit
 
-logger = logging.getLogger("investment-auto.api")
+logger = logging.getLogger("ai-trading-automation.api")
 
 
 def _api_token() -> str:
-    return os.getenv("IA_ACCESS_TOKEN", "").strip()
+    # Accept the pre-rename variable too: a shortcut or launcher created by an
+    # older build may still export IA_ACCESS_TOKEN.
+    return (os.getenv("ATA_ACCESS_TOKEN") or os.getenv("IA_ACCESS_TOKEN") or "").strip()
 
 
 def _drain_body(handler: BaseHTTPRequestHandler, limit: int = 1_000_000) -> None:
@@ -86,7 +88,7 @@ def _latest_optimizer_file(market: str) -> Optional[Dict[str, Any]]:
 
 
 class _Handler(BaseHTTPRequestHandler):
-    server_version = "InvestmentAutoEngine/2.1"
+    server_version = "AiTradingAutomationEngine/2.1"
 
     def _send(self, status: int, payload: Any) -> None:
         body = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
@@ -125,7 +127,7 @@ class _Handler(BaseHTTPRequestHandler):
         token = _api_token()
         if not token:
             return True  # plain loopback dev mode
-        supplied = self.headers.get("X-IA-Token", "")
+        supplied = self.headers.get("X-ATA-Token") or self.headers.get("X-IA-Token") or ""
         return supplied == token
 
     def log_message(self, fmt: str, *args: Any) -> None:
@@ -146,7 +148,7 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/api/health":
             from engine.version import __version__
 
-            self._send(200, {"ok": True, "service": "investment-auto-engine", "version": __version__, "pid": os.getpid()})
+            self._send(200, {"ok": True, "service": "ai-trading-automation-engine", "version": __version__, "pid": os.getpid()})
             return
         if path == "/api/status":
             from engine.investment.status import runtime_status

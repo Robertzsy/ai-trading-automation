@@ -367,7 +367,7 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
   try {
     run = ctx.workflowEngine.start({
       script,
-      meta:{name:"investment-" + stage.replaceAll("_", "-"),description:"Investment Auto fixed " + stage + " stage",phases:[{title:{base_research:"基础研究",research_debate:"研究辩论与个股决策",portfolio_draft:"组合草案",risk_review:"风险辩论",final_decision:"最终决策"}[stage]}]},
+      meta:{name:"investment-" + stage.replaceAll("_", "-"),description:"AI Trading Automation fixed " + stage + " stage",phases:[{title:{base_research:"基础研究",research_debate:"研究辩论与个股决策",portfolio_draft:"组合草案",risk_review:"风险辩论",final_decision:"最终决策"}[stage]}]},
       args,
       parent:exec.agent,
       signal,
@@ -468,7 +468,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
   registerTool(
     ctx,
     "investment_analysis_workflow",
-    "Investment Auto 固定的多角色投资分析流程入口，是唯一可信的完整/深度分析实现。用户点名证券时把 symbols 传入（symbols_source=user），只分析这些标的、绝不混入选股池；用户要求先选股时，先用选股工具得到标准化列表，再把结果以 symbols_source=screening 传入。手动对话中本工具是启动器：返回 cycle_id 后立即用 investment_analysis_status 轮询进度，不要重复调用本工具，也不要自己用行情/新闻工具重写分析。流程固定为：四类基础研究→多空辩论→研究经理→个股交易员→组合草案→三方风险辩论→风险经理→最终组合经理，各阶段持久化并可续跑；分析只生成方案，成交必须等用户批准后用 investment_submit_decisions（带同一 idempotency_key）提交。",
+    "AI Trading Automation 固定的多角色投资分析流程入口，是唯一可信的完整/深度分析实现。用户点名证券时把 symbols 传入（symbols_source=user），只分析这些标的、绝不混入选股池；用户要求先选股时，先用选股工具得到标准化列表，再把结果以 symbols_source=screening 传入。手动对话中本工具是启动器：返回 cycle_id 后立即用 investment_analysis_status 轮询进度，不要重复调用本工具，也不要自己用行情/新闻工具重写分析。流程固定为：四类基础研究→多空辩论→研究经理→个股交易员→组合草案→三方风险辩论→风险经理→最终组合经理，各阶段持久化并可续跑；分析只生成方案，成交必须等用户批准后用 investment_submit_decisions（带同一 idempotency_key）提交。",
     {
       market:{type:"string",required:true,description:"市场代码：cn、hk、us 或 etf",default:"cn"},
       symbols:{type:"array",description:"目标证券代码列表；用户点名或选股结果。留空则只允许在自主调度轮次中由流程内部选股",items:{type:"string"}},
@@ -480,7 +480,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
     async ({market,symbols:requestedSymbols,symbols_source:requestedSource,submit=false,label="analysis",cycle_id:requestedCycleId}, exec) => {
       const normalizedMarket = String(market ?? "").trim().toLowerCase();
       if (!MARKETS.has(normalizedMarket)) throw new Error("market 必须是 cn、hk、us 或 etf");
-      const autonomous = process.env.IA_AUTONOMOUS_ROUND === "1";
+      const autonomous = process.env.ATA_AUTONOMOUS_ROUND === "1";
       if (submit && !autonomous) throw new Error("手动对话不能直接提交；请先展示方案并取得用户确认，再使用受控提交工具");
       const symbols = uniqueSymbols(Array.isArray(requestedSymbols) ? requestedSymbols : []);
       const symbolsSource = resolveSymbolsSource(requestedSource, symbols, autonomous);

@@ -1,7 +1,7 @@
 /**
- * Investment Auto product shell — node half.
+ * AI Trading Automation product shell — node half.
  *
- * 1. Ensures the single fixed Investment Auto workspace exists (the product
+ * 1. Ensures the single fixed AI Trading Automation workspace exists (the product
  *    has no workspace UI; sessions live in one workspace rooted at the
  *    harness home / user data directory).
  * 2. Serves the investment data proxy the Dashboard and settings pages use:
@@ -16,12 +16,12 @@ import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { createHistoryHandler } from "./market-history.js";
 
-export const name = "@investment-auto/dsh-product-shell";
+export const name = "@ai-trading-automation/dsh-product-shell";
 export const inject = ["webServer", "workspaceRegistry"];
 
 const engineBase = () =>
   (process.env.INVESTMENT_ENGINE_URL ?? "http://127.0.0.1:8790").replace(/\/+$/, "");
-const engineToken = () => process.env.IA_ACCESS_TOKEN ?? "";
+const engineToken = () => process.env.ATA_ACCESS_TOKEN ?? "";
 
 async function engineFetch(path, { method = "GET", body, signal } = {}) {
   const response = await fetch(engineBase() + path, {
@@ -29,7 +29,7 @@ async function engineFetch(path, { method = "GET", body, signal } = {}) {
     ...(signal ? { signal } : {}),
     headers: {
       "Content-Type": "application/json",
-      ...(engineToken() ? { "X-IA-Token": engineToken() } : {}),
+      ...(engineToken() ? { "X-ATA-Token": engineToken() } : {}),
     },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
@@ -67,9 +67,9 @@ export function apply(ctx) {
   ctx.effect(() => {
     mkdirSync(home, { recursive: true });
     ctx.workspaceRegistry
-      .create(home, "Investment Auto")
+      .create(home, "AI Trading Automation")
       .catch((error) => ctx.logger.warn("investment workspace create failed: %s", error.message));
-  }, "investment-auto: fixed workspace");
+  }, "ai-trading-automation: fixed workspace");
 
   // Long-running conversation turns (a fixed analysis round takes minutes)
   // must never be killed by Node's default 5-minute requestTimeout. The
@@ -87,7 +87,7 @@ export function apply(ctx) {
       try {
         if (server.requestTimeout > 0) {
           server.requestTimeout = 0;
-          ctx.logger.info("investment-auto: web server requestTimeout disabled (async rounds own their deadlines)");
+          ctx.logger.info("ai-trading-automation: web server requestTimeout disabled (async rounds own their deadlines)");
         }
       } catch {
         // Non-configurable or already destroyed; nothing to do.
@@ -98,7 +98,7 @@ export function apply(ctx) {
       stopped = true;
       clearInterval(timer);
     };
-  }, "investment-auto: request-timeout hardening");
+  }, "ai-trading-automation: request-timeout hardening");
 
   ctx.effect(() => {
     const historyRoute = ctx.webServer.register({
@@ -212,7 +212,7 @@ export function apply(ctx) {
 
     // ── analysis centre: manual start / progress / reports ────────────────────
     //
-    // The browser must never see the engine loopback URL or IA_ACCESS_TOKEN
+    // The browser must never see the engine loopback URL or ATA_ACCESS_TOKEN
     // (see the header comment), so every analysis call goes through these
     // proxy routes. Analysis rounds are asynchronous engine jobs, so none of
     // these requests stays open for the duration of a round.
@@ -367,5 +367,5 @@ export function apply(ctx) {
       analysisRoute();
       reportsRoute();
     };
-  }, "investment-auto: investment data proxy");
+  }, "ai-trading-automation: investment data proxy");
 }

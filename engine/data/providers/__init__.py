@@ -63,7 +63,7 @@ __all__ = [
     "SymbolNotSupported",
 ]
 
-logger = logging.getLogger("investment-auto.data.providers")
+logger = logging.getLogger("ai-trading-automation.data.providers")
 
 #: Absolute floor so a tier is never given an unusable slice of the budget.
 _TIER_FLOOR_SECONDS = 3.0

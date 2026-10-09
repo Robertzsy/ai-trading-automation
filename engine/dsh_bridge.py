@@ -28,7 +28,7 @@ from typing import Any, Dict, Mapping, Optional, Sequence
 from engine.config import cfg
 from engine.paths import APP_ROOT, runtime_dir
 
-logger = logging.getLogger("investment-auto.dsh-bridge")
+logger = logging.getLogger("ai-trading-automation.dsh-bridge")
 
 AUDIT_DIR = runtime_dir() / "trading" / "audit"
 _MAX_REPORT_CHARS = 20000
@@ -39,7 +39,9 @@ def _bridge_config() -> Dict[str, Any]:
 
 
 def _resolve_app_dir() -> Optional[Path]:
-    configured = os.getenv("INVESTMENT_AUTO_APP_DIR", "") or str(_bridge_config().get("app_dir", "") or "")
+    configured = (
+        os.getenv("AI_TRADING_AUTOMATION_APP_DIR") or os.getenv("INVESTMENT_AUTO_APP_DIR") or ""
+    ) or str(_bridge_config().get("app_dir", "") or "")
     if configured:
         path = Path(configured)
         if not path.is_absolute():
@@ -50,7 +52,7 @@ def _resolve_app_dir() -> Optional[Path]:
 
 
 def _is_product_data_home(path: Path) -> bool:
-    """Whether this directory is Investment Auto's own DSH data root.
+    """Whether this directory is AI Trading Automation's own DSH data root.
 
     The marker is ``settings.yaml`` at the root: the product writes it, and a
     DSH installation belonging to some *other* project does not have it (that
@@ -85,7 +87,7 @@ def _resolve_dsh_home(app_dir: Path) -> str:
       1. ``autonomous.dsh_bridge.dsh_home`` — explicit product configuration.
       2. ``DSH_HOME`` — when it points at a home this product owns (this is how
          the packaged desktop shell drives the engine).
-      3. ``%LOCALAPPDATA%\\InvestmentAuto`` — the installed data root.
+      3. ``%LOCALAPPDATA%\\AiTradingAutomation`` — the installed data root.
       4. ``<app>/dev-home`` — the in-repo development home.
     """
     configured = str(_bridge_config().get("dsh_home", "") or "")
@@ -103,7 +105,7 @@ def _resolve_dsh_home(app_dir: Path) -> str:
 
     local_app_data = os.getenv("LOCALAPPDATA", "").strip()
     if local_app_data:
-        installed = Path(local_app_data) / "InvestmentAuto"
+        installed = Path(local_app_data) / "AiTradingAutomation"
         if _is_product_data_home(installed):
             return str(installed)
 
@@ -117,7 +119,7 @@ def _round_task(market: str, cycle_type: str, context: Mapping[str, Any]) -> str
     schedule_text = scheduled_at.isoformat(timespec="minutes") if isinstance(scheduled_at, datetime) else str(scheduled_at or "")
     kind = "收盘复盘轮次" if cycle_type == "close" else "盘中轮次"
     return (
-        f"你在执行 Investment Auto 2.1 的 {market.upper()} 市场{kind}（计划时间 {schedule_text}，"
+        f"你在执行 AI Trading Automation 2.1 的 {market.upper()} 市场{kind}（计划时间 {schedule_text}，"
         f"{'启动补跑' if catch_up else '准时运行'}）。\n\n"
         f"这是自主调度轮次。必须调用一次 investment_analysis_workflow(market=\"{market}\", "
         f"label=\"{context.get('label', 'auto')}\", submit=true)，由固定工作流完成四类基础研究、多空辩论、"
@@ -158,7 +160,7 @@ def _analysis_task(
     else:
         scope_text = "本轮未指定标的，由固定工作流内部执行选股（最新选股缓存 + 持仓）确定目标。"
     return (
-        f"你在执行 Investment Auto 2.1 的 {market.upper()} 市场固定投资分析流程"
+        f"你在执行 AI Trading Automation 2.1 的 {market.upper()} 市场固定投资分析流程"
         f"（轮次 id {cycle_id}，标签 {label}）。\n\n"
         f"必须调用一次 investment_analysis_workflow(market=\"{market}\", "
         f"{'symbols=' + symbol_list_json + ', ' if symbols else ''}"
@@ -186,13 +188,18 @@ def _uses_file_credentials(app_dir: Path, home: str) -> bool:
     still need DPAPI when the token is absent. The desktop data-directory
     marker and installed home take precedence over any leftover plaintext file.
     """
-    if os.getenv("IA_ACCESS_TOKEN", "").strip() or os.getenv("INVESTMENT_AUTO_DATA_DIR", "").strip():
+    if (
+        os.getenv("ATA_ACCESS_TOKEN", "").strip()
+        or os.getenv("IA_ACCESS_TOKEN", "").strip()
+        or os.getenv("AI_TRADING_AUTOMATION_DATA_DIR", "").strip()
+        or os.getenv("INVESTMENT_AUTO_DATA_DIR", "").strip()
+    ):
         return False
     if not home:
         return False
     main_home = Path(home).resolve()
     local_app_data = os.getenv("LOCALAPPDATA", "").strip()
-    if local_app_data and main_home == (Path(local_app_data) / "InvestmentAuto").resolve():
+    if local_app_data and main_home == (Path(local_app_data) / "AiTradingAutomation").resolve():
         return False
     return main_home == (app_dir / "dev-home").resolve() or (main_home / ".credentials.yaml").is_file()
 
@@ -201,7 +208,7 @@ def _uses_file_credentials(app_dir: Path, home: str) -> bool:
 # the desktop shell passes both through the child environment. A headless round
 # started by this bridge cannot rely on that: measured on the desktop, a round
 # failed rc=1 with "MISSING_CREDENTIAL: no API key for provider route
-# deepseek-official" whenever IA_ACCESS_TOKEN was absent or empty, because the
+# deepseek-official" whenever ATA_ACCESS_TOKEN was absent or empty, because the
 # bridge then skipped --patch entirely. Skipping it is the worst outcome, not a
 # safe default: without the patch the default `.credentials.yaml` provider is
 # left enabled and the DPAPI provider is never inserted, so no credentials
@@ -225,7 +232,7 @@ def _write_session_patch(base_patch: Path, target_dir: Path) -> Path:
     api_port = os.getenv("INVESTMENT_API_PORT", "").strip()
     if not engine_url and api_port:
         engine_url = f"http://127.0.0.1:{api_port}"
-    token = os.getenv("IA_ACCESS_TOKEN", "").strip()
+    token = (os.getenv("ATA_ACCESS_TOKEN") or os.getenv("IA_ACCESS_TOKEN") or "").strip()
 
     lines = template.splitlines(keepends=True)
     out: list[str] = []
@@ -343,7 +350,7 @@ class DshBridgeRunner:
         # answer an interactive approval channel, so they receive the same
         # explicit full-access DSH policy as the desktop conversation.
         env["DSH_PERMISSION_MODE"] = "danger-full-access"
-        env["IA_AUTONOMOUS_ROUND"] = "1"
+        env["ATA_AUTONOMOUS_ROUND"] = "1"
         env["INVESTMENT_CYCLE_ID"] = cycle_id
         # Point the round's investment tools at the engine API. The shell
         # passes INVESTMENT_ENGINE_URL to the web process only; the engine
@@ -485,7 +492,7 @@ def install_dsh_runner() -> bool:
         return False
     app_dir = _resolve_app_dir()
     if app_dir is None:
-        logger.warning("[DSH-BRIDGE] DSH app dir not found (set INVESTMENT_AUTO_APP_DIR or autonomous.dsh_bridge.app_dir)")
+        logger.warning("[DSH-BRIDGE] DSH app dir not found (set AI_TRADING_AUTOMATION_APP_DIR or autonomous.dsh_bridge.app_dir)")
         return False
     from engine.scheduler import set_cycle_runner
 

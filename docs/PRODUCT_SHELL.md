@@ -1,4 +1,4 @@
-# Investment Auto 产品外壳改造设计（DSH 内核嵌入）
+# AI Trading Automation 产品外壳改造设计（DSH 内核嵌入）
 
 ## 目标
 
@@ -22,7 +22,7 @@
 3. **会话服务 API 足够**：`ctx.sessions`（open/search/binding().rename/
    fork）+ `ctx.workspaces`（startSession/archiveSession）；主机侧无默认
    workspace（实测空目录下 workspace.list 为空）→ 产品外壳的 node 半在
-   启动时创建固定 Investment Auto 工作区（path=DSH_HOME）。
+   启动时创建固定 AI Trading Automation 工作区（path=DSH_HOME）。
 4. **品牌分布**：JS bundle 中无用户可见 "DeepSeek/Harness" 字符串（仅
    module id 与 CSS token 名）；可见品牌 = `<title>`、manifest
    name/short_name、favicon（鱼形 logo）、ui-sidebar 的 BrandWordmark
@@ -31,7 +31,7 @@
 ## 架构
 
 ```
-product shell（新客户端插件 @investment-auto/dsh-product-shell）
+product shell（新客户端插件 @ai-trading-automation/dsh-product-shell）
 ├─ root 槽（替代 ui-layout）：左侧产品导航 [Dashboard|投资助手|分析流程|设置]
 │   ├─ 投资助手页：会话二级栏（新建/扁平会话/搜索/归档）
 │   │              + renderSlot("conversation", {}) + 可收起投资上下文列
@@ -61,7 +61,7 @@ disable：`ui-layout`、`ui-sidebar`、`ui-workspace`、`ui-settings-general`、
 `ui-message-feedback`、`ui-commands`、`ui-input-trigger`、`ui-attachment`、
 `ui-theme`、`ui-locale`、`ui-settings`（服务）、`ui-settings-models`、
 `ui-deliverables`、`client-hmr`、`investment-ui`（工具卡片）。
-新增：`@investment-auto/dsh-product-shell`（root/sidebar/settings 外壳 +
+新增：`@ai-trading-automation/dsh-product-shell`（root/sidebar/settings 外壳 +
 host 代理 + 设置页 + Dashboard）。
 
 agent-presets 行保留（机制），default 恒为 investment；preset 选择 UI 已
@@ -71,7 +71,7 @@ agent-presets 行保留（机制），default 恒为 investment；preset 选择 
 
 `app/scripts/brand-dist.mjs`：dev（npm ci 后）与发行前执行，改写
 dist/index.html（title）、manifest.webmanifest（name/short_name）、
-favicon.svg（Investment Auto 标记）。web-runtime 行改 `surfaceContext:
+favicon.svg（AI Trading Automation 标记）。web-runtime 行改 `surfaceContext:
 false`（同时移除模型可见的 harness-source 提示段）。
 
 ## 验收
@@ -80,7 +80,7 @@ false`（同时移除模型可见的 harness-source 提示段）。
 
 1. ✅ boot 表不含 ui-layout/ui-sidebar/ui-workspace/ui-agent-preset 等条目（9+2
    行禁用，`--dump-config` 逐行确认 `disabled: true`；product-shell 挂载）；
-2. ✅ 页面 title/favicon/manifest 为 Investment Auto（`app/scripts/brand-dist.mjs`，
+2. ✅ 页面 title/favicon/manifest 为 AI Trading Automation（`app/scripts/brand-dist.mjs`，
    无头浏览器断言无 DeepSeek/Harness 可见文本；模型页仅出现模型供应商名 DeepSeek）；
 3. ✅ wire 协议驱动：session.create → preset=investment；prompt → investment_status
    工具调用与中文回答正常（`app/scripts/verify-web-conversation.mjs`）；对话内核 =

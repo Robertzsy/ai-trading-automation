@@ -20,7 +20,7 @@ from engine.screening.storage import (
 ROOT = Path(__file__).resolve().parents[2]
 from engine.paths import runtime_dir
 SCREENING_DIR = runtime_dir() / "screener"
-logger = logging.getLogger("investment-auto.screening")
+logger = logging.getLogger("ai-trading-automation.screening")
 
 SnapshotLoader = Callable[[Sequence[str], int], tuple[Dict[str, Any], Dict[str, str]]]
 

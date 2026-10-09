@@ -19,7 +19,7 @@ def isolate(monkeypatch, tmp_path):
     """Sandbox audit output and every DSH home this machine could offer.
 
     ``_resolve_dsh_home`` falls back to the *installed* data root
-    (``%LOCALAPPDATA%\\InvestmentAuto``). Without redirecting LOCALAPPDATA, a
+    (``%LOCALAPPDATA%\\AiTradingAutomation``). Without redirecting LOCALAPPDATA, a
     test on a machine that has the product installed resolves to that real home
     and then seeds profiles into it -- an 8s drift plus a write into live user
     data. Both are unacceptable from a unit test, so both markers are pointed at
@@ -35,8 +35,8 @@ def isolate(monkeypatch, tmp_path):
     # No settings.yaml in these sandboxes, so neither can be mistaken for ours,
     # and neither is the real install.
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "localappdata"))
-    monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
-    monkeypatch.delenv("INVESTMENT_AUTO_DATA_DIR", raising=False)
+    monkeypatch.delenv("ATA_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("AI_TRADING_AUTOMATION_DATA_DIR", raising=False)
     return tmp_path
 
 
@@ -94,7 +94,7 @@ def test_runner_spawns_headless_profile_with_task(monkeypatch, tmp_path):
     assert "investment_submit_decisions" in task
     assert captured["env"].get("DSH_TELEMETRY_DISABLED") == "1"
     assert captured["env"].get("DSH_PERMISSION_MODE") == "danger-full-access"
-    assert captured["env"].get("IA_AUTONOMOUS_ROUND") == "1"
+    assert captured["env"].get("ATA_AUTONOMOUS_ROUND") == "1"
     assert captured["env"].get("INVESTMENT_CYCLE_ID") == "20260812T1000-cn-auto-101500"
     assert "investment_analysis_workflow" in task
     assert result["status"] == "generated"
@@ -127,7 +127,7 @@ def test_desktop_runner_applies_dpapi_patch_with_or_without_token(monkeypatch, t
     """The patch must be applied with or without a desktop token.
 
     This test previously asserted the opposite -- that a missing
-    ``IA_ACCESS_TOKEN`` yields a command with no ``--patch`` -- which is how the
+    ``ATA_ACCESS_TOKEN`` yields a command with no ``--patch`` -- which is how the
     desktop defect reached users: without the patch the default
     ``.credentials.yaml`` row stays enabled and the DPAPI row is never inserted,
     so the round has no credentials service at all and dies rc=1 with
@@ -140,12 +140,12 @@ def test_desktop_runner_applies_dpapi_patch_with_or_without_token(monkeypatch, t
     patch_dir.mkdir(parents=True)
     (patch_dir / "dpapi-credentials.yml").write_text(
         "- id: credentials\n  disabled: true\n\n- insert:\n    - id: credentials-dpapi\n"
-        "      name: '@investment-auto/dsh-dpapi-credentials'\n      config:\n"
+        "      name: '@ai-trading-automation/dsh-dpapi-credentials'\n      config:\n"
         "        engineUrl: 'http://127.0.0.1:8790'\n",
         encoding="utf-8",
     )
     captured = {"with_token": None, "without_token": None}
-    monkeypatch.setenv("INVESTMENT_AUTO_DATA_DIR", str(tmp_path / "desktop-data"))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_DATA_DIR", str(tmp_path / "desktop-data"))
 
     def fake_run(command, **kwargs):
         key = "with_token" if "desktop-token" == captured["_token"] else "without_token"
@@ -156,13 +156,13 @@ def test_desktop_runner_applies_dpapi_patch_with_or_without_token(monkeypatch, t
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
 
     captured["_token"] = "desktop-token"
-    monkeypatch.setenv("IA_ACCESS_TOKEN", "desktop-token")
+    monkeypatch.setenv("ATA_ACCESS_TOKEN", "desktop-token")
     monkeypatch.setenv("INVESTMENT_API_PORT", "2028")
     monkeypatch.delenv("INVESTMENT_ENGINE_URL", raising=False)
     _runner(tmp_path)("cn", "intraday", _context())
 
     captured["_token"] = ""
-    monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("ATA_ACCESS_TOKEN", raising=False)
     _runner(tmp_path)("cn", "intraday", _context())
 
     # Both rounds carry a patch, and it is the round-local copy rather than the
@@ -192,7 +192,7 @@ def _app_with_credentials_patch(tmp_path):
     patch_file.parent.mkdir(parents=True)
     patch_file.write_text(
         "- id: credentials\n  disabled: true\n- insert:\n    - id: credentials-dpapi\n"
-        "      name: '@investment-auto/dsh-dpapi-credentials'\n      config:\n"
+        "      name: '@ai-trading-automation/dsh-dpapi-credentials'\n      config:\n"
         "        engineUrl: 'http://127.0.0.1:8790'\n", encoding="utf-8",
     )
     return app
@@ -221,11 +221,11 @@ def test_source_development_uses_the_settings_pages_file_credentials(monkeypatch
 @pytest.mark.parametrize("marker", ["data_directory", "installed_home"])
 def test_tokenless_desktop_keeps_dpapi_even_with_leftover_file_credentials(monkeypatch, tmp_path, marker):
     _app_with_credentials_patch(tmp_path)
-    main_home = tmp_path / "desktop-data" if marker == "data_directory" else tmp_path / "localappdata" / "InvestmentAuto"
+    main_home = tmp_path / "desktop-data" if marker == "data_directory" else tmp_path / "localappdata" / "AiTradingAutomation"
     main_home.mkdir(parents=True)
     (main_home / ".credentials.yaml").write_text("DEEPSEEK_API_KEY: stale-test-value\n", encoding="utf-8")
     if marker == "data_directory":
-        monkeypatch.setenv("INVESTMENT_AUTO_DATA_DIR", str(main_home))
+        monkeypatch.setenv("AI_TRADING_AUTOMATION_DATA_DIR", str(main_home))
     _pin_home(monkeypatch, main_home)
     captured = {}
 
@@ -247,7 +247,7 @@ def test_session_patch_prefers_explicit_engine_url(monkeypatch, tmp_path):
     base.write_text("      config:\n        engineUrl: 'http://127.0.0.1:8790'\n", encoding="utf-8")
     monkeypatch.setenv("INVESTMENT_ENGINE_URL", "http://127.0.0.1:9999")
     monkeypatch.setenv("INVESTMENT_API_PORT", "1111")
-    monkeypatch.setenv("IA_ACCESS_TOKEN", "tok")
+    monkeypatch.setenv("ATA_ACCESS_TOKEN", "tok")
 
     written = dsh_bridge._write_session_patch(base, tmp_path / "out")
     text = written.read_text(encoding="utf-8")
@@ -375,7 +375,7 @@ def test_runner_spawns_analysis_round_with_same_env(monkeypatch, tmp_path):
     monkeypatch.setenv("DSH_HOME", str(main_home))
     # Configuration outranks DSH_HOME, so pin it to the same home under test.
     _pin_home(monkeypatch, main_home)
-    monkeypatch.delenv("IA_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("ATA_ACCESS_TOKEN", raising=False)
     captured = {}
 
     def fake_run(command, **kwargs):
@@ -397,7 +397,7 @@ def test_runner_spawns_analysis_round_with_same_env(monkeypatch, tmp_path):
 
     assert captured["command"][0] == "node.exe"
     assert captured["command"][captured["command"].index("--profile") + 1] == "investment"
-    assert captured["env"].get("IA_AUTONOMOUS_ROUND") == "1"
+    assert captured["env"].get("ATA_AUTONOMOUS_ROUND") == "1"
     assert captured["env"].get("INVESTMENT_CYCLE_ID") == "20260822-cn-user-0000001"
     # Background rounds run in the INTERNAL home, not the user's home.
     internal = main_home / "agent-home"
@@ -439,7 +439,7 @@ def test_install_dsh_runner_registers_when_enabled(monkeypatch, tmp_path):
     (app_dir / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js").write_text("", encoding="utf-8")
 
     monkeypatch.setattr("engine.scheduler.set_cycle_runner", fake_set_runner)
-    monkeypatch.setenv("INVESTMENT_AUTO_APP_DIR", "")
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_APP_DIR", "")
     monkeypatch.setattr(dsh_bridge, "_resolve_app_dir", lambda: app_dir)
     monkeypatch.setitem(dsh_bridge.cfg.raw.setdefault("autonomous", {}), "dsh_bridge", {"enabled": True})
     installed = dsh_bridge.install_dsh_runner()
@@ -454,7 +454,7 @@ def test_install_dsh_runner_skips_when_disabled(monkeypatch):
     assert installed is False
 
 def test_configured_home_outranks_inherited_dsh_home(monkeypatch, tmp_path):
-    """A foreign DSH_HOME must never decide where Investment Auto's rounds run.
+    """A foreign DSH_HOME must never decide where AI Trading Automation's rounds run.
 
     On a machine that also runs DSH for other projects, DSH_HOME is inherited
     from the launching shell and points at THAT installation's home. Honouring
@@ -527,7 +527,7 @@ def test_installed_data_root_outranks_dev_home(monkeypatch, tmp_path):
     credentials, so preferring it on a real install would leave rounds without a
     configured model. See _sync_internal_home.
     """
-    installed = tmp_path / "InvestmentAuto"
+    installed = tmp_path / "AiTradingAutomation"
     installed.mkdir()
     (installed / "settings.yaml").write_text("ui-onboarding: {}\n", encoding="utf-8")
     monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})

@@ -1,8 +1,8 @@
 using System.IO;
-using InvestmentAuto.Desktop.Services;
+using AiTradingAutomation.Desktop.Services;
 using Xunit;
 
-namespace InvestmentAuto.Desktop.Tests;
+namespace AiTradingAutomation.Desktop.Tests;
 
 /// <summary>Test requirement #6: bundled-python resolution order.</summary>
 public class LocatePythonWTests

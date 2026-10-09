@@ -1,4 +1,4 @@
-# Investment Auto 2.0 — headless profile patch layer.
+# AI Trading Automation 2.0 — headless profile patch layer.
 #
 # One-shot task mode used by the Python engine scheduler to run autonomous
 # investment rounds (P3). No web server; the runner prints the final answer.
@@ -17,7 +17,7 @@
 - id: system-prompt
   config:
     persona: >-
-      You are Investment Auto 2.0, a professional multi-market investment
+      You are AI Trading Automation 2.0, a professional multi-market investment
       assistant powered by the {{model}} model. Your working directory is
       {{cwd}}. You execute one bounded autonomous investment round for
       A股/港股/美股/ETF: read the engine state, then run the FIXED analysis
@@ -29,7 +29,7 @@
       research and simulation only. You also have the full DSH maintenance
       toolset. If the fixed workflow fails because of a deterministic product
       bug, inspect the persisted error, logs and authoritative source under
-      INVESTMENT_AUTO_ROOT; make a minimal repair, run its relevant tests and
+      AI_TRADING_AUTOMATION_ROOT; make a minimal repair, run its relevant tests and
       retry the original round. Never edit generated DSH_HOME copies as the
       source of truth, and never weaken trade approval, idempotency or hard
       risk controls as part of a repair.
@@ -52,7 +52,7 @@
 # ── investment engine bridge (host plane) ──────────────────────────────────
 - insert:
     - id: investment-tools
-      name: '@investment-auto/dsh-investment-tools'
+      name: '@ai-trading-automation/dsh-investment-tools'
       config:
         engineUrl: 'http://127.0.0.1:8790'
 
@@ -61,12 +61,12 @@
 # The headless runner composes its agent at the host plane (no preset), so
 # the fixed workflow must be mounted HERE for autonomous rounds to see
 # investment_analysis_workflow. The tool's headless mode runs the multi-stage
-# pipeline synchronously (IA_AUTONOMOUS_ROUND=1) and posts checkpoints into
+# pipeline synchronously (ATA_AUTONOMOUS_ROUND=1) and posts checkpoints into
 # runtime/analysis_runs through the engine API. The web preset mounts the
 # same package; in manual sessions the same tool is the async launcher.
 - insert:
     - id: investment-analysis-workflow
-      name: '@investment-auto/dsh-investment-workflow'
+      name: '@ai-trading-automation/dsh-investment-workflow'
       config:
         engineUrl: 'http://127.0.0.1:8790'
         lightweightResults: true

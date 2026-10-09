@@ -40,7 +40,7 @@ from typing import Any, Dict, List, Mapping, Optional
 
 from engine.atomic_write import write_text_atomic
 
-logger = logging.getLogger("investment-auto.analysis-reports")
+logger = logging.getLogger("ai-trading-automation.analysis-reports")
 
 MAX_LOG_TAIL = 50
 MAX_SUMMARY_CHARS = 400

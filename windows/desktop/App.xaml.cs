@@ -5,11 +5,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using InvestmentAuto.Desktop.Services;
+using AiTradingAutomation.Desktop.Services;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 
-namespace InvestmentAuto.Desktop;
+namespace AiTradingAutomation.Desktop;
 
 public partial class App : Application
 {
@@ -66,7 +66,7 @@ public partial class App : Application
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " STARTUP-FAILED: " + ex + Environment.NewLine);
             }
             catch { }
-            MessageBox.Show("启动失败：" + ex.Message + "\n\n诊断日志：%TEMP%\\ia-desktop-boot.log", "Investment Auto",
+            MessageBox.Show("启动失败：" + ex.Message + "\n\n诊断日志：%TEMP%\\ia-desktop-boot.log", "AI Trading Automation",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown();
             return;

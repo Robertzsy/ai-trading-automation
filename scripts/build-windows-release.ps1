@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.1.5",
+    [string]$Version = "2.2.0",
     [string]$OutputDirectory = "",
     [switch]$SkipDesktopBuild
 )
@@ -11,7 +11,7 @@ if (-not $OutputDirectory) {
     $OutputDirectory = Join-Path $projectRoot "dist"
 }
 $OutputDirectory = [System.IO.Path]::GetFullPath($OutputDirectory)
-$stage = Join-Path $OutputDirectory ("InvestmentAuto-Windows-v" + $Version)
+$stage = Join-Path $OutputDirectory ("AiTradingAutomation-Windows-v" + $Version)
 $archive = $stage + ".zip"
 $desktopPublish = Join-Path $projectRoot "windows\desktop\bin\Release\net8.0-windows\win-x64\publish"
 # Flat extraction layout produced by bundle-runtime.ps1: the Node version is
@@ -26,7 +26,7 @@ if (-not $SkipDesktopBuild) {
     & (Join-Path $PSScriptRoot "build-desktop.ps1") -Configuration Release -Runtime win-x64
     if ($LASTEXITCODE -ne 0) { throw "Desktop build failed" }
 }
-if (-not (Test-Path (Join-Path $desktopPublish "InvestmentAuto.Desktop.exe"))) {
+if (-not (Test-Path (Join-Path $desktopPublish "AiTradingAutomation.Desktop.exe"))) {
     throw "WPF desktop publish output is missing: $desktopPublish"
 }
 if (-not (Test-Path (Join-Path $pythonRuntime "python.exe"))) {
@@ -73,7 +73,7 @@ foreach ($required in @("engine", "config", "scripts")) {
 }
 if (-not (Test-Path (Join-Path $stage "app"))) {
     Write-Warning ("portable stage has no 'app' directory: the DSH product shell (app\profiles, " +
-                   "app\plugins, app\node_modules) is not part of this archive. installer\InvestmentAuto.iss " +
+                   "app\plugins, app\node_modules) is not part of this archive. installer\AiTradingAutomation.iss " +
                    "ships ..\app\* separately; add 'app' here - excluding app\dev-home - if the " +
                    "portable build must run standalone.")
 }
@@ -94,6 +94,6 @@ $checksumFile = $archive + ".sha256"
     [System.Text.UTF8Encoding]::new($false)
 )
 
-Write-Host "Desktop executable: $(Join-Path $stage 'InvestmentAuto.Desktop.exe')"
+Write-Host "Desktop executable: $(Join-Path $stage 'AiTradingAutomation.Desktop.exe')"
 Write-Host "Portable release:   $archive"
 Write-Host "SHA256:             $checksum"

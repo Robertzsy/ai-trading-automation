@@ -11,7 +11,7 @@
 #   downloaded v22.19.0 and bundle-runtime.ps1 flattened it).
 #
 # EXTRACTION LAYOUT (produced by scripts\bundle-runtime.ps1:45-58, consumed by
-# scripts\build-windows-release.ps1 and installer\InvestmentAuto.iss:41)
+# scripts\build-windows-release.ps1 and installer\AiTradingAutomation.iss:41)
 #   build\runtime\python\python.exe    flattened CPython
 #   build\runtime\node\node.exe        flattened Node.js - NO version sub-dir
 #

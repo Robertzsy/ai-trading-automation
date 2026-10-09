@@ -110,4 +110,4 @@ jobs:
 
       - name: C# desktop tests (dotnet test)
         if: runner.os == 'Windows'
-        run: dotnet test windows/desktop/InvestmentAuto.Desktop.Tests/InvestmentAuto.Desktop.Tests.csproj -c Release --nologo
+        run: dotnet test windows/desktop/AiTradingAutomation.Desktop.Tests/AiTradingAutomation.Desktop.Tests.csproj -c Release --nologo

@@ -8,9 +8,10 @@ tree.  The desktop app separates these:
 * app root   = where the code/static files live (install dir, read-only)
 * data root  = where user data lives (config, runtime, data, logs, workspace)
 
-In development (no INVESTMENT_AUTO_DATA_DIR) the data root equals the app
+In development (no AI_TRADING_AUTOMATION_DATA_DIR) the data root equals the app
 root, so python -m src.main run from a checkout behaves exactly as before.
-The installer sets INVESTMENT_AUTO_DATA_DIR to %LocalAppData%/InvestmentAuto.
+The installed desktop shell passes the data root through
+AI_TRADING_AUTOMATION_DATA_DIR (currently %LocalAppData%\\InvestmentAuto).
 """
 
 from __future__ import annotations
@@ -23,12 +24,24 @@ from pathlib import Path
 # parents[2]).
 APP_ROOT = Path(__file__).resolve().parents[1]
 
-_DATA_DIR_ENV = "INVESTMENT_AUTO_DATA_DIR"
+_DATA_DIR_ENV = "AI_TRADING_AUTOMATION_DATA_DIR"
+# Pre-rename name. Read-only fallback so existing shortcuts, scripts and
+# service wrappers that still export the old variable keep working.
+_LEGACY_DATA_DIR_ENV = "INVESTMENT_AUTO_DATA_DIR"
+
+
+def _env_first(*names: str) -> str:
+    """First non-empty value among ``names`` (new name, then legacy name)."""
+    for name in names:
+        value = os.getenv(name)
+        if value and value.strip():
+            return value.strip()
+    return ""
 
 
 def data_root() -> Path:
     """The user-data root.  Defaults to the app root in development."""
-    value = os.getenv(_DATA_DIR_ENV)
+    value = _env_first(_DATA_DIR_ENV, _LEGACY_DATA_DIR_ENV)
     return Path(value).expanduser().resolve() if value else APP_ROOT
 
 

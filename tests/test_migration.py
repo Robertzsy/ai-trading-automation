@@ -33,7 +33,7 @@ def _legacy_tree(tmp_path: Path) -> Path:
 
 def test_detect_and_plan_lists_items_only(monkeypatch, tmp_path):
     root = _legacy_tree(tmp_path)
-    monkeypatch.setenv("INVESTMENT_AUTO_HOME", str(root))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_HOME", str(root))
     sources = migration.detect_sources()
     assert any(s["path"] == str(root) for s in sources)
     plan = migration.plan_migration(str(root))
@@ -49,7 +49,7 @@ def test_migration_copies_without_touching_source(monkeypatch, tmp_path):
     root = _legacy_tree(tmp_path)
     data_root = tmp_path / "data-root"
     monkeypatch.setattr(paths, "data_root", lambda: data_root)
-    monkeypatch.setenv("INVESTMENT_AUTO_HOME", str(root))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_HOME", str(root))
     before = (root / "config" / "config.yaml").read_text(encoding="utf-8")
     result = migration.run_migration(str(root), ["config", "env", "runtime/data"])
 
@@ -90,7 +90,7 @@ def test_engine_layout_root_is_accepted_as_source(monkeypatch, tmp_path):
     (root / "engine" / "main.py").write_text("# 2.0", encoding="utf-8")
     (root / "runtime" / "data").mkdir(parents=True)
     (root / "runtime" / "data" / "portfolio.json").write_text("{}", encoding="utf-8")
-    monkeypatch.setenv("INVESTMENT_AUTO_HOME", str(root))
+    monkeypatch.setenv("AI_TRADING_AUTOMATION_HOME", str(root))
     data_root = tmp_path / "data-root"
     monkeypatch.setattr(paths, "data_root", lambda: data_root)
 

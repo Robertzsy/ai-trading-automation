@@ -1,4 +1,4 @@
-# Investment Auto 2.0 架构文档（as-built）
+# AI Trading Automation 2.0 架构文档（as-built）
 
 > 分支 `dsch/2.0`。本文档描述已实现的架构、数据流、安全边界与扩展方法。
 > 1.x 是完整重做前的旧实现，其最终状态存档在 tag `legacy-1x`，仅作回退参考。
@@ -11,14 +11,14 @@
 │ 首次运行打开引擎 /setup 向导页；完成后切换到 DSH 助手并启动投资引擎         │
 │ 状态栏轮询引擎 /api/status（模式、策略、风控、最近轮次）                    │
 └──────────────┬──────────────────────────────────────────┬────────────────┘
-               ▼ http://127.0.0.1:<web>                    ▼ http://127.0.0.1:<api> + X-IA-Token
+               ▼ http://127.0.0.1:<web>                    ▼ http://127.0.0.1:<api> + X-ATA-Token
 ┌ DSH web（Node 22，profile: investment-web，DSH_HOME=用户数据目录）────────┐
 │ 对话/会话/设置/模型页/Skills/plan/goal/jobs（DSH 原生）                    │
 │ agent preset "investment"：投资 persona + 完整 DSH 编码/自维护工具        │
 │ host 插件 investment-tools：15+ 个 investment_* 工具（引擎 HTTP 桥）       │
 │ 桌面 overlay：credentials 行换成 DPAPI provider（app/profiles/patches）    │
 └──────────────┬───────────────────────────────────────────────────────────┘
-               │ MCP 式工具调用 = HTTP + X-IA-Token（回环）
+               │ MCP 式工具调用 = HTTP + X-ATA-Token（回环）
                ▼
 ┌ 投资引擎（Python，engine/）── 不可绕过的执行边界 ─────────────────────────┐
 │ HTTP 命令 API（serve）：状态/行情/选股/组合/报告/宏观/授权书/凭据/向导      │
@@ -111,10 +111,10 @@ overlay 采用「禁用原 credentials 行 + insert 新 credentials-dpapi 行」
    一轮研究，不会重复成交（fail-safe 由幂等设计保证，替代 1.x 的
    checkpoint 重放）。
 5. 桌面对话与自主 headless IA 均固定使用 `danger-full-access`，具备 Shell、
-   文件、搜索、后台任务、子代理和 Ralph，可维护 `INVESTMENT_AUTO_ROOT` 下的
+   文件、搜索、后台任务、子代理和 Ralph，可维护 `AI_TRADING_AUTOMATION_ROOT` 下的
    权威源码并运行测试/构建。系统权限放宽不改变交易业务边界：纸面模式、用户
    批准、幂等回执、决策指纹与 Python 硬风控仍不可绕过。
-6. 服务仅绑定 127.0.0.1 动态端口；引擎 API 要求 `X-IA-Token`（每启动
+6. 服务仅绑定 127.0.0.1 动态端口；引擎 API 要求 `X-ATA-Token`（每启动
    随机），令牌只注入 WebView2 对引擎源的请求，从不注入 DSH web 源。
 
 ## 5. 阶段状态
@@ -182,7 +182,7 @@ MongoDB/自建）从 .env 提取进 DPAPI 库且回读字节一致，源目录�
   investment`（对话 preset 在真实 web 会话中挂载），真实模型调用
   `investment_status` 并经引擎返回正确回答（operation_mode + kill_switch），
   `turn/end: completed`。人工体验确认（视觉/交互）仍建议在安装版走一轮。
-- **正式 Release**：✅ 已产出 —— `release/InvestmentAuto-Setup-x64.exe`
+- **正式 Release**：✅ 已产出 —— `release/AiTradingAutomation-Setup-x64.exe`
   （184.8 MB，SHA-256 `EE1C2A53266F0C41C07F346434B880E931DF4179DE15341A1F843BB6FF452451`，
   Inno Setup 6.7.3 编译）。本机安装版实测：静默安装 → 首次向导 →
   DPAPI 密钥配置 → 完成初始化 → 自动启动投资引擎（17 个调度任务）→

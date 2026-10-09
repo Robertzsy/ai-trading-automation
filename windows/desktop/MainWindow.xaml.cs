@@ -3,12 +3,12 @@ using System.ComponentModel;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using InvestmentAuto.Desktop.Services;
+using AiTradingAutomation.Desktop.Services;
 using Microsoft.Web.WebView2.Core;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 
-namespace InvestmentAuto.Desktop;
+namespace AiTradingAutomation.Desktop;
 
 public partial class MainWindow : Window
 {
@@ -87,7 +87,7 @@ public partial class MainWindow : Window
         // DSH web app itself is token-free (loopback-only binding).
         WebView.CoreWebView2.WebResourceRequested += (_, args) =>
         {
-            args.Request.Headers.SetHeader("X-IA-Token", ready.Token);
+            args.Request.Headers.SetHeader("X-ATA-Token", ready.Token);
         };
         WebView.CoreWebView2.AddWebResourceRequestedFilter(_processManager.EngineUrl + "/*", CoreWebView2WebResourceContext.All);
 
@@ -203,11 +203,11 @@ public partial class MainWindow : Window
 
         var choice = MessageBox.Show(
             this,
-            "关闭窗口后，Investment Auto 要继续做什么？\n\n" +
+            "关闭窗口后，AI Trading Automation 要继续做什么？\n\n" +
             "是 - 最小化到托盘：窗口隐藏，后台自动投资继续运行（推荐）\n" +
             "否 - 停止全部后台服务并退出\n" +
             "取消 - 保持窗口打开",
-            "Investment Auto",
+            "AI Trading Automation",
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question,
             MessageBoxResult.Yes);
@@ -235,7 +235,7 @@ public partial class MainWindow : Window
             using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(5) };
             using var request = new System.Net.Http.HttpRequestMessage(
                 System.Net.Http.HttpMethod.Post, _processManager.EngineUrl + "/api/commands/issue");
-            request.Headers.Add("X-IA-Token", _processManager.AccessToken);
+            request.Headers.Add("X-ATA-Token", _processManager.AccessToken);
             request.Content = new System.Net.Http.StringContent(
                 "{\"command\":\"pause\",\"payload\":{\"reason\":\"托盘暂停\"},\"requested_by\":\"desktop\"}",
                 System.Text.Encoding.UTF8, "application/json");
@@ -246,7 +246,7 @@ public partial class MainWindow : Window
 
     private void OpenLogs()
     {
-        var log = System.IO.Path.Combine(_processManager.DataRoot, "runtime", "logs", "investment-auto.log");
+        var log = System.IO.Path.Combine(_processManager.DataRoot, "runtime", "logs", "ai-trading-automation.log");
         try
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
@@ -273,7 +273,7 @@ public partial class MainWindow : Window
             {
                 var exePath = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
                 if (string.IsNullOrEmpty(exePath))
-                    exePath = System.IO.Path.Combine(AppContext.BaseDirectory, "InvestmentAuto.Desktop.exe");
+                    exePath = System.IO.Path.Combine(AppContext.BaseDirectory, "AiTradingAutomation.Desktop.exe");
                 AutoStart.Enable(exePath, _processManager.AppRoot, _processManager.DataRoot);
             }
             else

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>AiTradingAutomation.Desktop</AssemblyName>
+    <RootNamespace>AiTradingAutomation.Desktop</RootNamespace>
+    <ApplicationIcon>AiTradingAutomation.ico</ApplicationIcon>
+    <Version>2.2.0</Version>
+    <AssemblyVersion>2.2.0.0</AssemblyVersion>
+    <FileVersion>2.2.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2592.51" />
+    <PackageReference Include="System.Management" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AiTradingAutomation.Desktop.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="AiTradingAutomation.Desktop.Tests\**\*.cs" />
+    <EmbeddedResource Remove="AiTradingAutomation.Desktop.Tests\**\*" />
+    <None Remove="AiTradingAutomation.Desktop.Tests\**\*" />
+  </ItemGroup>
+
+</Project>

@@ -742,7 +742,7 @@ P0-1 … P0-9 见 §6 验收表；P0-10 为前端 UI 自动化验收。
 
 ### P2
 
-SSE 替代轮询 · 报告 PDF/HTML 导出 · 日志分级过滤与搜索 · 目标模板库 · `subagentsByParent` 实时子代理树 · 仪表盘目标趋势图 · **DSH 升级漂移告警** · `investment-auto.log` 轮转（`RotatingFileHandler`）
+SSE 替代轮询 · 报告 PDF/HTML 导出 · 日志分级过滤与搜索 · 目标模板库 · `subagentsByParent` 实时子代理树 · 仪表盘目标趋势图 · **DSH 升级漂移告警** · `ai-trading-automation.log` 轮转（`RotatingFileHandler`）
 
 ---
 
@@ -865,7 +865,7 @@ L2 语义 / L3 兼容别名），以独立 `<style data-plugin="…/tokens">` �
 - `dsh --profile investment-web` 正常启动；新增 **per-process token 鉴权**：无 token `401`，带 `?token=…` 返回 200。
 - 我们的**全部引擎与代理路由在 rc.2 下正常**：`/api/investment/analysis?action=runs` 与
   `/api/investment/reports?action=index` 均返回 200。
-- 页面 `<title>` 仍为 `Investment Auto`（`brand-dist.mjs` 需在 `npm install` 后重跑）。
+- 页面 `<title>` 仍为 `AI Trading Automation`（`brand-dist.mjs` 需在 `npm install` 后重跑）。
 
 **阻断点：客户端插件不挂载。** 在真实 Chrome 下：`document.body.innerHTML` 仅 ~2.3KB、
 `.ia-navbtn` = 0、`.ia-shell` = 0，且**没有任何** `Runtime.exceptionThrown` / `Log.entryAdded` 错误
@@ -1002,7 +1002,7 @@ __init__.py              编排：akshare → node 腾讯 → node 新浪(cn onl
 | R10 | akshare 上游不稳（它本身也是爬虫聚合） | 中 | 新单点 | **保留 Node 源为兜底**（双向后备），来源标记可见 | 调整 provider 顺序 |
 | R11 | 目标机制被 AI 用来"自停轮次" | 低 | 自动化中断 | **硬约束**：`stop_conditions` 只产出建议，实际停止只由用户/kill switch 触发 | — |
 | R12 | `runtime/analysis_runs/` 为空，无真实样本 | 高 | 验收缺样本 | 用 `MockDshBridge`（仿 `tests/test_dsh_bridge.py`）造 v2 fixture | — |
-| R13 | `runtime/logs/investment-auto.log` 无轮转（已 4.5MB） | 低 | 磁盘 | P2 引入 `RotatingFileHandler` | — |
+| R13 | `runtime/logs/ai-trading-automation.log` 无轮转（已 4.5MB） | 低 | 磁盘 | P2 引入 `RotatingFileHandler` | — |
 
 **兼容性承诺**
 

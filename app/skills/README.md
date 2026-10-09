@@ -1,6 +1,6 @@
 # 投资 Skills
 
-本目录存放 Investment Auto 2.0 的投资 Skills（DSH 原生 `SKILL.md` 格式），
+本目录存放 AI Trading Automation 2.0 的投资 Skills（DSH 原生 `SKILL.md` 格式），
 由 `app/scripts/seed.ps1` 播种到 `$DSH_HOME/skills/`。
 
 格式要求（来自 `dsh-skill-filesystem`）：

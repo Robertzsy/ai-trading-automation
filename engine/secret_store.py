@@ -56,7 +56,7 @@ def dpapi_protect(data: bytes) -> bytes:
     blob_in = _blob_from_bytes(data)
     blob_out = _DATA_BLOB()
     ok = ctypes.windll.crypt32.CryptProtectData(
-        ctypes.byref(blob_in), "investment-auto", None, None, None, 0, ctypes.byref(blob_out),
+        ctypes.byref(blob_in), "ai-trading-automation", None, None, None, 0, ctypes.byref(blob_out),
     )
     if not ok:
         raise OSError("CryptProtectData 失败")

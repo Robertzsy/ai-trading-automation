@@ -1,5 +1,5 @@
 /**
- * Structural check for Investment Auto 2.0 plugins.
+ * Structural check for AI Trading Automation 2.0 plugins.
  *
  * Verifies every plugin under app/plugins:
  *  - package.json: scoped name, type module, main entry exists
@@ -7,7 +7,7 @@
  *    script-style `window.__ModuleLoader__.load({ id: <pkg name>, ... })`,
  *    syntax-valid (node --check)
  *  - host half (main): exports name/inject/apply
- *  - every @investment-auto/* row referenced in app/profiles patches
+ *  - every @ai-trading-automation/* row referenced in app/profiles patches
  *    resolves to a real plugin package name
  *
  * Run: node app/scripts/check-plugins.mjs   (exit 1 on any failure)
@@ -90,12 +90,12 @@ for (const dir of pluginDirs) {
   }
 }
 
-// Every @investment-auto/* row referenced in the profile patches must exist.
+// Every @ai-trading-automation/* row referenced in the profile patches must exist.
 const referenced = new Set();
 for (const profile of ["investment", "investment-web"]) {
   const patchPath = join(profilesRoot, profile, "cordis.patch.yml");
   if (!existsSync(patchPath)) continue;
-  for (const match of readFileSync(patchPath, "utf-8").matchAll(/@investment-auto\/[a-z0-9-]+/g)) {
+  for (const match of readFileSync(patchPath, "utf-8").matchAll(/@ai-trading-automation\/[a-z0-9-]+/g)) {
     referenced.add(match[0]);
   }
 }

@@ -1,4 +1,4 @@
-# Investment Auto 2.1.3 更新说明
+# AI Trading Automation 2.1.3 更新说明
 
 [中文](#中文) | [English](#english)
 

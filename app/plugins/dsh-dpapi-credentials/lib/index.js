@@ -1,5 +1,5 @@
 /**
- * DPAPI-backed credential provider for Investment Auto 2.0 desktop.
+ * DPAPI-backed credential provider for AI Trading Automation 2.0 desktop.
  *
  * Implements the harness `credentials` service (resolve/describe/set/unset +
  * the `credentials/updated` event) by delegating to the engine loopback API,
@@ -13,12 +13,12 @@
  * guarantees it; resolution failures surface as missing credentials).
  */
 
-export const name = "@investment-auto/dsh-dpapi-credentials";
+export const name = "@ai-trading-automation/dsh-dpapi-credentials";
 export const inject = [];
 
 function makeClient(baseUrl, token) {
   const url = String(baseUrl || "http://127.0.0.1:8790").replace(/\/+$/, "");
-  const headers = token ? { "X-IA-Token": token } : {};
+  const headers = token ? { "X-ATA-Token": token } : {};
   const get = async (path) => {
     const response = await fetch(url + path, { headers });
     if (!response.ok) throw new Error(`engine ${path} -> HTTP ${response.status}`);
@@ -40,7 +40,7 @@ function makeClient(baseUrl, token) {
 /** @param {import('@deepseek-ai/cordis').Context} ctx */
 export function apply(ctx, config) {
   const engineUrl = process.env.INVESTMENT_ENGINE_URL ?? (typeof config?.engineUrl === "string" ? config.engineUrl : "http://127.0.0.1:8790");
-  const token = process.env.IA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
+  const token = process.env.ATA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
   const client = makeClient(engineUrl, token);
 
   const service = {

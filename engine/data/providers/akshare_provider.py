@@ -49,7 +49,7 @@ from .base import (
     validate_payload,
 )
 
-logger = logging.getLogger("investment-auto.data.akshare")
+logger = logging.getLogger("ai-trading-automation.data.akshare")
 
 SOURCE_EM = "akshare:em"
 SOURCE_SINA = "akshare:sina"
