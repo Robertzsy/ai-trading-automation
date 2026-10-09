@@ -31,7 +31,14 @@
 
 ### 下载
 
-安装包将在发行门禁（含真机覆盖升级验证）通过后生成，届时在此补充分发文件名与 SHA-256。
+- Windows 10/11 x64：`AiTradingAutomation-Setup-x64.exe`
+- 大小：174,853,513 bytes（166.8 MB）
+- SHA-256：`EA77AD8EE9E5A5ABD7FCA34584BAD426509E7B85EDE33F0A2DEA1349FFEDE4E4`
+
+**覆盖升级**：安装目录与数据目录沿用 `%LocalAppData%\Programs\InvestmentAuto` 与
+`%LocalAppData%\InvestmentAuto`，不移动用户数据。本机实测覆盖升级 78,911 个用户数据文件
+（缺失 0 / 变化 0 / 新增 0），DPAPI 密钥 5/5 可解密；旧版可执行文件与旧自启注册表项在升级时清理，
+若此前开过开机自启会自动迁移到新名称与路径。
 
 > 本项目只支持研究与模拟交易，不连接真实券商，不构成投资建议。
 
@@ -64,6 +71,15 @@ This release bundles two independent changes: **shared research data with leaner
 
 ### Download
 
-The installer will be produced once the release gate (including a real-machine upgrade check) passes; the asset name and SHA-256 will be added here.
+- Windows 10/11 x64: `AiTradingAutomation-Setup-x64.exe`
+- Size: 174,853,513 bytes (166.8 MB)
+- SHA-256: `EA77AD8EE9E5A5ABD7FCA34584BAD426509E7B85EDE33F0A2DEA1349FFEDE4E4`
+
+**In-place upgrade**: the install directory and data directory remain
+`%LocalAppData%\Programs\InvestmentAuto` and `%LocalAppData%\InvestmentAuto`, so user data is never
+moved. On this machine the upgrade preserved all 78,911 user-data files (0 missing, 0 changed,
+0 added) and all 5 DPAPI secrets decrypted successfully. Pre-rename executables and the legacy
+autostart registry value are cleaned up during the upgrade, and an existing autostart registration is
+carried over to the new name and paths.
 
 > Research and paper trading only. No live broker connection; nothing here is investment advice.

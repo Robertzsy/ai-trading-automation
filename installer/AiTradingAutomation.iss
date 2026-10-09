@@ -62,6 +62,16 @@ Name: "{localappdata}\InvestmentAuto\config"
 ; never a production data root (production uses {localappdata}\InvestmentAuto)
 ; and may contain development sessions/credentials, so upgrades remove it.
 Type: filesandordirs; Name: "{app}\app\dev-home"
+; 2.2.0 renamed the desktop shell. Remove the pre-rename binaries so no stale
+; executable keeps the old name and no shortcut can still resolve to it.
+Type: files; Name: "{app}\InvestmentAuto.Desktop.exe"
+Type: files; Name: "{app}\InvestmentAuto.Desktop.dll"
+Type: files; Name: "{app}\InvestmentAuto.Desktop.pdb"
+Type: files; Name: "{app}\InvestmentAuto.Desktop.deps.json"
+Type: files; Name: "{app}\InvestmentAuto.Desktop.runtimeconfig.json"
+; Pre-rename shortcuts (the product display name changed to {#MyAppName}).
+Type: files; Name: "{autodesktop}\Investment Auto.lnk"
+Type: files; Name: "{autoprograms}\Investment Auto.lnk"
 
 [Icons]
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--app-root ""{app}"" --data-root ""{localappdata}\InvestmentAuto"""; IconFilename: "{app}\{#MyAppExeName}"
@@ -83,6 +93,36 @@ Type: filesandordirs; Name: "{app}\node"
 // after the uninstall finishes.
 var
   RemoveUserData: Boolean;
+
+const
+  RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
+  LegacyRunValue = 'InvestmentAuto';      // pre-2.2.0 autostart value name
+  CurrentRunValue = 'AiTradingAutomation'; // desktop shell's current value name
+
+// 2.2.0 renamed the product. If the user had enabled autostart, carry the
+// registration over to the new name/paths instead of silently dropping it,
+// then remove the stale value.
+procedure MigrateLegacyAutostart();
+var
+  LegacyCommand: String;
+  NewCommand: String;
+begin
+  if not RegQueryStringValue(HKCU, RunKey, LegacyRunValue, LegacyCommand) then
+    exit;
+
+  NewCommand := '"' + ExpandConstant('{app}\{#MyAppExeName}') + '"' +
+                ' --app-root "' + ExpandConstant('{app}') + '"' +
+                ' --data-root "' + ExpandConstant('{localappdata}\InvestmentAuto') + '"' +
+                ' --autostart';
+  RegWriteStringValue(HKCU, RunKey, CurrentRunValue, NewCommand);
+  RegDeleteValue(HKCU, RunKey, LegacyRunValue);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    MigrateLegacyAutostart();
+end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
