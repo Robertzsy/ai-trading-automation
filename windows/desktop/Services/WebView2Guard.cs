@@ -32,8 +32,12 @@ internal static class WebView2Guard
                 try
                 {
                     var commandLine = mo["CommandLine"] as string;
+                    // Match both the current and the pre-rename product token: an
+                    // orphan left behind by an older build still holds the user-data
+                    // folder lock and must be cleaned up after an in-place upgrade.
                     if (commandLine == null
-                        || !commandLine.Contains("AiTradingAutomation", StringComparison.OrdinalIgnoreCase))
+                        || (!commandLine.Contains("AiTradingAutomation", StringComparison.OrdinalIgnoreCase)
+                            && !commandLine.Contains("InvestmentAuto", StringComparison.OrdinalIgnoreCase)))
                         continue;
 
                     var pid = Convert.ToInt32(mo["ProcessId"]);

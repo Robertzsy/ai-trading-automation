@@ -43,7 +43,7 @@
 ## 检查组合后的配置（不启动）
 
 ```powershell
-$env:DSH_HOME = 'D:\ai-trading-automation\app\dev-home'
+$env:DSH_HOME = 'D:\investment-auto\app\dev-home'
 node app\node_modules\@deepseek-ai\dsh\lib\bin.js --profile investment-web --dump-config
 node app\node_modules\@deepseek-ai\dsh\lib\bin.js --profile investment --dump-config
 ```

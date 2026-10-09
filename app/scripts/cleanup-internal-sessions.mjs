@@ -22,7 +22,7 @@ import { homedir } from "node:os";
 
 const home = process.argv[2] ??
   process.env.DSH_HOME ??
-  join(process.env.LOCALAPPDATA ?? homedir(), "AiTradingAutomation");
+  join(process.env.LOCALAPPDATA ?? homedir(), "InvestmentAuto");
 
 const sessionsRoot = join(home, "sessions");
 const workspacePath = join(home, "storages", "workspace.json");

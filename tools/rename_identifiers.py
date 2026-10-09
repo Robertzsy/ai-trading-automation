@@ -26,19 +26,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 # ── 替换规则（顺序敏感：长而具体的在前，避免被通用规则先吃掉）─────────────
+# 注：本表记录 2.2.0 命名统一时的「旧 → 新」映射。表格自身刻意保留旧名，
+# 不要用 --apply 跑本文件（否则会把映射表改写成语义错误的自我映射）。
 MAPPINGS: list[tuple[str, str, str]] = [
-    ("@ai-trading-automation/", "@ai-trading-automation/", "npm scope"),
-    ("AiTradingAutomation.Desktop", "AiTradingAutomation.Desktop", "C# 程序集/命名空间"),
-    ("AiTradingAutomation-Setup-x64", "AiTradingAutomation-Setup-x64", "安装包名"),
-    ("AiTradingAutomation-Windows-v", "AiTradingAutomation-Windows-v", "便携包名"),
-    ("AiTradingAutomation.iss", "AiTradingAutomation.iss", "安装器脚本名"),
-    ("AI_TRADING_AUTOMATION_", "AI_TRADING_AUTOMATION_", "环境变量"),
-    ("ATA_ACCESS_TOKEN", "ATA_ACCESS_TOKEN", "令牌变量"),
-    ("ATA_AUTONOMOUS_ROUND", "ATA_AUTONOMOUS_ROUND", "自主轮次变量"),
-    ("X-ATA-Token", "X-ATA-Token", "令牌请求头"),
-    ("ai-trading-automation", "ai-trading-automation", "Python 包名 / slug / 链接"),
-    ("AiTradingAutomation", "AiTradingAutomation", "其余驼峰标识（目录名、Run 键、程序集残留）"),
-    ("AI Trading Automation", "AI Trading Automation", "品牌显示名"),
+    ("@investment-auto/", "@ai-trading-automation/", "npm scope"),
+    ("InvestmentAuto.Desktop", "AiTradingAutomation.Desktop", "C# 程序集/命名空间"),
+    ("InvestmentAuto-Setup-x64", "AiTradingAutomation-Setup-x64", "安装包名"),
+    ("InvestmentAuto-Windows-v", "AiTradingAutomation-Windows-v", "便携包名"),
+    ("InvestmentAuto.iss", "AiTradingAutomation.iss", "安装器脚本名"),
+    ("INVESTMENT_AUTO_", "AI_TRADING_AUTOMATION_", "环境变量"),
+    ("IA_ACCESS_TOKEN", "ATA_ACCESS_TOKEN", "令牌变量"),
+    ("IA_AUTONOMOUS_ROUND", "ATA_AUTONOMOUS_ROUND", "自主轮次变量"),
+    ("X-IA-Token", "X-ATA-Token", "令牌请求头"),
+    ("investment-auto", "ai-trading-automation", "Python 包名 / slug / 链接"),
+    ("InvestmentAuto", "AiTradingAutomation", "其余驼峰标识（程序集残留、Run 键）"),
+    ("Investment Auto", "AI Trading Automation", "品牌显示名"),
 ]
 
 # ── 受保护字符串：先替换成哨兵，通用规则跑完再还原（P4 迁移范围）─────────

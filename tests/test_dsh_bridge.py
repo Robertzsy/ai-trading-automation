@@ -19,7 +19,7 @@ def isolate(monkeypatch, tmp_path):
     """Sandbox audit output and every DSH home this machine could offer.
 
     ``_resolve_dsh_home`` falls back to the *installed* data root
-    (``%LOCALAPPDATA%\\AiTradingAutomation``). Without redirecting LOCALAPPDATA, a
+    (``%LOCALAPPDATA%\\InvestmentAuto``). Without redirecting LOCALAPPDATA, a
     test on a machine that has the product installed resolves to that real home
     and then seeds profiles into it -- an 8s drift plus a write into live user
     data. Both are unacceptable from a unit test, so both markers are pointed at
@@ -221,7 +221,7 @@ def test_source_development_uses_the_settings_pages_file_credentials(monkeypatch
 @pytest.mark.parametrize("marker", ["data_directory", "installed_home"])
 def test_tokenless_desktop_keeps_dpapi_even_with_leftover_file_credentials(monkeypatch, tmp_path, marker):
     _app_with_credentials_patch(tmp_path)
-    main_home = tmp_path / "desktop-data" if marker == "data_directory" else tmp_path / "localappdata" / "AiTradingAutomation"
+    main_home = tmp_path / "desktop-data" if marker == "data_directory" else tmp_path / "localappdata" / "InvestmentAuto"
     main_home.mkdir(parents=True)
     (main_home / ".credentials.yaml").write_text("DEEPSEEK_API_KEY: stale-test-value\n", encoding="utf-8")
     if marker == "data_directory":
@@ -527,7 +527,7 @@ def test_installed_data_root_outranks_dev_home(monkeypatch, tmp_path):
     credentials, so preferring it on a real install would leave rounds without a
     configured model. See _sync_internal_home.
     """
-    installed = tmp_path / "AiTradingAutomation"
+    installed = tmp_path / "InvestmentAuto"
     installed.mkdir()
     (installed / "settings.yaml").write_text("ui-onboarding: {}\n", encoding="utf-8")
     monkeypatch.setattr(dsh_bridge, "_bridge_config", lambda: {})

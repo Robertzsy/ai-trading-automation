@@ -49,7 +49,7 @@ autonomous:
     # 轮次使用的 DSH home。**留空即自动判定（推荐）**：
     #   1. 本配置项（显式指定时优先）
     #   2. 环境变量 DSH_HOME —— 仅当它确实是本产品的数据目录时才采用
-    #   3. %LOCALAPPDATA%\AiTradingAutomation（安装版数据根）
+    #   3. %LOCALAPPDATA%\InvestmentAuto（安装版数据根）
     #   4. app/dev-home（源码开发）
     # 判定标记是数据根下的 settings.yaml。本机若同时装着其他 DSH 项目，
     # 继承来的 DSH_HOME 指向别人的 home，会被判为"非本产品"而忽略 ——

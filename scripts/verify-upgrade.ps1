@@ -1,7 +1,7 @@
 param(
     [string]$Installer = "release\AiTradingAutomation-Setup-x64.exe",
     [string]$AppDir = "$env:LOCALAPPDATA\Programs\InvestmentAuto",
-    [string]$DataDir = "$env:LOCALAPPDATA\AiTradingAutomation"
+    [string]$DataDir = "$env:LOCALAPPDATA\InvestmentAuto"
 )
 
 # Upgrade-preserves-data acceptance check (desktop requirement #8):

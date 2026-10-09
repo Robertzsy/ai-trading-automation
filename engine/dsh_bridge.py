@@ -87,7 +87,7 @@ def _resolve_dsh_home(app_dir: Path) -> str:
       1. ``autonomous.dsh_bridge.dsh_home`` — explicit product configuration.
       2. ``DSH_HOME`` — when it points at a home this product owns (this is how
          the packaged desktop shell drives the engine).
-      3. ``%LOCALAPPDATA%\\AiTradingAutomation`` — the installed data root.
+      3. ``%LOCALAPPDATA%\\InvestmentAuto`` — the installed data root.
       4. ``<app>/dev-home`` — the in-repo development home.
     """
     configured = str(_bridge_config().get("dsh_home", "") or "")
@@ -105,7 +105,7 @@ def _resolve_dsh_home(app_dir: Path) -> str:
 
     local_app_data = os.getenv("LOCALAPPDATA", "").strip()
     if local_app_data:
-        installed = Path(local_app_data) / "AiTradingAutomation"
+        installed = Path(local_app_data) / "InvestmentAuto"
         if _is_product_data_home(installed):
             return str(installed)
 
@@ -199,7 +199,7 @@ def _uses_file_credentials(app_dir: Path, home: str) -> bool:
         return False
     main_home = Path(home).resolve()
     local_app_data = os.getenv("LOCALAPPDATA", "").strip()
-    if local_app_data and main_home == (Path(local_app_data) / "AiTradingAutomation").resolve():
+    if local_app_data and main_home == (Path(local_app_data) / "InvestmentAuto").resolve():
         return False
     return main_home == (app_dir / "dev-home").resolve() or (main_home / ".credentials.yaml").is_file()
 

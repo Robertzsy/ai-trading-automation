@@ -40,13 +40,13 @@ AI Trading Automation 是一款面向 A 股、港股、美股和场内 ETF 的�
 
 ## 安装
 
-- 下载 [v2.1.5 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5) 中的 `AiTradingAutomation-Setup-x64.exe`
+- 下载 [v2.1.5 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5) 中的 `InvestmentAuto-Setup-x64.exe`
 - 支持 Windows 10/11 x64；安装包内置 Python、Node.js、.NET 桌面运行时与 WebView2 兜底安装程序
 
-校验文件：[AiTradingAutomation-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/AiTradingAutomation-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
+校验文件：[InvestmentAuto-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
 
 ```powershell
-Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
 ```
 
 程序默认安装到 `%LocalAppData%\Programs\InvestmentAuto`，用户数据保存在 `%LocalAppData%\InvestmentAuto`。覆盖升级不改动账户、持仓、报告、配置、凭据和会话；2.1.3 升级实测 76,167 个用户数据文件零丢失。

@@ -19,7 +19,7 @@ from docx.shared import Pt, RGBColor, Inches
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-SRC = Path(r"D:\ai-trading-automation\docs\PROJECT_REPORT.md")
+SRC = Path(r"D:\investment-auto\docs\PROJECT_REPORT.md")
 DST = Path(r"C:\Users\zheng siyuan\Desktop\AI Trading Automation 2.1.3 项目报告.docx")
 
 ACCENT = RGBColor(0x10, 0x27, 0x2B)   # title: product dark teal

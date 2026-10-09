@@ -4,7 +4,7 @@
 
 ## 0. 现状调研结论（已核实）
 
-1. **launcher 已存在且成熟**：`windows/AiTradingAutomationLauncher.cs` 是 WinForms 启动器（启动/停止/开机自启/状态检测），但用旧 CodeDom 编译（拿不到 WebView2），且最后 `OpenDashboard()` 跳外部浏览器。
+1. **launcher 已存在且成熟**：`windows/InvestmentAutoLauncher.cs` 是 WinForms 启动器（启动/停止/开机自启/状态检测），但用旧 CodeDom 编译（拿不到 WebView2），且最后 `OpenDashboard()` 跳外部浏览器。
 2. **路径依赖是最大改造点**：约 **36 处** `ROOT / "runtime"`（用户数据：审计/账户/记忆/checkpoint/报告/选股缓存/bus/mandate/锁）+ 3 处 `ROOT / "scripts"`（代码）+ 5 处 `ROOT / "config"`（用户配置），其中 `ROOT = Path(__file__).resolve().parents[2]` 分布在 ~25 个模块。**代码和数据耦合在同一个根**。
 3. **端口已支持环境变量**：`CHAT_PORT`（main.py）、`CHAT_HOST`（默认 localhost）已存在；launcher 可用动态端口传给 python。
 4. **进程锁已具备**：`scheduler.lock` + `runtime_lock.py` 的 ProcessLease/atomic_claim 已防重复调度器；launcher 读 `worker.json` 判 agent 存活。
@@ -34,7 +34,7 @@ def data_root() -> Path:                            # 用户数据根
 - `ROOT / "scripts"` 保持代码根（stock-fetcher.js、macro run.js）
 - `config.yaml` 位置：默认 `data_root()/config/config.yaml`，`CONFIG_PATH` 仍可覆盖；`market/*.yaml` 首次从代码根模板拷到数据目录，之后读写数据目录
 - `.env` 位置：`data_root()/.env`（开发模式 = ROOT/.env 不变）
-- **开发模式零改动**：不设 `AI_TRADING_AUTOMATION_DATA_DIR` 时 `data_root()==ROOT`，D:\ai-trading-automation 直接跑行为完全不变
+- **开发模式零改动**：不设 `AI_TRADING_AUTOMATION_DATA_DIR` 时 `data_root()==ROOT`，D:\investment-auto 直接跑行为完全不变
 
 ### B. 进程模型 —— P0/P1
 
@@ -70,7 +70,7 @@ def data_root() -> Path:                            # 用户数据根
 
 - 窗口内 WebView 加载 `setup.html`（新页面），十步：模型商/API Key 测试/快慢模型/策略/模式/市场/风控确认/webhook/初始化账户/启动
 - API Key 用 **DPAPI**（`CryptProtectData`，Windows 内置，ctypes 调用，无需额外依赖）加密存 `data_root()/secrets.enc`，不写安装目录、不进日志、不进 .env 明文
-- 首次检测 `D:\ai-trading-automation` → 允许导入 config/.env/runtime/账户/报告/记忆，导入前备份，不删原目录
+- 首次检测 `D:\investment-auto` → 允许导入 config/.env/runtime/账户/报告/记忆，导入前备份，不删原目录
 
 ## 2. 阶段计划（每阶段可回退提交 + 测试）
 
@@ -169,7 +169,7 @@ def data_root() -> Path:                            # 用户数据根
 | ⑮ | 现有 Python 全量测试通过 | 252 项 × .venv + 捆绑运行时 | ✅ 自动化 |
 
 - 一键门禁：`scripts\release-check.ps1`（C# 18 项 + .venv 261 + 捆绑 261 + 升级保数据 + 哈希清单；失败退出码 1 已实测）
-- 首次向导端到端（2026-08-17 验收修复后实测）：检测 D:\ai-trading-automation ✓；模型下拉数据 ✓；
+- 首次向导端到端（2026-08-17 验收修复后实测）：检测 D:\investment-auto ✓；模型下拉数据 ✓；
   模型/策略/模式/市场写入经深合并 ✓；portfolio.json 实际创建 ✓；向导完成前不启动投资
   Agent、完成后 5 秒内自动启动 ✓（HTTP 全链路模拟，见 `tests/test_setup_flow.py` 9 项）
 - 剩余：⑤⑩ 交互/干净环境项在 Win10/11 VM 验收（清单见 docs/DESKTOP_USAGE.md 第五节）；

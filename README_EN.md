@@ -40,13 +40,13 @@ The current source and latest installer are both **2.1.5**, including the holdin
 
 ## Installation
 
-- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
+- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
 ```powershell
-Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
 ```
 
 The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials, and sessions. The 2.1.3 on-machine upgrade check preserved all 76,167 user-data files with zero missing or changed files.

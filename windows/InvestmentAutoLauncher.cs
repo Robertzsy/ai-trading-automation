@@ -38,7 +38,7 @@ namespace AiTradingAutomation.Windows
     internal static class LauncherService
     {
         internal const string ProductName = "AI Trading Automation";
-        internal const string AutoStartValueName = "AiTradingAutomation";
+        internal const string AutoStartValueName = "InvestmentAuto";
         internal const string DashboardUrl = "http://127.0.0.1:8080";
         private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
@@ -55,7 +55,7 @@ namespace AiTradingAutomation.Windows
             if (!String.IsNullOrWhiteSpace(configured)) candidates.Add(configured);
             candidates.Add(AppDomain.CurrentDomain.BaseDirectory);
             candidates.Add(Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..")));
-            candidates.Add(@"D:\ai-trading-automation");
+            candidates.Add(@"D:\investment-auto");
             candidates.Add(Environment.CurrentDirectory);
 
             foreach (var candidate in candidates)
