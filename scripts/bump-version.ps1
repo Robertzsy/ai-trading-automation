@@ -10,7 +10,7 @@ param(
 #   cannot drift again (three plugin manifests had drifted to 2.0.0-p2 /
 #   2.0.0-p4 / 2.0.0-p5 while the product shipped 2.1.3).
 #
-#   powershell -ExecutionPolicy Bypass -File scripts\bump-version.ps1 -Version 2.1.4
+#   powershell -ExecutionPolicy Bypass -File scripts\bump-version.ps1 -Version 2.1.5
 #   powershell -ExecutionPolicy Bypass -File scripts\bump-version.ps1            # repair drift to engine/version.py
 #   powershell -ExecutionPolicy Bypass -File scripts\bump-version.ps1 -Check     # verify only, never writes
 #
@@ -22,10 +22,8 @@ param(
 #     matched by an anchored, exactly-once pattern (asserted at run time).
 #   * CHANGELOG.md / README*.md / docs/** contain historical version numbers
 #     and are NEVER touched - they are not in the list.
-#   * app/package-lock.json is NEVER touched: it contains a third-party
-#     dependency (`ms`) whose real version is literally "2.1.3", so a global
-#     regex over JSON would corrupt the lockfile. Its root entry carries no
-#     version field, so there is nothing to keep in sync there.
+#   * Only the two PRODUCT root version fields in app/package-lock.json are
+#     changed. Dependency versions (including ms@2.1.3) remain untouched.
 #   * Files are round-tripped byte-for-byte through UTF-8 with their original
 #     BOM state preserved; PowerShell's default ANSI encoding would mangle the
 #     Chinese text in InvestmentAuto.iss and app/package.json.
@@ -59,59 +57,49 @@ function Write-Utf8PreservingBom([string]$path, [string]$text, [bool]$hasBom) {
 $declarations = @(
     # 1. the source of truth itself
     [pscustomobject]@{ Path = "engine/version.py"
-                       Pattern = '(?m)^__version__\s*=\s*"([^"]+)"'
-                       Replacement = '__version__ = "{V}"' }
+                       Pattern = '(?m)^__version__\s*=\s*"([^"]+)"' }
     # 2. Python packaging metadata (the trailing sync comment stays outside the match)
     [pscustomobject]@{ Path = "pyproject.toml"
-                       Pattern = '(?m)^version\s*=\s*"([^"]+)"'
-                       Replacement = 'version = "{V}"' }
+                       Pattern = '(?m)^version\s*=\s*"([^"]+)"' }
     # 3. Inno Setup installer
     [pscustomobject]@{ Path = "installer/InvestmentAuto.iss"
-                       Pattern = '(?m)^#define\s+MyAppVersion\s+"([^"]+)"'
-                       Replacement = '#define MyAppVersion "{V}"' }
+                       Pattern = '(?m)^#define\s+MyAppVersion\s+"([^"]+)"' }
     # 4. portable-archive builder default
     [pscustomobject]@{ Path = "scripts/build-windows-release.ps1"
-                       Pattern = '(?m)^\s*\[string\]\$Version\s*=\s*"([^"]+)"'
-                       Replacement = '    [string]$Version = "{V}"' }
+                       Pattern = '(?m)^\s*\[string\]\$Version\s*=\s*"([^"]+)"' }
     # 5-7. desktop shell assembly metadata (Version is 3-part, the other two 4-part)
     [pscustomobject]@{ Path = "windows/desktop/InvestmentAuto.Desktop.csproj"
-                       Pattern = '(?m)^\s*<Version>([^<]+)</Version>'
-                       Replacement = '    <Version>{V}</Version>' }
+                       Pattern = '(?m)^\s*<Version>([^<]+)</Version>' }
     [pscustomobject]@{ Path = "windows/desktop/InvestmentAuto.Desktop.csproj"
                        Pattern = '(?m)^\s*<AssemblyVersion>([^<]+)</AssemblyVersion>'
-                       Replacement = '    <AssemblyVersion>{V}</AssemblyVersion>'
                        Assembly = $true }
     [pscustomobject]@{ Path = "windows/desktop/InvestmentAuto.Desktop.csproj"
                        Pattern = '(?m)^\s*<FileVersion>([^<]+)</FileVersion>'
-                       Replacement = '    <FileVersion>{V}</FileVersion>'
                        Assembly = $true }
     # 8. DSH app shell
     [pscustomobject]@{ Path = "app/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
-    # 9-13. DSH plugins
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
+    # Product metadata in the lockfile, scoped separately from dependencies.
+    [pscustomobject]@{ Path = "app/package-lock.json"
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
+    [pscustomobject]@{ Path = "app/package-lock.json"
+                       Pattern = '(?m)^    "": \{\r?\n      "name": "[^"]+",\r?\n      "version"\s*:\s*"([^"]+)"' }
+    # DSH plugins
     [pscustomobject]@{ Path = "app/plugins/dsh-investment-tools/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
     [pscustomobject]@{ Path = "app/plugins/dsh-investment-ui/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
     [pscustomobject]@{ Path = "app/plugins/dsh-investment-workflow/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
     [pscustomobject]@{ Path = "app/plugins/dsh-dpapi-credentials/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
     [pscustomobject]@{ Path = "app/plugins/dsh-product-shell/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
-    # 14-15. DSH profiles
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
+    # DSH profiles
     [pscustomobject]@{ Path = "app/profiles/investment-web/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
     [pscustomobject]@{ Path = "app/profiles/investment/package.json"
-                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"'
-                       Replacement = '  "version": "{V}"' }
+                       Pattern = '(?m)^  "version"\s*:\s*"([^"]+)"' }
 )
 
 # --- resolve the target version -------------------------------------------
@@ -161,11 +149,11 @@ foreach ($declaration in $declarations) {
     $drift += [pscustomobject]@{ Path = $declaration.Path; From = $found; To = $want }
     if ($Check) { continue }
 
-    $template = $declaration.Replacement -replace '\{V\}', $want
-    # the templates contain PowerShell variables such as $Version / $LASTEXITCODE,
-    # so every literal '$' must be escaped for .NET's replacement syntax.
-    $replacement = $template.Replace('$', '$$')
-    $newText = [regex]::Replace($file.Text, $declaration.Pattern, $replacement)
+    # Replace only the captured version literal. This preserves the surrounding
+    # JSON/XML/PowerShell and never rewrites a dependency with the same version.
+    $literal = $matches[0].Groups[1]
+    $newText = $file.Text.Substring(0, $literal.Index) + $want +
+               $file.Text.Substring($literal.Index + $literal.Length)
     if ($newText -eq $file.Text) {
         throw "internal error: the replacement had no effect on $($declaration.Path)"
     }

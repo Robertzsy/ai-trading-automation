@@ -1,6 +1,6 @@
 [project]
 name = "investment-auto"
-version = "2.1.4"  # keep in sync with engine/version.py
+version = "2.1.5"  # keep in sync with engine/version.py
 description = "Multi-market paper-trading investment automation with multi-agent research and portfolio optimization"
 requires-python = ">=3.10"
 readme = "README.md"

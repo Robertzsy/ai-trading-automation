@@ -4,7 +4,7 @@
  * Launches headless Chrome, loads the investment-web profile, and verifies
  * what the browser actually renders:
  *   1. no visible DSH / DeepSeek / Harness / fish branding
- *   2. product left nav (Dashboard / 投资助手 / 分析流程 / 设置) works
+ *   2. product left nav (Dashboard / 投资助手 / 分析中心 / 设置) works
  *   3. the conversation kernel area renders (投资助手 page)
  *   4. Dashboard and Settings pages render with the investment sections
  *   5. no uncaught page exceptions / failed plugin bundles
@@ -114,7 +114,7 @@ async function evaluate(cdp, expression) {
 
 async function main() {
   console.error(`smoke-web: url=${webUrl}`);
-  const profileDir = chromeProfileDir ?? mkdtempSync(join(tmpdir(), "ia-smoke-"));
+  const profileDir = chromeProfileDir || mkdtempSync(join(tmpdir(), "ia-smoke-"));
 
   const chrome = spawn(
     chromePath,
@@ -128,7 +128,7 @@ async function main() {
       "--disable-extensions",
       "about:blank",
     ],
-    { stdio: "ignore" },
+    { stdio: "ignore", windowsHide: true },
   );
   const chromeExit = new Promise((resolve) => chrome.on("exit", resolve));
 
@@ -229,7 +229,34 @@ async function main() {
     await sleep(1500);
     const dashText = await evaluate(cdp, "document.body.innerText");
     check(String(dashText).includes("投资总览"), "Dashboard renders 投资总览");
-    check(String(dashText).includes("四市场账户"), "Dashboard renders 四市场账户");
+    const dashboard = await evaluate(cdp, `({
+      markets: document.querySelectorAll('.ia-db-market-picker button').length,
+      metrics: document.querySelectorAll('.ia-db-metric').length,
+      watch: Boolean(document.querySelector('.ia-db-watch')),
+      focus: Boolean(document.querySelector('.ia-db-focus')),
+      secondary: document.querySelectorAll('.ia-db-secondary > section').length,
+      holdings: document.querySelectorAll('.ia-db-stock').length,
+    })`);
+    check(dashboard?.markets === 4 && dashboard?.metrics === 4, "Dashboard renders four market choices and account metrics");
+    check(dashboard?.watch && dashboard?.focus && dashboard?.secondary === 2, "Dashboard renders holdings, stock detail, allocation and trades");
+    for (let marketIndex = 0; marketIndex < 4; marketIndex++) {
+      await evaluate(cdp, `document.querySelectorAll('.ia-db-market-picker button')[${marketIndex}].click()`);
+      await waitFor(async () => evaluate(cdp, `document.querySelectorAll('.ia-db-market-picker button')[${marketIndex}]?.getAttribute('aria-pressed') === 'true'`), "Dashboard market selection");
+    }
+    check(true, "Dashboard switches between all four markets");
+    await evaluate(cdp, `document.querySelector('.ia-db-market-picker button').click()`);
+    await sleep(400);
+    if (dashboard.holdings > 0) {
+      await evaluate(cdp, `document.querySelector('.ia-db-stock').click()`);
+      await sleep(300);
+      const selectedStock = await evaluate(cdp, `({
+        selected: document.querySelectorAll('.ia-db-stock[aria-pressed="true"]').length,
+        periods: document.querySelectorAll('.ia-db-choices[aria-label="时间范围"] button').length,
+      })`);
+      check(selectedStock?.selected === 1 && selectedStock?.periods === 3, "Dashboard links a holding to its stock chart controls");
+    } else {
+      console.error("   (stock chart controls skipped: this account has no holdings)");
+    }
 
     // 4b. The workflow board moved into the analysis centre (its own nav entry is
     //     gone). Navigate there first, then assert the merge left a working page.

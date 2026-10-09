@@ -1,6 +1,6 @@
 {
   "name": "@investment-auto/dsh-investment-workflow",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "The single fixed multi-role investment analysis workflow entry for Investment Auto 2.1 (web launcher + headless executor + status poller)",
   "type": "module",
   "main": "lib/index.js",

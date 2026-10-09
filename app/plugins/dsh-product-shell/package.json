@@ -1,6 +1,6 @@
 {
   "name": "@investment-auto/dsh-product-shell",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Investment Auto product shell: product navigation, fixed workspace, flat session list, settings shell, dashboard and investment settings pages over the DSH conversation kernel",
   "type": "module",
   "main": "lib/index.js",

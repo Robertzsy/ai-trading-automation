@@ -10,9 +10,9 @@
     <AssemblyName>InvestmentAuto.Desktop</AssemblyName>
     <RootNamespace>InvestmentAuto.Desktop</RootNamespace>
     <ApplicationIcon>InvestmentAuto.ico</ApplicationIcon>
-    <Version>2.1.4</Version>
-    <AssemblyVersion>2.1.4.0</AssemblyVersion>
-    <FileVersion>2.1.4.0</FileVersion>
+    <Version>2.1.5</Version>
+    <AssemblyVersion>2.1.5.0</AssemblyVersion>
+    <FileVersion>2.1.5.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

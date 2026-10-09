@@ -8,7 +8,11 @@
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
-Investment Auto 2.1.4 is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
+Investment Auto is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
+
+The current source version is **2.1.5**, including the holdings-linked Dashboard.
+The published installer remains **2.1.4**; the download links and checksum below
+refer to that released installer. A 2.1.5 installer has not been published.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -33,6 +37,7 @@ Investment Auto 2.1.4 is a desktop application for investment research and **pap
 - **13-role committee-style analysis**: four base-research tracks → bull-bear debate → research manager and per-symbol trader → portfolio draft → three-way risk debate → final decision; conclusions must cite evidence, and live stages and checkpoints are visible.
 - **Risk controls the AI cannot bypass**: three-tier strategy mandate, position capping, drawdown circuit breaker, and built-in stop-loss/take-profit; every AI decision must pass the deterministic Python risk layer and paper broker.
 - **Productized desktop app**: Dashboard, Investment Assistant, Analysis Centre, and Settings; one-click install, single instance, tray icon, autostart, and in-place upgrades that preserve data.
+- **Holdings-linked Dashboard**: account metrics and allocations remain in each market's native currency; select a holding to inspect its daily history, line/candlestick views, time ranges, cost basis, volume, MA20 and fill dates, with source and data dates shown.
 - **Conversational AI assistant**: retains DSH-native reasoning, streaming, tools, Skills, plans, and subagents; IA can also inspect logs, edit source, and run tests to maintain itself.
 
 ## Installation
@@ -127,6 +132,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 | 2.1.2 | Added durable broker receipts, decision fingerprints, cross-process leases, restart recovery, and strong binding between user-requested symbols and completed analysis. Internal headless and role sessions moved to an isolated DSH Home and no longer pollute the user session list. |
 | 2.1.3 | Enabled IA filesystem, PowerShell, search, background-job, and Ralph self-maintenance capabilities. Added the self-maintenance Skill and fixed workflow-schema compatibility, failed-cycle retry races, Windows atomic writes, and accidental packaging of development data. |
 | 2.1.4 | Rebuilt the interface on a design-token layer: a pinned light theme, full WCAG AA contrast, one icon set and four elevation levels, with the smallest type raised from 11px to 12px. Reworked the Analysis Centre (entries moved to the top, pre-flight collapsed, graphical progress, rounds can be stopped) and the Dashboard (four vertical market cards plus a holdings table, with trend colour following each market's convention). Merged the Analysis Workflow tab into the Analysis Centre. Fixed rounds failing at startup, workflow status that never advanced, and holdings columns offset from their data. |
+| 2.1.5 (source; installer unreleased) | Linked holdings to individual stock history; added per-currency metrics, allocation, candlesticks, cost basis, volume and simulated fill dates; extended the version gate to npm lockfile metadata and updated browser acceptance for the Dashboard. |
 
 See the [Chinese changelog](CHANGELOG.md), [English changelog](CHANGELOG_EN.md), and [bilingual v2.1.4 release notes](docs/RELEASE_NOTES_2.1.4.md) for the complete record.
 
@@ -143,12 +149,15 @@ IA runs with the DSH `danger-full-access` preset. Within the current Windows use
 
 ## Tests and Release Gate
 
-Investment Auto 2.1.4 passed:
+The 2.1.5 source passed:
 
-- 376 Python tests.
-- 28 Node plugin tests.
+- 381 Python tests; six online market-data checks skipped.
+- 38 Node plugin tests.
 - 20 Windows desktop tests.
-- Skills and plugin composition checks, real-profile validation, in-place upgrade verification, and a live recovery of the complete AAPL workflow.
+- Browser acceptance for navigation, market and holding selection, the Analysis Centre, settings and contrast; real holding history and 1280px / 360px layouts verified.
+- Skills/plugin composition, three generated-source gates and all 17 version declarations; the preceding desktop upgrade preserved all 78,691 user-data files.
+
+See the [repository audit](docs/REPOSITORY_AUDIT_2026-10-09.md) for GitHub, version and dependency findings.
 
 Run the complete release gate with:
 

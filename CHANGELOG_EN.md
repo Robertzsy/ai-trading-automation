@@ -4,6 +4,18 @@
 
 This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The exact bilingual GitHub Release body is available in [docs/RELEASE_NOTES_2.1.4.md](docs/RELEASE_NOTES_2.1.4.md).
 
+## 2.1.5 — Holdings-Linked Stock Visualisation (2026-10-09, source update; installer unreleased)
+
+- Linked the holdings list and allocations to each stock's daily history, with independent market selection.
+- Added one-month, three-month and one-year ranges; line/candlestick views, cost basis, volume, MA20 and simulated fill dates; pointer, touch and keyboard date inspection.
+- Kept equity, unrealised P/L, capital use and allocation in each market's native currency. Missing prices do not fall back to invented cost-based valuations.
+- Added a read-only history proxy with symbol validation, coalesced requests, caching and retry; charts disclose source, adjustment, fallback use and final trading date.
+- Added timestamps for account valuation prices and distinguished these from historical closes. Runtime status, round reports and market news remain available.
+- Fixed the version writer and gate omitting the lockfile's two product version fields. All 17 declarations now agree on 2.1.5 without changing third-party dependency versions.
+- Updated browser acceptance for the new Dashboard and fixed the empty Chrome profile argument that prevented isolated smoke runs.
+- Validation: 381 Python tests passed, six online checks skipped; 38 plugin tests, 20 desktop tests and installed-product browser acceptance passed. The preceding local Dashboard upgrade preserved all 78,691 user-data files.
+- Source updated; the v2.1.4 tag, installer and historical checksum remain intact. See the [repository audit](docs/REPOSITORY_AUDIT_2026-10-09.md) for remaining packaging and dependency findings.
+
 ## 2.1.4 — Design-Tokenised UI and a Reliable Analysis Pipeline (2026-10-09, branch `dsch/2.0`)
 
 - **Rebuilt the interface on a design-token layer.** Colour, type scale, spacing, radius, elevation and motion are all tokens now rather than scattered literals, with a new gate that catches self-referential variables (`--ia-x: var(--ia-x)`, which browsers silently drop).

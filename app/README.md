@@ -51,7 +51,7 @@ node app\node_modules\@deepseek-ai\dsh\lib\bin.js --profile investment --dump-co
 ## 测试
 
 ```powershell
-node --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs"
+node --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs" "app/plugins/dsh-product-shell/test/*.test.mjs"
 node app/scripts/check-skills.mjs
 ```
 
