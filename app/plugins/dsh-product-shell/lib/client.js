@@ -1077,236 +1077,320 @@ window.__ModuleLoader__.load({
 			});
 		}
 
-		function ProductDashboard() {
-			const summaryState = useInvestmentSummary(10000);
-			const summary = summaryState.data ?? {};
-			const status = summary.status ?? {};
-			const engineError = summaryState.error || status.error || "";
-			const portfolios = summary.portfolios ?? {};
-			const reports = Array.isArray(summary?.reports?.reports) ? summary.reports.reports : [];
-			const macro = typeof summary?.macro?.content === "string" ? summary.macro.content : "";
-			const control = status.control ?? {};
-			const mandate = status.mandate ?? {};
-			const marketRows = ["cn", "hk", "us", "etf"].map((market) => {
-				const account = portfolios[market];
-				if (!account || account.error) return null;
-				const holdings = Array.isArray(account.holdings) ? account.holdings : [];
-				const trades = Array.isArray(account.tradeHistory) ? account.tradeHistory : [];
-				const equity = Array.isArray(account.equitySnapshots) ? account.equitySnapshots : [];
-				// Keep the detail, not just the counts. The previous version reduced
-				// each account to `holdings.length`, which is why the dashboard could
-				// not show market value, cost or P&L: the numbers were discarded
-				// here, one line before render.
-				const rows = holdings.map((holding) => {
-					const shares = Number(holding.shares ?? holding.quantity ?? 0);
-					const costPrice = Number(holding.costPrice ?? holding.cost ?? 0);
-					const lastPrice = Number(holding.lastPrice ?? costPrice);
-					const value = shares * lastPrice;
-					const cost = shares * costPrice;
-					const pnl = value - cost;
-					return {
-						code: String(holding.code ?? ""),
-						name: String(holding.name ?? ""),
-						shares,
-						costPrice,
-						lastPrice,
-						highPrice: Number(holding.highPrice ?? 0),
-						value,
-						cost,
-						pnl,
-						pnlPct: cost > 0 ? pnl / cost : 0
-					};
-				});
-				const value = rows.reduce((total, row) => total + row.value, 0);
-				const cost = rows.reduce((total, row) => total + row.cost, 0);
-				const pnl = value - cost;
-				return {
-					market,
-					totalCapital: Number(account.totalCapital ?? 0),
-					cash: Number(account.cash ?? 0),
-					highWaterMark: Number(account.highWaterMark ?? 0),
-					holdings: rows,
-					trades,
-					equity,
-					value,
-					cost,
-					pnl,
-					pnlPct: cost > 0 ? pnl / cost : 0,
-					tradesCount: trades.length
-				};
-			}).filter(Boolean);
-			// Market values, summed in each market's own currency; no FX conversion
-			// is attempted because no rate source is configured, and inventing one
-			// would silently produce a wrong total.
-			const holdingsCount = marketRows.reduce((total, row) => total + row.holdings.length, 0);
-			const tradesCount = marketRows.reduce((total, row) => total + row.tradesCount, 0);
-			const investedValue = marketRows.reduce((total, row) => total + row.value, 0);
-			const investedCost = marketRows.reduce((total, row) => total + row.cost, 0);
-			const unrealizedPnl = investedValue - investedCost;
-			// Up/down colour is a per-market CONVENTION, not one global semantic:
-			// mainland China and Hong Kong quote red-for-up, the US does the
-			// opposite. It is deliberately expressed as `data-trend=up|down|flat`
-			// rather than reusing ok/danger, because reusing a severity token made
-			// an A-share loss render green (severity "ok") while reading "-2.35%".
-			// Separating the two axes keeps "green = healthy" elsewhere intact.
-			const trendOf = (value) => (value > 0 ? "up" : value < 0 ? "down" : "flat");
-			const redUp = (market) => market !== "us";
-			const riskLabel = engineError ? "未知" : control.kill_switch ? "紧急停止" : control.paused ? "已暂停" : "正常";
-			const riskKind = engineError ? "warn" : control.kill_switch ? "danger" : control.paused ? "warn" : "ok";
-			const currency = { cn: "¥", hk: "HK$", us: "US$", etf: "¥" };
-			const nextRuns = Object.entries(status.markets ?? {}).slice(0, 4);
-			const analysis = summary.analysis ?? null;
+		/* DASHBOARD:START */
+		// Generated into lib/client.js. Only React and the product shell's helpers are
+		// used at runtime; no CDN, chart framework or additional shipped dependency.
+		const dbH = (...args) => react.createElement(...args);
+		const dbMarkets = ['cn', 'hk', 'us', 'etf'];
+		const dbCurrencies = {cn:'¥', hk:'HK$', us:'US$', etf:'¥'};
+		const dbPeriods = {month:1, quarter:3, year:12};
+		const dbPeriodNames = {month:'近1个月', quarter:'近3个月', year:'近1年'};
+		const dbNumber = value => value === null || value === undefined || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
+		const dbMoney = (value, currency='', digits=2) => dbNumber(value) === null ? '—' : currency + Number(value).toLocaleString('zh-CN',{minimumFractionDigits:digits,maximumFractionDigits:digits});
+		const dbSigned = value => dbNumber(value) === null ? '—' : (value>0?'+':'') + Number(value).toFixed(2) + '%';
+		const dbTrend = value => value>0?'up':value<0?'down':'flat';
+		const dbCode = (market, value) => {
+		  const code=String(value ?? '').trim();
+		  if(market==='hk') return code.replace(/^hk/i,'').padStart(5,'0');
+		  if(market==='us') return code.replace(/^us(?=[A-Z])/,'').toUpperCase();
+		  return code.replace(/^(sh|sz|bj)/i,'');
+		};
 
-			return react_jsx_runtime.jsxs("div", {
-				className: "ia-page",
-				children: [
-					react_jsx_runtime.jsx(PageHeader, {
-						title: "投资总览",
-						subtitle: "账户、组合、风险与自主运行状态",
-						status: summaryState.loading ? "正在连接投资引擎" : engineError ? "投资引擎不可用" : "模拟交易 · 系统正常",
-						statusKind: engineError ? "error" : summaryState.loading ? "warn" : "ok"
-					}),
-					react_jsx_runtime.jsxs("div", {
-						className: "ia-page-content",
-						children: [
-							engineError ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "引擎暂不可达：" + engineError }) : null,
-							react_jsx_runtime.jsxs("div", {
-								className: "ia-kpi-grid",
-								children: [
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "模拟账户" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: marketRows.length || "-" })] }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "A 股 / 港股 / 美股 / ETF" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "当前持仓" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: holdingsCount })] }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "累计成交 " + tradesCount + " 笔" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "最近报告" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: reports.length })] }), react_jsx_runtime.jsx("div", { className: "ia-kpi-foot", children: "展示最近 12 个轮次" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-kpi", children: [react_jsx_runtime.jsxs("div", { className: "ia-kpi-top", children: [react_jsx_runtime.jsx("div", { className: "ia-kpi-label", children: "组合风险" }), react_jsx_runtime.jsx("div", { className: "ia-kpi-value", children: riskLabel })] }), react_jsx_runtime.jsxs("div", { className: "ia-kpi-foot", children: ["策略：", mandate.display_name ?? mandate.profile ?? "-"] })] })
-								]
-							}),
-							react_jsx_runtime.jsxs("div", {
-								className: "ia-dashboard-grid",
-								children: [
-									react_jsx_runtime.jsxs("section", {
-										className: "ia-panel",
-										children: [
-											react_jsx_runtime.jsxs("div", { className: "ia-panel-head", children: [react_jsx_runtime.jsx("h3", { children: "四市场账户" }), react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": riskKind, children: "风控" + riskLabel })] }),
-											react_jsx_runtime.jsx("div", {
-												className: "ia-market-grid",
-												children: marketRows.length > 0 ? marketRows.map((row) => react_jsx_runtime.jsxs("div", {
-													className: "ia-market",
-													key: row.market,
-													children: [
-														react_jsx_runtime.jsxs("div", { className: "ia-market-head", children: [react_jsx_runtime.jsx("span", { className: "ia-market-badge", children: marketName[row.market] }), react_jsx_runtime.jsx("span", { className: "ia-market-hold", children: row.holdings.length + " 持仓" })] }),
-														react_jsx_runtime.jsx("div", { className: "ia-market-value", children: fmtMoney(row.value) }),
-														react_jsx_runtime.jsxs("div", { className: "ia-market-pnl", "data-trend": trendOf(row.pnl), "data-red-up": redUp(row.market), children: [
-															react_jsx_runtime.jsx("span", { children: (row.pnl > 0 ? "+" : "") + fmtMoney(row.pnl) }),
-															react_jsx_runtime.jsx("span", { children: (row.pnlPct > 0 ? "+" : "") + (row.pnlPct * 100).toFixed(2) + "%" })
-														]}),
-														react_jsx_runtime.jsxs("div", { className: "ia-market-kv", children: [
-															react_jsx_runtime.jsxs("span", { children: ["现金", react_jsx_runtime.jsx("b", { children: fmtMoney(row.cash) })] }),
-															react_jsx_runtime.jsxs("span", { children: ["成本", react_jsx_runtime.jsx("b", { children: fmtMoney(row.cost) })] }),
-															react_jsx_runtime.jsxs("span", { children: ["成交", react_jsx_runtime.jsx("b", { children: row.tradesCount + " 笔" })] })
-														]})
-													]
-												}, row.market)) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: "账户数据暂不可用" })
-											}),
-											// Holdings detail. The dashboard previously showed only a count per
-											// market, so "which positions do I hold and how are they doing" was
-											// unanswerable here. Derived from shares/costPrice/lastPrice, which
-											// the engine already returns.
-											holdingsCount > 0 ? react_jsx_runtime.jsxs("div", {
-												className: "ia-holdings",
-												children: [
-													react_jsx_runtime.jsxs("div", { className: "ia-panel-head", style: { marginTop: 14 }, children: [
-														react_jsx_runtime.jsx("h3", { children: "持仓明细" }),
-														react_jsx_runtime.jsx("span", { children: holdingsCount + " 个持仓 · 合计盈亏 " + (unrealizedPnl > 0 ? "+" : "") + fmtMoney(unrealizedPnl) })
-													]}),
-													...marketRows.filter((row) => row.holdings.length > 0).map((row) => {
-														// One table per market, with the market as a CAPTION rather than
-														// a leading header cell. Putting it in <thead> gave the header
-														// one more cell than the body, so every value sat one column to
-														// the left of its own heading.
-														const columns = ["代码", "名称", "持仓", "成本", "现价", "市值", "盈亏", "幅度"];
-														return react_jsx_runtime.jsxs("table", {
-															className: "ia-table ia-holdings-table",
-															key: row.market,
-															children: [
-																react_jsx_runtime.jsx("caption", { className: "ia-holdings-caption", children: marketName[row.market] + " · " + row.holdings.length + " 个持仓" }),
-																react_jsx_runtime.jsx("thead", { children: react_jsx_runtime.jsx("tr", { children: columns.map((label, index) => react_jsx_runtime.jsx("th", {
-																	className: index === 0 ? "ia-holdings-code" : index === 1 ? "ia-holdings-name" : "ia-num",
-																	children: label
-																}, label)) }) }),
-																react_jsx_runtime.jsx("tbody", { children: row.holdings.map((holding) => react_jsx_runtime.jsxs("tr", {
-																	key: row.market + ":" + holding.code,
-																	children: [
-																		react_jsx_runtime.jsx("td", { className: "ia-holdings-code", children: holding.code }),
-																		react_jsx_runtime.jsx("td", { className: "ia-holdings-name", title: holding.name, children: holding.name || "-" }),
-																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.shares) }),
-																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.costPrice) }),
-																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.lastPrice) }),
-																		react_jsx_runtime.jsx("td", { className: "ia-num", children: fmtMoney(holding.value) }),
-																		react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnl > 0 ? "+" : "") + fmtMoney(holding.pnl) }),
-																		react_jsx_runtime.jsx("td", { className: "ia-num ia-trend", "data-trend": trendOf(holding.pnl), "data-red-up": redUp(row.market), children: (holding.pnlPct > 0 ? "+" : "") + (holding.pnlPct * 100).toFixed(2) + "%" })
-																	]
-																}, holding.code)) })
-															]
-														}, "holdings-" + row.market);
-													})
-												]
-											}) : null,
-										]
-									}),
-									react_jsx_runtime.jsxs("section", {
-										className: "ia-panel",
-										children: [
-											react_jsx_runtime.jsxs("div", { className: "ia-panel-head", children: [react_jsx_runtime.jsx("h3", { children: "运行动态" }), react_jsx_runtime.jsx("span", { children: status.operation_mode === "automatic" ? "自动运行" : "手动运行" })] }),
-											react_jsx_runtime.jsx("div", {
-												className: "ia-agenda",
-												children: [
-													...nextRuns.map(([market, info]) => react_jsx_runtime.jsxs("div", {
-														className: "ia-agenda-item",
-														key: market,
-														children: [
-															react_jsx_runtime.jsx("div", { className: "ia-agenda-icon", children: "◷" }),
-															react_jsx_runtime.jsxs("div", { children: [react_jsx_runtime.jsx("div", { className: "ia-agenda-title", children: marketName[market] + " 下一轮" }), react_jsx_runtime.jsx("div", { className: "ia-agenda-meta", children: String(info?.next_cycle ?? "尚未安排").replace("T", " ").slice(0, 16) })] })
-															]
-														}, market)),
-														analysis ? react_jsx_runtime.jsxs("div", {
-															className: "ia-agenda-item",
-															children: [
-																react_jsx_runtime.jsx("div", { className: "ia-agenda-icon", children: analysis.status === "running" ? "↻" : "✓" }),
-																react_jsx_runtime.jsxs("div", { children: [react_jsx_runtime.jsx("div", { className: "ia-agenda-title", children: "最近分析 · " + (marketName[analysis.market] ?? analysis.market) }), react_jsx_runtime.jsx("div", { className: "ia-agenda-meta", children: analysisStageLabel(analysis.current_stage) + " · Agent " + (analysis.completed_agents ?? 0) + "/" + (analysis.expected_agents ?? 0) })] })
-															]
-														}) : null,
-														react_jsx_runtime.jsxs("div", {
-														className: "ia-agenda-item",
-														children: [
-															react_jsx_runtime.jsx("div", { className: "ia-agenda-icon", children: "▤" }),
-															react_jsx_runtime.jsxs("div", { children: [react_jsx_runtime.jsx("div", { className: "ia-agenda-title", children: "最近轮次报告" }), reports.length > 0 ? react_jsx_runtime.jsx("ul", { className: "ia-report-list", children: reports.slice(0, 3).map((report) => react_jsx_runtime.jsx("li", { children: report.file, key: report.file })) }) : react_jsx_runtime.jsx("div", { className: "ia-agenda-meta", children: "暂无轮次报告" })] })
-														]
-													})
-												]
-											})
-										]
-									})
-								]
-							}),
-							// 市场早报 (formerly 宏观日报). The engine writes GFM, so it is
-							// rendered rather than printed: the old <p> showed "##" and ">"
-							// literally, at 11px. The subtitle states the collection time
-							// because the report covers the previous day's news.
-							macro ? react_jsx_runtime.jsxs("section", {
-								className: "ia-card ia-news",
-								style: { marginTop: 14 },
-								children: [
-									react_jsx_runtime.jsxs("div", { className: "ia-panel-head", children: [
-										react_jsx_runtime.jsx("h3", { children: "市场早报" }),
-										react_jsx_runtime.jsx("span", { children: "每交易日 08:00 采集" })
-									]}),
-									react_jsx_runtime.jsx("div", { className: "ia-news-body", children: renderMarkdown(macro) })
-								]
-							}) : null
-						]
-					})
-				]
-			});
+		function dbAccount(account, market) {
+		  if(!account || account.error || account.ok===false) return null;
+		  const holdings=(Array.isArray(account.holdings)?account.holdings:[]).filter(item=>item && typeof item==='object').map(item=>{
+		    const shares=dbNumber(item.shares ?? item.quantity);
+		    const cost=dbNumber(item.costPrice ?? item.cost);
+		    const price=dbNumber(item.lastPrice);
+		    return {...item, code:dbCode(market,item.code), name:String(item.name || item.code || '未命名标的'), shares, cost, price,
+		      value:shares!==null && price!==null && price>0 ? shares*price : null,
+		      pnl:shares!==null && cost!==null && price!==null && price>0 ? shares*(price-cost) : null};
+		  }).filter(item=>item.code && item.shares>0);
+		  const cash=dbNumber(account.cash);
+		  const value=holdings.every(item=>item.value!==null)?holdings.reduce((sum,item)=>sum+item.value,0):null;
+		  const pnl=holdings.every(item=>item.pnl!==null)?holdings.reduce((sum,item)=>sum+item.pnl,0):null;
+		  return {holdings,cash,value,pnl,equity:cash!==null && value!==null ? cash+value : null,
+		    trades:Array.isArray(account.tradeHistory)?account.tradeHistory:[]};
 		}
+
+		function dbHistory(payload) {
+		  if(payload?.error || payload?.ok===false) throw new Error(String(payload.error || '历史行情暂不可用'));
+		  if(!payload || !Array.isArray(payload.data)) throw new Error('行情返回格式异常');
+		  const dates=new Map();
+		  let invalid=0;
+		  for(const item of payload.data) {
+		    const date=String(item?.date ?? '').slice(0,10),close=dbNumber(item?.close);
+		    const time=Date.parse(date+'T00:00:00Z');
+		    if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(time) || new Date(time).toISOString().slice(0,10)!==date || !(close>0)) {invalid++;continue;}
+		    const open=dbNumber(item.open),high=dbNumber(item.high),low=dbNumber(item.low),volume=dbNumber(item.volume);
+		    const candle=open>0 && low>0 && high>=Math.max(open,close) && low<=Math.min(open,close);
+		    dates.set(date,{date,close,open:candle?open:null,high:candle?high:null,low:candle?low:null,volume:volume>=0?volume:null});
+		  }
+		  const warnings=(Array.isArray(payload.warnings)?payload.warnings:[]).filter(Boolean).map(String);
+		  if(invalid) warnings.push('部分无效行情已跳过');
+		  return {...payload,bars:[...dates.values()].sort((a,b)=>a.date.localeCompare(b.date)),warnings};
+		}
+
+		function dbWindow(bars, period) {
+		  if(!bars.length) return [];
+		  const end=new Date(bars.at(-1).date+'T00:00:00Z');
+		  const day=end.getUTCDate();
+		  end.setUTCDate(1);
+		  end.setUTCMonth(end.getUTCMonth()-(dbPeriods[period] ?? 3));
+		  const lastDay=new Date(Date.UTC(end.getUTCFullYear(),end.getUTCMonth()+1,0)).getUTCDate();
+		  end.setUTCDate(Math.min(day,lastDay));
+		  const start=end.toISOString().slice(0,10);
+		  return bars.filter(bar=>bar.date>=start);
+		}
+
+		function dbTrades(trades, market, code) {
+		  return trades.filter(item=>dbCode(market,item.code ?? item.symbol)===code &&
+		    (!item.status || item.status==='filled') && ['BUY','SELL'].includes(String(item.action ?? item.side).toUpperCase()) &&
+		    dbNumber(item.price)>0 && dbNumber(item.shares ?? item.quantity)>0 && /^\d{4}-\d{2}-\d{2}/.test(String(item.date ?? '')))
+		    .map(item=>({...item,action:String(item.action ?? item.side).toUpperCase(),date:String(item.date),shares:dbNumber(item.shares ?? item.quantity),price:dbNumber(item.price)}))
+		    .sort((a,b)=>a.date.localeCompare(b.date));
+		}
+
+		const dbHistoryCache=new Map();
+		const dbHistoryRefresh=new Set();
+		function dbLoadHistory(market,code) {
+		  const key=market+':'+code,previous=dbHistoryCache.get(key);
+		  const refresh=dbHistoryRefresh.delete(key);
+		  if(previous?.pending) return previous.pending;
+		  if(!refresh && previous?.data && Date.now()-previous.time<300000) return Promise.resolve(previous.data);
+		  const entry={time:0,data:null,pending:null};
+		  entry.pending=jsonFetch('/api/investment/history?market='+encodeURIComponent(market)+'&symbol='+encodeURIComponent(code)+(refresh?'&refresh=1':''),{signal:AbortSignal.timeout(90000)})
+		    .then(dbHistory).then(data=>{entry.data=data;entry.time=Date.now();return data;})
+		    .catch(error=>{dbHistoryCache.delete(key);throw error;}).finally(()=>{entry.pending=null;});
+		  if(dbHistoryCache.size>=128) {
+		    const oldest=[...dbHistoryCache.entries()].find(([,item])=>!item.pending);
+		    if(oldest) dbHistoryCache.delete(oldest[0]);
+		  }
+		  dbHistoryCache.set(key,entry);
+		  return entry.pending;
+		}
+
+		function useDashboardHistories(market,codes,selected) {
+		  const [state,setState]=react.useState({market:'',items:{}});
+		  const [retry,setRetry]=react.useState(0);
+		  const signature=codes.join(',');
+		  react.useEffect(()=>{
+		    let cancelled=false;
+		    const queue=[selected,...codes.filter(code=>code!==selected)].filter(Boolean);
+		    setState(previous=>({market,items:previous.market===market?previous.items:{}}));
+		    const worker=async()=>{
+		      while(queue.length && !cancelled) {
+		        const code=queue.shift();
+		        try {
+		          const data=await dbLoadHistory(market,code);
+		          if(!cancelled) setState(previous=>({market,items:{...(previous.market===market?previous.items:{}),[code]:{data,error:''}}}));
+		        } catch(error) {
+		          if(!cancelled) setState(previous=>({market,items:{...(previous.market===market?previous.items:{}),[code]:{data:null,error:String(error?.message ?? error)}}}));
+		        }
+		      }
+		    };
+		    worker();worker();
+		    return ()=>{cancelled=true;};
+		  },[market,signature,selected,retry]);
+		  return {items:state.market===market?state.items:{},retry:code=>{
+		    dbHistoryCache.delete(market+':'+code);
+		    dbHistoryRefresh.add(market+':'+code);
+		    setState(previous=>({market,items:{...(previous.market===market?previous.items:{}),[code]:null}}));
+		    setRetry(value=>value+1);
+		  }};
+		}
+
+		function useDashboardWidth() {
+		  const ref=react.useRef(null),[width,setWidth]=react.useState(0);
+		  react.useLayoutEffect(()=>{
+		    const element=ref.current;
+		    if(!element) return;
+		    const measure=()=>setWidth(Math.round(element.getBoundingClientRect().width));
+		    measure();
+		    const observer=new ResizeObserver(measure);observer.observe(element);
+		    return ()=>observer.disconnect();
+		  },[]);
+		  return [ref,width];
+		}
+		const dbPath=(bars,x,y,key='close')=>bars.map((row,index)=>(index?'L':'M')+x(index).toFixed(2)+','+y(row[key]).toFixed(2)).join(' ');
+
+		function DashboardSparkline({history,name}) {
+		  const [ref,width]=useDashboardWidth();
+		  const bars=history?.data ? dbWindow(history.data.bars,'month') : [];
+		  if(bars.length<2) return dbH('div',{className:'ia-db-spark-empty',ref},history?.error?'走势暂不可用':history?.data?'历史数据不足':'正在加载走势…');
+		  const lo=Math.min(...bars.map(row=>row.close)),hi=Math.max(...bars.map(row=>row.close));
+		  const x=index=>3+index/(bars.length-1)*Math.max(0,width-6),y=value=>34-(value-lo)/(hi-lo || 1)*28;
+		  return dbH('div',{ref,className:'ia-db-spark'},width>0?dbH('svg',{viewBox:'0 0 '+width+' 38',role:'img','aria-label':name+'近一个月日线走势'},
+		    dbH('path',{d:dbPath(bars,x,y),fill:'none',stroke:'var(--ia-viz-1)',strokeWidth:1.7})):null);
+		}
+
+		function DashboardPriceChart({history,holding,market,period,type,options,trades}) {
+		  const [ref,width]=useDashboardWidth();
+		  const bars=react.useMemo(()=>dbWindow(history.bars,period),[history,period]);
+		  const [cursor,setCursor]=react.useState(null),[pinned,setPinned]=react.useState(false);
+		  react.useEffect(()=>{setCursor(null);setPinned(false);},[history,period]);
+		  if(bars.length<2) return dbH('div',{ref,className:'ia-db-chart-empty'},'历史数据不足，至少需要两个交易日');
+		  const index=Math.min(cursor ?? bars.length-1,bars.length-1),current=bars[index];
+		  const candle=type==='candle' && bars.every(row=>row.open!==null);
+		  const height=width<400?260:310,left=64,right=Math.max(left+1,width-16),top=22,bottom=height-(options.volume?82:38);
+		  const offset=history.bars.length-bars.length;
+		  const ma=bars.map((row,i)=>{
+		    const start=offset+i-19;
+		    return {...row,ma:start>=0 ? history.bars.slice(start,offset+i+1).reduce((sum,item)=>sum+item.close,0)/20 : null};
+		  });
+		  const values=bars.flatMap(row=>candle?[row.low,row.high]:[row.close]);
+		  if(options.cost && holding.cost>0) values.push(holding.cost);
+		  if(options.ma) values.push(...ma.filter(row=>row.ma!==null).map(row=>row.ma));
+		  const minimum=Math.min(...values),maximum=Math.max(...values),pad=(maximum-minimum)*.12 || maximum*.03;
+		  const lo=minimum-pad,hi=maximum+pad;
+		  const x=i=>left+i/(bars.length-1)*(right-left),y=value=>bottom-(value-lo)/(hi-lo)*(bottom-top);
+		  const svg=[];
+		  for(let tick=0;tick<4;tick++) {
+		    const value=lo+(hi-lo)*tick/3,yy=y(value);
+		    svg.push(dbH('line',{key:'g'+tick,x1:left,x2:right,y1:yy,y2:yy,className:'ia-db-grid'}),dbH('text',{key:'y'+tick,x:left-8,y:yy+4,textAnchor:'end'},dbMoney(value,'',maximum>=100?0:2)));
+		  }
+		  svg.push(dbH('text',{key:'unit',x:4,y:12},dbCurrencies[market]));
+		  const ticks=width<400?3:4;
+		  for(let tick=0;tick<ticks;tick++) {
+		    const i=Math.round(tick/(ticks-1)*(bars.length-1));
+		    svg.push(dbH('text',{key:'x'+tick,x:x(i),y:height-10,textAnchor:tick===0?'start':tick===ticks-1?'end':'middle'},bars[i].date.slice(period==='year'?2:5).replaceAll('-','/')));
+		  }
+		  if(candle) {
+		    const bodyWidth=Math.max(1,Math.min(9,(right-left)/bars.length*.64));
+		    bars.forEach((row,i)=>{
+		      const up=row.close>=row.open,color=(market==='us')===up?'var(--ia-ok-text)':'var(--ia-danger-text)';
+		      svg.push(dbH('g',{key:'c'+i},dbH('line',{x1:x(i),x2:x(i),y1:y(row.high),y2:y(row.low),stroke:color}),
+		        dbH('rect',{x:x(i)-bodyWidth/2,y:Math.min(y(row.open),y(row.close)),width:bodyWidth,height:Math.max(1,Math.abs(y(row.close)-y(row.open))),fill:color})));
+		    });
+		  } else {
+		    const path=dbPath(bars,x,y);
+		    svg.push(dbH('path',{key:'area',d:path+' L'+right+','+bottom+' L'+left+','+bottom+' Z',className:'ia-db-area'}),
+		      dbH('path',{key:'line',d:path,className:'ia-db-price-line',fill:'none',strokeWidth:2.2,strokeLinejoin:'round'}));
+		  }
+		  if(options.ma) {
+		    const start=ma.findIndex(row=>row.ma!==null);
+		    if(start>=0) svg.push(dbH('path',{key:'ma',d:dbPath(ma.slice(start),i=>x(start+i),y,'ma'),className:'ia-db-ma',fill:'none',strokeWidth:1.5}),
+		      dbH('text',{key:'ma-label',x:left+3,y:top+14},'MA20'));
+		  }
+		  if(options.cost && holding.cost>0) svg.push(dbH('line',{key:'cost',x1:left,x2:right,y1:y(holding.cost),y2:y(holding.cost),className:'ia-db-cost',strokeDasharray:'4 4'}),
+		    dbH('text',{key:'cost-label',x:right-2,y:Math.max(top+14,y(holding.cost)-6),textAnchor:'end'},'当前成本 '+dbMoney(holding.cost)));
+		  if(options.volume) {
+		    const max=Math.max(...bars.map(row=>row.volume ?? 0)),bw=Math.max(1,(right-left)/bars.length*.6);
+		    bars.forEach((row,i)=>{if(row.volume!==null) svg.push(dbH('rect',{key:'v'+i,x:x(i)-bw/2,y:height-32-(max?row.volume/max*26:0),width:bw,height:max?row.volume/max*26:0,className:'ia-db-volume'}));});
+		    svg.push(dbH('text',{key:'vunit',x:4,y:height-42},'成交量'));
+		  }
+		  if(options.trades) {
+		    const grouped=new Map();
+		    for(const trade of trades) {
+		      const date=trade.date.slice(0,10);
+		      if(!grouped.has(date)) grouped.set(date,[]);
+		      grouped.get(date).push(trade);
+		    }
+		    bars.forEach((bar,i)=>{
+		      const fills=grouped.get(bar.date);if(!fills) return;
+		      const actions=[...new Set(fills.map(fill=>fill.action))];
+		      const label=actions.length>1?'买/卖':actions[0]==='BUY'?'买':'卖';
+		      svg.push(dbH('g',{key:'trade'+i,className:'ia-db-trade-mark'},
+		        dbH('title',null,fills.map(fill=>(fill.action==='BUY'?'买入':'卖出')+' '+dbMoney(fill.shares,'',0)+' 股 · 成交价 '+dbMoney(fill.price,dbCurrencies[market])+' · '+fill.date).join('\n')),
+		        dbH('circle',{cx:x(i),cy:y(bar.close),r:5}),dbH('text',{x:x(i),y:Math.min(bottom-4,y(bar.close)+19),textAnchor:'middle'},label)));
+		    });
+		  }
+		  if(cursor!==null) svg.push(dbH('line',{key:'guide',x1:x(index),x2:x(index),y1:top,y2:bottom,className:'ia-db-guide'}),dbH('circle',{key:'dot',cx:x(index),cy:y(current.close),r:4,fill:'var(--ia-viz-1)'}));
+		  const move=event=>{
+		    const box=event.currentTarget.getBoundingClientRect(),local=(event.clientX-box.left)*width/box.width;
+		    if(local<left || local>right) return;
+		    setCursor(Math.max(0,Math.min(bars.length-1,Math.round((local-left)/(right-left)*(bars.length-1)))));
+		  };
+		  return dbH('div',{ref,className:'ia-db-chart'},
+		    dbH('div',{className:'ia-db-readout'},dbH('span',null,current.date),dbH('b',null,'收盘 '+dbMoney(current.close,dbCurrencies[market])),
+		      current.open!==null?dbH('span',null,'开 '+dbMoney(current.open)+' · 高 '+dbMoney(current.high)+' · 低 '+dbMoney(current.low)):null,
+		      current.volume!==null?dbH('span',null,'量 '+dbMoney(current.volume,'',0)):null),
+		    width>0?dbH('svg',{className:'ia-db-main-chart',viewBox:'0 0 '+width+' '+height,style:{height},role:'img',
+		      'aria-label':holding.name+' '+dbPeriodNames[period]+'日线价格，单位'+dbCurrencies[market],onPointerMove:move,
+		      onPointerLeave:()=>{if(!pinned)setCursor(null);},onClick:event=>{move(event);setPinned(true);}},svg):null,
+		    dbH('label',{className:'ia-db-date-slider'},dbH('span',null,'查看交易日'),dbH('input',{type:'range',min:0,max:bars.length-1,value:index,
+		      'aria-label':'查看交易日','aria-valuetext':current.date+'，收盘'+dbMoney(current.close,dbCurrencies[market]),
+		      onChange:event=>{setCursor(Number(event.target.value));setPinned(true);}})));
+		}
+
+		function ProductDashboard({onOpenAnalysis}={}) {
+		  const summaryState=useInvestmentSummary(10000),summary=summaryState.data ?? {},status=summary.status ?? {};
+		  const [market,setMarket]=react.useState('cn'),[selection,setSelection]=react.useState({}),[period,setPeriod]=react.useState('quarter'),[type,setType]=react.useState('line');
+		  const [options,setOptions]=react.useState({cost:true,volume:true,trades:true,ma:false});
+		  const account=dbAccount(summary.portfolios?.[market],market),holdings=account?.holdings ?? [];
+		  const holding=holdings.find(item=>item.code===selection[market]) ?? holdings[0] ?? null;
+		  const histories=useDashboardHistories(market,holdings.map(item=>item.code),holding?.code);
+		  const selected=holding?histories.items[holding.code]:null,history=selected?.data;
+		  const bars=history?dbWindow(history.bars,period):[];
+		  const trades=holding?dbTrades(account.trades,market,holding.code):[];
+		  const currency=dbCurrencies[market],engineError=summaryState.error || status.error || '';
+		  const riskLabel=engineError?'未知':status.control?.kill_switch?'紧急停止':status.control?.paused?'已暂停':'正常';
+		  const reports=Array.isArray(summary.reports?.reports)?summary.reports.reports:[];
+		  const choose=code=>setSelection(previous=>({...previous,[market]:code}));
+		  const current=history?.bars.at(-1),rangeChange=bars.length>1?(bars.at(-1).close/bars[0].close-1)*100:null;
+		  const age=current?Math.floor((Date.now()-Date.parse(current.date+'T00:00:00Z'))/86400000):0;
+		  const canCandle=bars.length>1 && bars.every(row=>row.open!==null),canVolume=bars.some(row=>row.volume!==null);
+		  const canCost=holding?.cost>0;
+		  const metrics=[
+		    ['账户权益',dbMoney(account?.equity,currency,0),'现金 + 最近持仓估值'],
+		    ['持仓浮动盈亏',account?.pnl===null || !account?'—':(account.pnl>0?'+':'')+dbMoney(account.pnl,currency,0),'按账户记录价格计算'],
+		    ['资金使用率',account?.equity>0 && account.value!==null?(account.value/account.equity*100).toFixed(1)+'%':'—',account?.cash!==null && account?.equity>0?'现金占比 '+(account.cash/account.equity*100).toFixed(1)+'%':'等待账户数据'],
+		    ['持有标的',account?holdings.length+' 只':'—',marketName[market]+' · 独立模拟账户']
+		  ];
+		  const panelHead=(title,detail)=>dbH('div',{className:'ia-db-panel-head'},dbH('h3',null,title),dbH('span',null,detail));
+		  const errorState=(message,retry)=>dbH('div',{className:'ia-db-chart-empty',role:'status'},icon('alertTriangle',22),dbH('p',null,message),retry?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:retry},'重新加载'):null);
+		  const allocation=account?.equity>0 && account.value!==null && account.cash>=0 ? [...holdings.map((item,i)=>({name:item.name,code:item.code,value:item.value,opacity:.45+.15*(i%4)})),{name:'现金',value:account.cash,opacity:1}] : [];
+		  const colors=item=>item.code?'var(--ia-viz-1)':'var(--ia-border-strong)';
+		  return dbH('div',{className:'ia-page ia-db-page','data-red-up':market!=='us'},
+		    dbH(PageHeader,{title:'投资总览',subtitle:'从组合到个股，看清每一次变化',status:summaryState.loading?'正在连接投资引擎':'模拟交易 · 风控'+riskLabel,statusKind:engineError?'error':status.control?.kill_switch || status.control?.paused?'warn':'ok'}),
+		    dbH('div',{className:'ia-page-content'},
+		      engineError?dbH('div',{className:'ia-notice','data-kind':'err',role:'alert'},'引擎暂不可达：'+engineError):null,
+		      dbH('div',{className:'ia-db-market-row'},dbH('div',{className:'ia-db-market-picker','aria-label':'查看市场'},dbMarkets.map(key=>dbH('button',{key,type:'button','aria-pressed':market===key,onClick:()=>setMarket(key)},marketName[key]))),
+		        dbH('span',{className:'ia-db-muted'},'各市场按币种独立展示')),
+		      dbH('div',{className:'ia-db-metrics'},metrics.map(([label,value,detail])=>dbH('div',{className:'ia-db-metric',key:label},dbH('div',{className:'ia-db-muted'},label),dbH('div',{className:'ia-db-metric-value'},value),dbH('div',{className:'ia-db-muted'},detail)))),
+		      dbH('div',{className:'ia-db-workbench'},
+		        dbH('section',{className:'ia-db-panel ia-db-watch'},panelHead('我的持仓',account?holdings.length+' 只':''),
+		          holdings.length?dbH('div',{className:'ia-db-stock-list'},holdings.map(item=>{
+		            const stockHistory=histories.items[item.code],rows=stockHistory?.data?.bars ?? [],latest=rows.at(-1),previous=rows.at(-2);
+		            const change=previous?(latest.close/previous.close-1)*100:null;
+		            return dbH('button',{type:'button',className:'ia-db-stock',key:item.code,'aria-pressed':holding?.code===item.code,'aria-label':'查看'+item.name+'的走势',onClick:()=>choose(item.code)},
+		              dbH('div',{className:'ia-db-stock-row'},dbH('b',null,item.name),dbH('span',{className:'ia-num'},dbMoney(latest?.close ?? item.price))),
+		              dbH('div',{className:'ia-db-stock-row'},dbH('span',{className:'ia-db-muted'},item.code),dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(change)},dbSigned(change))),
+		              dbH(DashboardSparkline,{history:stockHistory,name:item.name}),dbH('span',{className:'ia-db-stock-date'},latest?latest.date+' 收盘':'账户记录价 · 更新时间未知'));
+		          })):dbH('div',{className:'ia-empty'},summaryState.loading?'正在读取持仓…':account?'暂无持仓':'账户数据暂不可用'),
+		          holdings.length?dbH('div',{className:'ia-db-watch-foot'},'近1个月日线 · 点击查看详情'):null),
+		        dbH('section',{className:'ia-db-panel ia-db-focus'},holding?dbH(react.Fragment,null,
+		          dbH('div',{className:'ia-db-focus-head'},dbH('div',{'aria-live':'polite'},dbH('h2',null,holding.name),dbH('div',{className:'ia-db-muted'},holding.code+' · '+marketName[market]+' · 日线历史')),
+		            dbH('div',{className:'ia-db-quote'},dbH('span',{className:'ia-db-muted'},'最近收盘'),dbH('strong',null,dbMoney(current?.close,currency)),
+		              dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(rangeChange)},dbPeriodNames[period]+' '+dbSigned(rangeChange)))),
+		          dbH('div',{className:'ia-db-toolbar'},dbH('div',{className:'ia-db-choices','aria-label':'时间范围'},Object.entries(dbPeriodNames).map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':period===key,onClick:()=>setPeriod(key)},label))),
+		            dbH('div',{className:'ia-db-choices','aria-label':'图表类型'},[['line','走势线'],['candle','K 线']].map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':(canCandle?type:'line')===key,disabled:key==='candle'&&!canCandle,title:key==='candle'&&!canCandle?'当前来源没有完整的开高低收数据':undefined,onClick:()=>setType(key)},label)))),
+		          selected?.error?errorState(selected.error,()=>histories.retry(holding.code)):!history?dbH('div',{className:'ia-db-chart-empty','aria-busy':true,role:'status'},dbH('div',{className:'ia-db-skeleton'}),'正在加载历史行情…'):history.bars.length<2?errorState('暂时没有足够的历史行情',()=>histories.retry(holding.code)):
+		            dbH(DashboardPriceChart,{key:market+':'+holding.code,history,holding,market,period,type,options:{...options,volume:options.volume&&canVolume,cost:options.cost&&canCost},trades}),
+		          dbH('div',{className:'ia-db-options'},[['cost','成本线',canCost],['volume','成交量',canVolume],['trades','买卖日期',!!trades.length],['ma','MA20',!!history && history.bars.length>=20]].map(([key,label,enabled])=>dbH('label',{key},dbH('input',{type:'checkbox',checked:options[key],disabled:!enabled,onChange:event=>setOptions(previous=>({...previous,[key]:event.target.checked}))}),label))),
+		          history?dbH('div',{className:'ia-db-provenance'},dbH('span',null,'来源 '+(history.source || '未提供')+' · '+(history.adjusted===true?'前复权':history.adjusted===false?'不复权':'复权状态未知')+' · 最后交易日 '+(current?.date || '—')),
+		            age>7?dbH('span',{className:'ia-db-data-warning'},'历史行情距今 '+age+' 天，请留意数据日期'):null,
+		            history.degraded || history.adjusted!==true || history.warnings.length?dbH('span',{className:'ia-db-data-warning',role:'status'},'行情提示：'+(history.warnings.join('；') || (history.degraded?'已使用备用行情来源':'复权状态未经确认'))):null):null,
+		          dbH('div',{className:'ia-db-position'},[['持有数量',dbMoney(holding.shares,'',0)+' 股'],['当前持仓成本',dbMoney(holding.cost,currency)],['账户记录估值',dbMoney(holding.price,currency)],['持仓浮动盈亏',(holding.pnl>0?'+':'')+dbMoney(holding.pnl,currency)]].map(([label,value])=>dbH('div',{key:label},dbH('span',{className:'ia-db-muted'},label),dbH('strong',null,value)))),
+		          dbH('div',{className:'ia-db-muted ia-db-position-date'},'账户估值时间：'+(holding.lastPriceAt?String(holding.lastPriceAt).replace('T',' '):'未记录')+' · 图表显示历史收盘价')):errorState(account?'选中一只持仓即可查看走势':'等待账户数据'))),
+		      dbH('div',{className:'ia-db-secondary'},
+		        dbH('section',{className:'ia-db-panel'},panelHead('组合分布','本市场 · 含现金'),allocation.length?dbH(react.Fragment,null,
+		          dbH('div',{className:'ia-db-allocation',role:'img','aria-label':marketName[market]+'资产占比'},allocation.map(item=>dbH('span',{key:item.code || 'cash',style:{flex:item.value,background:colors(item),opacity:item.opacity},title:item.name+' '+(item.value/account.equity*100).toFixed(1)+'%'}))),
+		          dbH('div',{className:'ia-db-allocation-list'},allocation.map(item=>dbH(item.code?'button':'div',{key:item.code || 'cash',className:'ia-db-allocation-item',...(item.code?{type:'button',onClick:()=>choose(item.code),'aria-label':'查看'+item.name+'的走势'}:{})},
+		            dbH('i',{style:{background:colors(item),opacity:item.opacity},'aria-hidden':true}),dbH('span',null,item.name),dbH('span',{className:'ia-db-muted'},(item.value/account.equity*100).toFixed(1)+'%'))))):dbH('div',{className:'ia-empty'},'暂无可展示的资产分布')),
+		        dbH('section',{className:'ia-db-panel'},panelHead('所选股票的交易记录','模拟成交'),trades.length?dbH('div',{className:'ia-db-ledger'},trades.slice(-5).reverse().map((trade,i)=>dbH('div',{className:'ia-db-trade',key:trade.id || trade.date+':'+i},
+		          dbH('span',{className:'ia-db-trade-label'},trade.action==='BUY'?'买':'卖'),dbH('div',{className:'ia-db-trade-copy'},dbH('b',null,holding.name+' · '+(trade.action==='BUY'?'买入':'卖出')),dbH('span',{className:'ia-db-muted'},trade.date.replace('T',' ').slice(0,16)+' · 成交价 '+dbMoney(trade.price,currency))),dbH('span',{className:'ia-db-muted'},dbMoney(trade.shares,'',0)+' 股'))),
+		          dbH('div',{className:'ia-db-muted ia-db-trade-note'},'图表标记对应成交日期，成交价以记录为准')):dbH('div',{className:'ia-empty'},holding?'该股票暂无模拟成交记录':'选中持仓后查看成交记录'))),
+		      dbH('section',{className:'ia-db-panel ia-db-activity'},panelHead('运行与研究',status.operation_mode==='automatic'?'自动运行':'手动运行'),
+		        dbH('div',{className:'ia-db-activity-grid'},dbH('div',null,dbH('b',null,'风控'+riskLabel),dbH('p',{className:'ia-db-muted'},'策略：'+(status.mandate?.display_name ?? status.mandate?.profile ?? '—'))),
+		          dbH('div',null,dbH('b',null,marketName[market]+' 下一轮'),dbH('p',{className:'ia-db-muted'},String(status.markets?.[market]?.next_cycle ?? '尚未安排').replace('T',' ').slice(0,16))),
+		          dbH('div',null,dbH('b',null,'最近轮次报告'),reports.length?dbH('ul',null,reports.slice(0,3).map(report=>dbH('li',{key:report.file},report.file))):dbH('p',{className:'ia-db-muted'},'暂无轮次报告'))),
+		        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+(summary.analysis.completed_agents ?? 0)+'/'+(summary.analysis.expected_agents ?? 0)):null,
+		        onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:onOpenAnalysis},'打开分析流程与报告'):null),
+		      typeof summary.macro?.content==='string' && summary.macro.content?dbH('section',{className:'ia-card ia-news',style:{marginTop:14}},panelHead('市场早报','每交易日 08:00 采集'),dbH('div',{className:'ia-news-body'},renderMarkdown(summary.macro.content))):null));
+		}
+		injectSheet(CSS_ID + "/dashboard", "/* Holdings and price chart share the existing product's colour/type tokens. */\n.ia-db-page{color:var(--ia-text-1)}\n.ia-db-page button,.ia-db-page input{font:inherit}\n.ia-db-page button{cursor:pointer}\n.ia-db-page button:disabled{cursor:default;opacity:.5}\n.ia-db-page button:focus-visible,.ia-db-page input:focus-visible{outline:2px solid var(--ia-accent);outline-offset:3px}\n.ia-db-muted{color:var(--ia-text-3);font-size:var(--ia-fs-caption);line-height:1.55}\n.ia-db-market-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}\n.ia-db-market-picker,.ia-db-choices{display:flex;gap:4px;flex-wrap:wrap}\n.ia-db-market-picker{background:var(--ia-surface-2);padding:4px;border-radius:14px}\n.ia-db-market-picker button,.ia-db-choices button{border:0;background:transparent;color:var(--ia-text-3);border-radius:10px;padding:8px 18px;font-size:var(--ia-fs-body-sm);white-space:nowrap}\n.ia-db-market-picker button[aria-pressed=true]{background:var(--ia-surface);color:var(--ia-accent-text);box-shadow:var(--ia-shadow-xs)}\n.ia-db-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}\n.ia-db-metric,.ia-db-panel{background:var(--ia-surface);border:1px solid var(--ia-border-subtle);border-radius:var(--ia-r-card);min-width:0;box-shadow:var(--ia-shadow-sm)}\n.ia-db-metric{padding:18px 20px}\n.ia-db-metric-value{font-size:clamp(20px,2.2vw,30px);font-weight:650;line-height:1.25;letter-spacing:-.03em;font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;margin:10px 0 7px;overflow-wrap:anywhere}\n.ia-db-panel{padding:20px}\n.ia-db-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}\n.ia-db-panel-head h3{margin:0;font-size:var(--ia-fs-body);font-weight:600}\n.ia-db-panel-head>span{color:var(--ia-text-3);font-size:var(--ia-fs-caption)}\n.ia-db-workbench{display:grid;grid-template-columns:245px minmax(0,1fr);gap:16px;align-items:start}\n.ia-db-stock-list{display:flex;flex-direction:column;gap:8px}\n.ia-db-stock{width:100%;text-align:left;background:transparent;color:var(--ia-text-1);border:1px solid transparent;border-radius:16px;padding:13px 12px;transition:background-color var(--ia-dur-fast)}\n.ia-db-stock:hover{background:var(--ia-surface-2)}\n.ia-db-stock[aria-pressed=true]{background:color-mix(in srgb,var(--ia-viz-1) 8%,var(--ia-surface));border-color:var(--ia-viz-1)}\n.ia-db-stock-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}\n.ia-db-stock-row b{font-size:var(--ia-fs-body-sm);font-weight:500;min-width:0;overflow-wrap:anywhere}\n.ia-db-stock-row .ia-num{flex:none;font-variant-numeric:tabular-nums;font-size:var(--ia-fs-body-sm)}\n.ia-db-stock-row .ia-trend{font-size:var(--ia-fs-caption)}\n.ia-db-spark,.ia-db-spark-empty{height:38px;margin:9px 0 5px;width:100%}\n.ia-db-spark svg{display:block;width:100%;height:38px}\n.ia-db-spark-empty{display:flex;align-items:center;color:var(--ia-text-3);font-size:var(--ia-fs-caption)}\n.ia-db-stock-date{font-size:11px;color:var(--ia-text-3);display:block}\n.ia-db-watch-foot{margin-top:16px;font-size:var(--ia-fs-caption);color:var(--ia-text-3)}\n.ia-db-focus-head{display:flex;justify-content:space-between;align-items:start;gap:16px;margin-bottom:16px}\n.ia-db-focus-head h2{font-size:var(--ia-fs-h3);font-weight:600;margin:0 0 4px;overflow-wrap:anywhere}\n.ia-db-quote{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}\n.ia-db-quote strong{font-size:clamp(22px,2.4vw,32px);font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;line-height:1.3}\n.ia-db-quote .ia-trend{font-size:var(--ia-fs-caption)}\n.ia-db-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--ia-border-subtle)}\n.ia-db-choices button{padding:6px 10px;font-size:var(--ia-fs-caption)}\n.ia-db-choices button[aria-pressed=true]{background:var(--ia-surface-2);color:var(--ia-accent-text)}\n.ia-db-chart{min-width:0}\n.ia-db-readout{min-height:52px;padding:12px 0 8px;display:flex;align-items:baseline;gap:5px 10px;flex-wrap:wrap;font-size:var(--ia-fs-caption);color:var(--ia-text-3);font-variant-numeric:tabular-nums}\n.ia-db-readout b{font-weight:500;color:var(--ia-text-2)}\n.ia-db-main-chart{display:block;width:100%;touch-action:pan-y}\n.ia-db-main-chart text{fill:var(--ia-text-3);font-family:var(--ia-font-num);font-size:11px}\n.ia-db-grid{stroke:var(--ia-border-subtle);stroke-width:1}\n.ia-db-area{fill:var(--ia-viz-1);opacity:.07}\n.ia-db-price-line{stroke:var(--ia-viz-1)}\n.ia-db-ma{stroke:var(--ia-viz-2)}\n.ia-db-cost{stroke:var(--ia-viz-3);stroke-width:1.2}\n.ia-db-volume{fill:var(--ia-viz-1);opacity:.22}\n.ia-db-guide{stroke:var(--ia-text-3);stroke-width:1;stroke-dasharray:3 4;pointer-events:none}\n.ia-db-trade-mark circle{fill:var(--ia-surface);stroke:var(--ia-viz-1);stroke-width:2}\n.ia-db-date-slider{display:flex;align-items:center;gap:12px;margin:3px 0 10px;font-size:var(--ia-fs-caption);color:var(--ia-text-3)}\n.ia-db-date-slider>span{white-space:nowrap}\n.ia-db-date-slider input{width:100%;min-width:0;accent-color:var(--ia-viz-1)}\n.ia-db-options{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;font-size:var(--ia-fs-caption);color:var(--ia-text-2);margin:12px 0}\n.ia-db-options label{display:flex;gap:5px;align-items:center;cursor:pointer}\n.ia-db-options input{accent-color:var(--ia-viz-1)}\n.ia-db-provenance{display:flex;flex-direction:column;gap:4px;color:var(--ia-text-3);font-size:11px;line-height:1.6;overflow-wrap:anywhere}\n.ia-db-data-warning{color:var(--ia-warn-text)}\n.ia-db-position{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--ia-border-subtle)}\n.ia-db-position strong{display:block;margin-top:5px;font-size:var(--ia-fs-body-sm);font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}\n.ia-db-position-date{margin-top:12px;font-size:11px}\n.ia-db-chart-empty{min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;color:var(--ia-text-3);font-size:var(--ia-fs-body-sm);padding:20px;overflow-wrap:anywhere}\n.ia-db-chart-empty p{margin:0;max-width:100%}\n.ia-db-skeleton{height:160px;width:100%;border-radius:12px;background:linear-gradient(180deg,var(--ia-surface-2),var(--ia-surface))}\n.ia-db-secondary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}\n.ia-db-allocation{display:flex;gap:3px;height:18px;border-radius:6px;overflow:hidden;margin:22px 0 18px}\n.ia-db-allocation span{min-width:0}\n.ia-db-allocation-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}\n.ia-db-allocation-item{display:flex;align-items:center;gap:8px;padding:0;text-align:left;font-size:var(--ia-fs-caption);color:var(--ia-text-1);background:none;border:0;min-width:0}\n.ia-db-allocation-item i{width:8px;height:8px;border-radius:2px;flex:none}\n.ia-db-allocation-item>span:first-of-type{min-width:0;overflow-wrap:anywhere}\n.ia-db-allocation-item>span:last-child{margin-left:auto;flex:none;font-variant-numeric:tabular-nums}\n.ia-db-trade{display:flex;align-items:start;gap:10px;padding:13px 0;border-bottom:1px solid var(--ia-border-subtle)}\n.ia-db-trade:last-of-type{border:0}\n.ia-db-trade-label{display:grid;place-items:center;width:30px;height:30px;flex:none;background:var(--ia-surface-2);color:var(--ia-accent-text);border-radius:10px;font-size:var(--ia-fs-caption)}\n.ia-db-trade-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;overflow-wrap:anywhere}\n.ia-db-trade-copy b{font-size:var(--ia-fs-body-sm);font-weight:500}\n.ia-db-trade>.ia-db-muted{white-space:nowrap}\n.ia-db-trade-note{margin-top:10px;font-size:11px}\n.ia-db-activity{margin-top:16px}\n.ia-db-activity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}\n.ia-db-activity-grid b{font-weight:500;font-size:var(--ia-fs-body-sm)}\n.ia-db-activity-grid p{margin:6px 0 0}\n.ia-db-activity-grid ul{margin:6px 0 0;padding-left:18px;color:var(--ia-text-3);font-size:var(--ia-fs-caption);overflow-wrap:anywhere}\n@media(max-width:1100px){.ia-db-workbench{grid-template-columns:215px minmax(0,1fr)}.ia-db-position{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-panel{padding:18px}.ia-db-metric{padding:16px}}\n@media(max-width:860px){.ia-db-workbench{grid-template-columns:1fr}.ia-db-stock-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-watch-foot{display:none}.ia-db-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-secondary{grid-template-columns:1fr}.ia-db-activity-grid{grid-template-columns:1fr 1fr}}\n@media(max-width:500px){.ia-db-panel{padding:14px}.ia-db-stock-row{flex-wrap:wrap}.ia-db-stock{padding:10px}.ia-db-focus-head{flex-wrap:wrap}.ia-db-focus-head h2{font-size:20px}.ia-db-quote strong{font-size:24px}.ia-db-market-picker{width:100%;justify-content:space-between}.ia-db-market-picker button{padding:8px 12px}.ia-db-metric{padding:14px 12px}.ia-db-activity-grid{grid-template-columns:1fr}.ia-db-readout{min-height:66px}.ia-db-allocation-list{gap:10px}.ia-db-panel-head{flex-wrap:wrap}.ia-db-trade{flex-wrap:wrap}}\n@media(max-width:600px){.ia-db-page .ia-page-head{height:auto;min-height:100px;padding:16px;display:block}.ia-db-page .ia-page-title{white-space:nowrap}.ia-db-page .ia-page-status{margin-top:10px;justify-content:flex-start}.ia-db-page .ia-page-content{padding:14px 10px}.ia-db-allocation-list{grid-template-columns:1fr}}\n@media(max-width:420px){.ia-db-metrics,.ia-db-stock-list{grid-template-columns:1fr}.ia-db-quote{align-items:flex-start}.ia-db-position{gap:12px 8px}}\n@media(pointer:coarse){.ia-db-market-picker button,.ia-db-choices button,.ia-db-options label,.ia-db-allocation-item{min-height:44px}.ia-db-date-slider input{min-height:44px}}\n");
+		/* DASHBOARD:END */
 
 		// The workflow board. Each band carries the engine stages it covers, so the
 		// diagram reports real progress instead of only the shape of the pipeline.
@@ -3016,7 +3100,7 @@ window.__ModuleLoader__.load({
 					}),
 					react_jsx_runtime.jsx("div", {
 						className: "ia-body",
-						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, {}) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
+						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, { onOpenAnalysis: () => actions.setPage("analyze") }) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
 							children: [
 								renderSlot("sidebar", { collapsed: false, width: 250 }),
 								react_jsx_runtime.jsx("div", { className: "ia-center", children: renderSlot("conversation", {}) }),

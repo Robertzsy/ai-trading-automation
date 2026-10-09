@@ -120,7 +120,7 @@ Write-Host ("   gate interpreter: {0} ({1})" -f $node.Exe, $node.Source)
 # 4. DSH app gates: plugin unit tests + skill structure/tool-reference check +
 #    plugin packaging/client-contract check.
 Run-Step "DSH plugin unit tests (node --test)" {
-    & $node.Exe --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs" | Out-Null
+    & $node.Exe --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs" "app/plugins/dsh-product-shell/test/*.test.mjs" | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "node --test exit code $LASTEXITCODE" }
 }
 Run-Step "Investment skills structural check" {
@@ -146,6 +146,11 @@ Run-Step "Generated icon set is current (generate-icons.mjs --check)" {
 Run-Step "Generated Markdown renderer is current (generate-markdown.mjs --check)" {
     & $node.Exe app/plugins/dsh-product-shell/scripts/generate-markdown.mjs --check | Out-Null
     if ($LASTEXITCODE -ne 0) { throw "generate-markdown check exit code $LASTEXITCODE" }
+}
+
+Run-Step "Generated Dashboard is current (generate-dashboard.mjs --check)" {
+    & $node.Exe app/plugins/dsh-product-shell/scripts/generate-dashboard.mjs --check | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "generate-dashboard check exit code $LASTEXITCODE" }
 }
 
 # 4c. The bundler used to produce client.js must never reach the shipped payload.

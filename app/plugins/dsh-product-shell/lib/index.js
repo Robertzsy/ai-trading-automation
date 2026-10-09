@@ -14,6 +14,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
+import { createHistoryHandler } from "./market-history.js";
 
 export const name = "@investment-auto/dsh-product-shell";
 export const inject = ["webServer", "workspaceRegistry"];
@@ -22,9 +23,10 @@ const engineBase = () =>
   (process.env.INVESTMENT_ENGINE_URL ?? "http://127.0.0.1:8790").replace(/\/+$/, "");
 const engineToken = () => process.env.IA_ACCESS_TOKEN ?? "";
 
-async function engineFetch(path, { method = "GET", body } = {}) {
+async function engineFetch(path, { method = "GET", body, signal } = {}) {
   const response = await fetch(engineBase() + path, {
     method,
+    ...(signal ? { signal } : {}),
     headers: {
       "Content-Type": "application/json",
       ...(engineToken() ? { "X-IA-Token": engineToken() } : {}),
@@ -99,6 +101,11 @@ export function apply(ctx) {
   }, "investment-auto: request-timeout hardening");
 
   ctx.effect(() => {
+    const historyRoute = ctx.webServer.register({
+      kind: "exact",
+      path: "/api/investment/history",
+      handler: createHistoryHandler(engineFetch, sendJson),
+    });
     const summary = ctx.webServer.register({
       kind: "exact",
       path: "/api/investment/summary",
@@ -352,6 +359,7 @@ export function apply(ctx) {
     });
 
     return () => {
+      historyRoute();
       summary();
       configRoute();
       webhookRoute();

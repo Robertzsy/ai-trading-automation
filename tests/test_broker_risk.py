@@ -205,6 +205,7 @@ def test_paper_broker_enforces_t_plus_one_and_updates_cash(tmp_path):
     account = data["accounts"]["cn"]
     assert account["cash"] < 90_000
     assert account["holdings"][0]["quantity"] == 100
+    assert account["holdings"][0]["lastPriceAt"] == NOW.isoformat(timespec="seconds")
     assert account["highWaterMark"] == 100_000
 
     sell = {**buy, "side": "SELL", "reference_price": 101, "reason": "exit", "decision_id": "sell-1"}

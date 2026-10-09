@@ -42,7 +42,7 @@ $dllBefore = if (Test-Path $dllPath) { (Get-FileHash $dllPath -Algorithm SHA256)
 "   dll hash: $dllBefore"
 
 "== Silent upgrade install"
-$p = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -PassThru -Wait
+$p = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -WindowStyle Hidden -PassThru -Wait
 "   exit code: $($p.ExitCode)"
 if ($p.ExitCode -ne 0) { throw "Installer exited with code $($p.ExitCode)" }
 

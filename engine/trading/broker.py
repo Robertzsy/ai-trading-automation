@@ -135,6 +135,7 @@ def execute_orders(
                 mark = float((mark_prices or {}).get(symbol, 0) or 0)
                 if mark > 0:
                     holding["lastPrice"] = mark
+                    holding["lastPriceAt"] = timestamp
                     holding["highPrice"] = max(float(holding.get("highPrice", 0) or 0), mark)
 
             if equity_snapshot is not None and equity_snapshot > 0:
@@ -179,6 +180,7 @@ def execute_orders(
                         "costPrice": round(average_cost, decimals),
                         "cost": round(average_cost, decimals),
                         "lastPrice": fill_price,
+                        "lastPriceAt": timestamp,
                     })
                     lots = holding.setdefault("lots", [])
                     if old_shares > 0 and not lots:
@@ -196,7 +198,7 @@ def execute_orders(
                     proceeds = gross - fee["total"]
                     remaining = _quantity(holding) - shares
                     _consume_lots(holding, shares, date, settlement)
-                    holding.update({"shares": remaining, "quantity": remaining, "lastPrice": fill_price})
+                    holding.update({"shares": remaining, "quantity": remaining, "lastPrice": fill_price, "lastPriceAt": timestamp})
                     protection_stage = str(raw_order.get("protection_stage", ""))
                     if protection_stage == "take_profit_1":
                         holding["takeProfit1Done"] = True

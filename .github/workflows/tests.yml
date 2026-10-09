@@ -78,7 +78,7 @@ jobs:
       - run: node --check scripts/macro-environment/run.js
 
       - name: DSH plugin unit tests (node --test)
-        run: node --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs"
+        run: node --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs" "app/plugins/dsh-product-shell/test/*.test.mjs"
 
       - name: Investment skills structural check
         run: node app/scripts/check-skills.mjs
@@ -96,6 +96,9 @@ jobs:
       # the same staleness gate.
       - name: Generated Markdown renderer is current
         run: node app/plugins/dsh-product-shell/scripts/generate-markdown.mjs --check
+
+      - name: Generated Dashboard is current
+        run: node app/plugins/dsh-product-shell/scripts/generate-dashboard.mjs --check
 
       - uses: actions/setup-dotnet@v4
         if: runner.os == 'Windows'

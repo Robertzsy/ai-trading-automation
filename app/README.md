@@ -54,3 +54,17 @@ node app\node_modules\@deepseek-ai\dsh\lib\bin.js --profile investment --dump-co
 node --test "app/plugins/dsh-investment-tools/test/*.test.mjs" "app/plugins/dsh-investment-workflow/test/*.test.mjs" "app/plugins/dsh-dpapi-credentials/test/*.test.mjs"
 node app/scripts/check-skills.mjs
 ```
+
+Dashboard 采用持仓列表与个股日线联动布局。各市场按原币种显示账户估值，
+图表使用 `/api/investment/history` 主机代理，显示行情来源、复权状态与最后交易日。
+走势线、K 线、成本线、成交量、MA20 和已成交的模拟交易日期均可交互查看。
+账户估值来自引擎记录的价格，图表显示历史收盘价；两者的时间分别标注。
+
+Dashboard 源码在 `plugins/dsh-product-shell/src/dashboard.js` 和 `dashboard.css`。
+修改后运行以下命令刷新 DSH 客户端中的生成区块：
+
+```powershell
+node app/plugins/dsh-product-shell/scripts/generate-dashboard.mjs
+node app/plugins/dsh-product-shell/scripts/generate-dashboard.mjs --check
+node --test "app/plugins/dsh-product-shell/test/*.test.mjs"
+```
