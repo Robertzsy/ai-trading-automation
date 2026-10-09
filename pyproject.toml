@@ -16,6 +16,8 @@ dependencies = [
   "numpy>=1.26.0",
   "pydantic-ai-slim[openai]>=2.0,<3",
   "pymongo>=4.8,<5",
+  "akshare==1.19.1; python_version >= '3.11'",
+  "baostock==0.9.4",
 ]
 
 [project.scripts]

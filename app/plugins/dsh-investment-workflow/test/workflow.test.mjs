@@ -44,7 +44,7 @@ function startMockEngine(state = {}) {
         return send({ ok: true, started: true, analysis: { cycle_id: state.calls[state.calls.length - 1].body.cycle_id, status: "running", current_stage: "preparing" } });
       }
       if (req.url.startsWith("/api/analysis/run")) {
-        return send({ ok: true, analysis: { cycle_id: "x", status: "completed", decisions: [] } });
+        return send({ ok: true, analysis: state.run ?? { cycle_id: "x", status: "completed", decisions: [] } });
       }
       send({ ok: false, error: "not found" }, 404);
     });
@@ -119,6 +119,22 @@ test("status tool reads the durable run record", async () => {
   } finally {
     server.close();
   }
+});
+
+test("lightweight status preserves the exact approved decisions and exposes detail only on request", async () => {
+  const decisions = [{ symbol: "00700", action: "HOLD", target_weight: 0, confidence: .2, reason: "依据".repeat(900), evidence_ids: ["E-1"] }];
+  const run = { cycle_id: "status-light", status: "ready_for_execution", decisions, completed_agents: 14,
+    checkpoints: { base_research: { result: "详细证据".repeat(4000) } } };
+  const { server, url } = await startMockEngine({ run });
+  try {
+    const ctx = fakeCtx(); apply(ctx, { engineUrl: url, lightweightResults: true });
+    const tool = ctx.registered.find(t => t.name === "investment_analysis_status");
+    const summary = await tool.execute({ cycle_id: "status-light" });
+    assert.equal(summary.done, true); assert.equal(summary.checkpoints, undefined);
+    assert.equal(JSON.stringify(summary.decisions), JSON.stringify(decisions));
+    const detail = await tool.execute({ cycle_id: "status-light", detail: true });
+    assert.deepEqual(detail.checkpoints, run.checkpoints);
+  } finally { server.close(); }
 });
 
 test("stable cycle ids are content-deterministic (same request, same key)", () => {

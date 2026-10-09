@@ -1,5 +1,6 @@
 akshare==1.19.1
 annotated-types==0.8.0
+baostock==0.9.4
 anyio==4.14.2
 APScheduler==3.11.3
 beautifulsoup4==4.15.0

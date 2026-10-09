@@ -85,7 +85,7 @@ if ($LASTEXITCODE -ne 0) { throw "依赖离线安装失败" }
 # Self-containment gate: the bundle must satisfy itself without user-site.
 & $python -s -m pip check
 if ($LASTEXITCODE -ne 0) { throw "捆绑 Python 依赖不完整（pip check 失败）" }
-& $python -s -c "import pydantic, typing_extensions, pandas, numpy, pymongo, openai, httpx, requests, yaml, apscheduler, dotenv, tzlocal, h11, httpcore; print('bundle imports ok')"
+& $python -s -c "import pydantic, typing_extensions, pandas, numpy, pymongo, openai, httpx, requests, yaml, apscheduler, dotenv, tzlocal, h11, httpcore, akshare, baostock; print('bundle imports ok')"
 if ($LASTEXITCODE -ne 0) { throw "捆绑 Python 关键模块导入失败" }
 
 Write-Host ""

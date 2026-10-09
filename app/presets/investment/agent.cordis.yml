@@ -219,6 +219,10 @@
       name: '@investment-auto/dsh-investment-workflow'
       config:
         engineUrl: 'http://127.0.0.1:8790'
+        lightweightResults: true
+        sharedResearch: true
+        researchPolicy: 'off'
+        uniformOutput: false
 
     - id: tool-workflow
       name: '@deepseek-ai/dsh-tool-workflow'

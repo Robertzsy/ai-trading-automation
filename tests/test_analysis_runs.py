@@ -45,6 +45,27 @@ def test_run_checkpoints_resume_and_complete():
     assert analysis_runs.latest(market="cn")["cycle_id"] == started["cycle_id"]
 
 
+def test_evidence_registry_and_policy_survive_failed_round_resume():
+    analysis_runs.start_or_resume({"cycle_id": "evidence-resume", "market": "hk"})
+    registry = [{"id": "E-quote", "symbol": "00700", "source": "investment_market_snapshot", "data_version": "v1"}]
+    analysis_runs.update({"cycle_id": "evidence-resume", "stage": "base_research", "event": "checkpoint",
+                          "result": [], "evidence_registry": registry, "tool_policy": {"upstream": 4}})
+    analysis_runs.finish({"cycle_id": "evidence-resume", "error": "later failure"}, failed=True)
+    resumed = analysis_runs.start_or_resume({"cycle_id": "evidence-resume", "market": "hk"}, retry_failed=True)
+    checkpoint = resumed["checkpoints"]["base_research"]
+    assert checkpoint["evidence_registry"] == registry
+    assert checkpoint["tool_policy"]["upstream"] == 4
+    assert list(resumed["checkpoints"]) == ["base_research"]
+
+
+def test_malformed_evidence_registry_is_not_checkpointed():
+    analysis_runs.start_or_resume({"cycle_id": "bad-registry", "market": "hk"})
+    with pytest.raises(ValueError, match="evidence_registry"):
+        analysis_runs.update({"cycle_id": "bad-registry", "stage": "base_research", "event": "checkpoint",
+                              "result": [], "evidence_registry": [{"source": "missing-id"}]})
+    assert not analysis_runs.get("bad-registry")["checkpoints"]
+
+
 def test_failed_run_only_reopens_for_authorized_orchestrator_retry():
     analysis_runs.start_or_resume({"cycle_id": "resume-us", "market": "us"})
     analysis_runs.update({"cycle_id": "resume-us", "stage": "base_research", "event": "checkpoint", "result": {"ok": True}})
@@ -75,10 +96,12 @@ def test_execution_ready_persists_decisions_and_fingerprint():
         "stage": "final_decision",
         "event": "execution_ready",
         "decisions": decisions,
+        "warnings": ["共享取证归档未写入；本轮数据追溯不完整"],
     })
     assert ready["status"] == "ready_for_execution"
     assert ready["current_stage"] == "ready_for_execution"
     assert ready["decisions"] == decisions
+    assert ready["warnings"] == ["共享取证归档未写入；本轮数据追溯不完整"]
     assert ready["decision_fingerprint"]
 
     from engine.trading.decision_execution import decision_fingerprint
@@ -94,6 +117,7 @@ def test_execution_ready_persists_decisions_and_fingerprint():
     # ready_for_execution is terminal for analysis: start_or_resume replays it.
     again = analysis_runs.start_or_resume({"cycle_id": "ready-cn", "market": "cn"})
     assert again["status"] == "ready_for_execution"
+    assert again["warnings"] == ready["warnings"]
 
 
 def test_symbols_source_is_recorded():

@@ -27,5 +27,13 @@ export function apply(ctx, config) {
   const engineUrl = process.env.INVESTMENT_ENGINE_URL ??
     (typeof config?.engineUrl === "string" ? config.engineUrl : "http://127.0.0.1:8790");
   const token = process.env.IA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
-  registerAnalysisWorkflow(ctx, new EngineClient(engineUrl, token), registerTool);
+  registerAnalysisWorkflow(ctx, new EngineClient(engineUrl, token), registerTool, {
+    sharedResearch: process.env.IA_SHARED_RESEARCH !== undefined ? process.env.IA_SHARED_RESEARCH === "1" : config?.sharedResearch === true,
+    // Keep the released path as the default until the opt-in comparison passes.
+    cacheOptimization: config?.cacheOptimization === true || process.env.IA_CACHE_OPTIMIZATION === "1",
+    researchPolicy: process.env.IA_RESEARCH_TOOL_POLICY ?? config?.researchPolicy ?? "off",
+    lightweightResults: process.env.IA_LIGHTWEIGHT_RESULTS !== undefined ? process.env.IA_LIGHTWEIGHT_RESULTS === "1" : config?.lightweightResults === true,
+    uniformOutput: process.env.IA_UNIFORM_RESEARCH_OUTPUT !== undefined ? process.env.IA_UNIFORM_RESEARCH_OUTPUT === "1" : config?.uniformOutput === true,
+    strictEvidence: config?.strictEvidence !== false,
+  });
 }

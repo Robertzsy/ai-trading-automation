@@ -46,6 +46,19 @@ def _post(base: str, path: str, payload: dict) -> tuple[int, dict]:
         return exc.code, json.loads(exc.read().decode("utf-8"))
 
 
+def test_fundamentals_route_validates_input_and_uses_the_key_free_provider(api, monkeypatch):
+    calls = []
+    def fetch(market, symbol):
+        calls.append((market, symbol))
+        return {"status": "ok", "provider": "akshare:em", "records": []}
+    monkeypatch.setattr("engine.data.fundamentals.fetch_fundamentals", fetch)
+    payload = _get(api, "/api/research/fundamentals?market=cn&symbol=600519")
+    assert payload["provider"] == "akshare:em" and calls == [("cn", "600519")]
+    with pytest.raises(urllib.error.HTTPError) as error:
+        _get(api, "/api/research/fundamentals?symbol=600519")
+    assert error.value.code == 400
+
+
 def test_health_endpoint(api):
     payload = _get(api, "/api/health")
     assert payload["ok"] is True

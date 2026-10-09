@@ -68,3 +68,6 @@ venv/
 
 # Isolated npm caches used to keep this project's installs away from the shared cache.
 .npm-cache-isolated*/
+
+# Local plans, billing audits and experiment records are not release documents.
+/notes/

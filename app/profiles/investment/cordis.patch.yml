@@ -69,6 +69,11 @@
       name: '@investment-auto/dsh-investment-workflow'
       config:
         engineUrl: 'http://127.0.0.1:8790'
+        lightweightResults: true
+        sharedResearch: true
+        # Independent pilot switches; validate real-data quality before rollout.
+        researchPolicy: 'off'
+        uniformOutput: false
 
 # ── autonomous-round agent surface ─────────────────────────────────────────
 #

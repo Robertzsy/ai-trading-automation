@@ -59,7 +59,7 @@ function registerTool(ctx, toolName, description, parameters, executor, options 
       name: toolName,
       description,
       parameters,
-      output: { schema: FREE_OBJECT, render: jsonRender },
+      output: { schema: FREE_OBJECT, render: options.render ?? jsonRender },
       timeoutMs: options.timeoutMs ?? 60000,
       execute: executor,
     }),
@@ -98,7 +98,7 @@ export function apply(ctx, config) {
         default: "cn",
       },
     },
-    async ({ market }) => client.get(`/api/portfolio/${market.toLowerCase()}`),
+    async ({ market }, exec) => client.get(`/api/portfolio/${market.toLowerCase()}`, { signal: exec?.signal }),
     { timeoutMs: 20000 },
   );
 
@@ -109,7 +109,7 @@ export function apply(ctx, config) {
     {
       symbol: { type: "string", required: true, description: "证券代码，如 600519 / 00700 / AAPL / 510300" },
     },
-    async ({ symbol }) => client.get(`/api/market/snapshot?symbol=${encodeURIComponent(symbol)}`),
+    async ({ symbol }, exec) => client.get(`/api/market/snapshot?symbol=${encodeURIComponent(symbol)}`, { signal: exec?.signal }),
     { timeoutMs: 60000 },
   );
 
@@ -121,9 +121,21 @@ export function apply(ctx, config) {
       symbol: { type: "string", required: true, description: "证券代码" },
       lookback: { type: "number", description: "K线根数，默认 60，最大 1023", default: 60 },
     },
-    async ({ symbol, lookback = 60 }) =>
-      client.get(`/api/market/history?symbol=${encodeURIComponent(symbol)}&lookback=${Math.trunc(lookback)}`),
+    async ({ symbol, lookback = 60 }, exec) =>
+      client.get(`/api/market/history?symbol=${encodeURIComponent(symbol)}&lookback=${Math.trunc(lookback)}`, { signal: exec?.signal }),
     { timeoutMs: 60000 },
+  );
+
+  registerTool(
+    ctx,
+    "investment_fundamentals",
+    "免额外 API Key 的公司基本面。首选有效时直接整包返回；仅失败、过期或必要字段缺失才依序切换备用源，不拼接不同来源。保留报告期、披露日期、币种、单位和缺口；ETF 不适用公司财报。",
+    {
+      market: { type: "string", required: true, description: "cn、hk、us 或 etf" },
+      symbol: { type: "string", required: true, description: "证券代码，如 600519 / 00700 / AAPL" },
+    },
+    async ({ market, symbol }, exec) => client.get(`/api/research/fundamentals?market=${encodeURIComponent(market.toLowerCase())}&symbol=${encodeURIComponent(symbol)}`, { timeoutMs: 60000, signal: exec?.signal }),
+    { timeoutMs: 65000, render: (_args, value) => [{ type: "text", text: JSON.stringify(value) }] },
   );
 
   registerTool(
@@ -133,7 +145,7 @@ export function apply(ctx, config) {
     {
       keyword: { type: "string", required: true, description: "名称或代码关键字" },
     },
-    async ({ keyword }) => client.get(`/api/market/search?q=${encodeURIComponent(keyword)}`),
+    async ({ keyword }, exec) => client.get(`/api/market/search?q=${encodeURIComponent(keyword)}`, { signal: exec?.signal }),
     { timeoutMs: 30000 },
   );
 
@@ -167,9 +179,9 @@ export function apply(ctx, config) {
       market: { type: "string", description: "可选：只列某市场（cn/hk/us/etf）的报告" },
       limit: { type: "number", description: "最多返回条数，默认 10", default: 10 },
     },
-    async ({ market, limit = 10 }) => {
+    async ({ market, limit = 10 }, exec) => {
       const suffix = market ? `&market=${encodeURIComponent(market.toLowerCase())}` : "";
-      return client.get(`/api/reports?limit=${Math.trunc(limit)}${suffix}`);
+      return client.get(`/api/reports?limit=${Math.trunc(limit)}${suffix}`, { signal: exec?.signal });
     },
     { timeoutMs: 20000 },
   );
@@ -181,7 +193,7 @@ export function apply(ctx, config) {
     {
       market: { type: "string", required: true, description: "市场代码：cn、hk、us 或 etf", default: "cn" },
     },
-    async ({ market }) => client.get(`/api/reports/latest?market=${encodeURIComponent(market.toLowerCase())}`),
+    async ({ market }, exec) => client.get(`/api/reports/latest?market=${encodeURIComponent(market.toLowerCase())}`, { signal: exec?.signal }),
     { timeoutMs: 20000 },
   );
 
@@ -190,7 +202,7 @@ export function apply(ctx, config) {
     "investment_macro_latest",
     "读取最近的宏观日报（财经日历、政策、全球市场摘要）。",
     {},
-    async () => client.get("/api/macro/latest"),
+    async (_args, exec) => client.get("/api/macro/latest", { signal: exec?.signal }),
     { timeoutMs: 20000 },
   );
 
@@ -199,7 +211,7 @@ export function apply(ctx, config) {
     "investment_mandate",
     "读取当前投资授权书：策略档位（保守/中立/激进）与硬风险边界。",
     {},
-    async () => client.get("/api/mandate"),
+    async (_args, exec) => client.get("/api/mandate", { signal: exec?.signal }),
     { timeoutMs: 20000 },
   );
 

@@ -1,6 +1,9 @@
 /** Fixed, DSH-native multi-role investment analysis workflow. */
 
 import { assertObjectJsonSchema } from "@deepseek-ai/dsh-tools";
+import { collectResearchPackets, cacheWorkflowScripts } from "./analysis-cache.js";
+import { ResearchGateway, installResearchPolicy, evidenceIndex } from "./research-policy.js";
+import { analysisSummary, uniformScript, validateStage } from "./research-contract.js";
 
 const MARKETS = new Set(["cn", "hk", "us", "etf"]);
 const STAGES = ["base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"];
@@ -343,19 +346,35 @@ function checkCancellation(payload) {
   if (payload?.analysis?.status === "cancelled") throw new AnalysisCancelled(payload.analysis);
 }
 
-async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents) {
+function stageLabels(stage, args) {
+  if (stage === "base_research") return args.symbols.flatMap(symbol => args.roles.map(role => symbol + ":" + role));
+  if (stage === "research_debate") return args.research.flatMap(item => [
+    ...Array.from({ length: args.rounds }, (_, index) => [item.symbol + ":bull-r" + (index + 1), item.symbol + ":bear-r" + (index + 1)]).flat(),
+    item.symbol + ":research-manager", item.symbol + ":trader",
+  ]);
+  if (stage === "portfolio_draft") return ["portfolio-draft"];
+  if (stage === "risk_review") return [...Array.from({ length: args.rounds }, (_, index) => ["aggressive", "conservative", "neutral"].map(role => "risk-" + role + "-r" + (index + 1))).flat(), "risk-manager"];
+  return ["portfolio-manager"];
+}
+
+async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents, policyRun) {
   checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"stage_start"}));
   const controller = new AbortController();
   const signal = exec.signal ? AbortSignal.any([exec.signal, controller.signal]) : controller.signal;
-  const run = ctx.workflowEngine.start({
-    script,
-    meta:{name:"investment-" + stage.replaceAll("_", "-"),description:"Investment Auto fixed " + stage + " stage",phases:[{title:{base_research:"基础研究",research_debate:"研究辩论与个股决策",portfolio_draft:"组合草案",risk_review:"风险辩论",final_decision:"最终决策"}[stage]}]},
-    args,
-    parent:exec.agent,
-    signal,
-    maxTotalAgents:Math.max(1, maxAgents),
-  });
-  activeRuns.set(String(run.id), {cycleId,stage});
+  const scope = policyRun?.policy.begin(exec.agent, policyRun.gateway, stage, stageLabels(stage, args), signal,
+    stage === "base_research" ? 12 : Math.min(32, 10 + Math.ceil(policyRun.symbols.length / 4)), policyRun.registry);
+  let run;
+  try {
+    run = ctx.workflowEngine.start({
+      script,
+      meta:{name:"investment-" + stage.replaceAll("_", "-"),description:"Investment Auto fixed " + stage + " stage",phases:[{title:{base_research:"基础研究",research_debate:"研究辩论与个股决策",portfolio_draft:"组合草案",risk_review:"风险辩论",final_decision:"最终决策"}[stage]}]},
+      args,
+      parent:exec.agent,
+      signal,
+      maxTotalAgents:Math.max(1, maxAgents),
+    });
+  } catch (error) { scope?.close(); throw error; }
+  activeRuns.set(String(run.id), {cycleId,stage,scope});
   // Stop both pending and running child agents through DSH's abort fanout.
   let polling = false;
   const timer = setInterval(async () => {
@@ -376,18 +395,26 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
     try {
       await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:settled.value}}, {timeoutMs:120000});
     } catch { /* auxiliary: never fail research over the archive */ }
+    policyRun?.validate(stage, settled.value, args);
     const result = compact(settled.value);
-    checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result)}));
+    checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result),
+      ...(policyRun ? { evidence_registry: policyRun.registry(), tool_policy: policyRun.gateway.summary() } : {})}));
     return result;
   } finally {
     clearInterval(timer);
     activeRuns.delete(String(run.id));
+    scope?.close();
     await run.dispose();
   }
 }
 
 /** Register the deterministic multi-stage analysis tool. */
-export function registerAnalysisWorkflow(ctx, client, registerTool) {
+export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true } = {}) {
+  if (!["off", "observe", "enforce"].includes(researchPolicy)) throw new Error("researchPolicy must be off, observe or enforce");
+  const policy = researchPolicy !== "off" ? installResearchPolicy(ctx, { schemas: WORKFLOW_AGENT_SCHEMAS, strictEvidence, uniformOutput }) : null;
+  const collectShared = sharedResearch || cacheOptimization || Boolean(policy);
+  const cachedScripts = collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS) : null;
+  const summarize = lightweightResults ? analysisSummary : value => value;
   const activeRuns = new Map();
   if (typeof ctx.on === "function") {
     // The DSH workflow engine publishes BOTH arguments:
@@ -401,6 +428,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
     ctx.on("workflow/agent-start", (info, agent) => {
       const active = activeRuns.get(String(info.id));
       if (!active) return;
+      active.scope?.bind(agent?.childId, agent?.label);
       void client.post("/api/analysis/runs/events", {
         cycle_id:active.cycleId,
         stage:active.stage,
@@ -508,6 +536,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
 
       if (!exec?.agent) throw new Error("全流程分析需要从一个有效的 DSH 会话调用");
       let started = false;
+      let gateway;
       try {
         const [status, portfolio, mandatePayload, configPayload, previousPayload] = await Promise.all([
           client.get("/api/status"),
@@ -547,7 +576,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         const startPayload = await client.post("/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket,label:safeLabel,symbols:targets,symbols_source:symbolsSource,submit:Boolean(submit),holding_symbols:holdingSymbols,expected_agents:expectedAgents});
         started = true;
         const runState = startPayload.analysis ?? {};
-        if (runState.status === "completed" || runState.status === "cancelled") return {...runState,resumed:true,done:true};
+        if (runState.status === "completed" || runState.status === "cancelled") return {...summarize(runState),resumed:true,done:true};
         const checkpoints = runState.checkpoints ?? {};
         const mandate = mandatePayload?.mandate ?? {};
         const memory = (previousPayload?.runs ?? []).filter((row) => row.cycle_id !== cycleId).slice(0, Number(workflowConfig.memory_entries_per_role ?? 6)).map((row) => ({decisions:row.decisions??[],warnings:row.warnings??[],completed_at:row.completed_at}));
@@ -555,24 +584,60 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
         const minimumCitations = Math.max(1, Number(workflowConfig.minimum_citations ?? 1));
         const requireCitations = workflowConfig.require_citations !== false;
 
-        const base = checkpoints.base_research?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"base_research",BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory},targets.length*4);
+        const inheritedRegistry = Object.values(checkpoints).flatMap(row => row?.evidence_registry ?? []);
+        if (policy) {
+          gateway = new ResearchGateway({ cycleId, market: normalizedMarket, symbols: targets, signal: exec.signal, mode: researchPolicy });
+          // These reads already happened at admission. The same response shapes
+          // seed the gateway; a child does not start a second independent client.
+          await gateway.read("investment_portfolio", { market: normalizedMarket }, () => portfolio, { prefetch: true });
+          await gateway.read("investment_mandate", {}, () => mandatePayload, { prefetch: true });
+          for (const current of evidenceIndex(gateway.archive)) {
+            const previous = inheritedRegistry.filter(row => row.source === current.source && !row.symbol);
+            if (previous.some(row => row.data_version !== current.data_version)) throw new Error("账户或授权书已变化，不能复用旧轮次的裁决；请使用新的 cycle_id 重新分析");
+          }
+        }
+        const registry = () => [...new Map([...inheritedRegistry, ...evidenceIndex(gateway?.archive ?? [])].map(row => [row.id, row])).values()];
+        const policyRun = policy ? { policy, gateway, symbols: targets, registry,
+          validate: (stage, value, task) => { if (strictEvidence) validateStage(stage, value, WORKFLOW_AGENT_SCHEMAS, targets, registry(), task); } } : null;
+        const runStage = async (stage, script, args, maxAgents) => {
+          if (policy) args.evidence_registry = registry();
+          const saved = checkpoints[stage]?.result;
+          if (saved !== undefined) { policyRun?.validate(stage, saved, args); return saved; }
+          return executeStage(ctx, client, exec, activeRuns, cycleId, stage,
+            uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun);
+        };
+        const packets = collectShared && !checkpoints.base_research?.result
+          ? await collectResearchPackets(ctx, client, targets, normalizedMarket, { memory, mandate, holdings, signal: exec.signal,
+            ...(policy ? { read: (tool, args, symbol) => policy.prefetch(gateway, tool, args, exec.signal, symbol, exec.agent) } : {}) })
+          : undefined;
+        const collectionWarnings = [];
+        if (packets) {
+          // Preserve the full normalized inputs before model prompts shorten
+          // verbose text. Provider choice, source dates and gaps remain auditable.
+          try {
+            const archive = await client.post("/api/analysis/runs/archive", { cycle_id: cycleId, stages: { shared_research: packets } }, { timeoutMs: 120000 });
+            if (archive.archive_dir === null) collectionWarnings.push("共享取证归档未写入；本轮数据追溯不完整");
+          } catch { collectionWarnings.push("共享取证归档接口失败；本轮数据追溯不完整"); }
+        }
+        if (collectShared) checkCancellation(await client.get("/api/analysis/run?cycle_id=" + encodeURIComponent(cycleId)));
+        const base = await runStage("base_research",cachedScripts?.base_research ?? BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory,packets},targets.length*4);
         const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations);
         const successRatio = validation.good.length / targets.length;
         const requiredRatio = Math.max(0,Math.min(1,Number(workflowConfig.minimum_symbol_research_success_ratio ?? 0.8)));
         if (successRatio < requiredRatio) throw new Error("基础研究成功率 " + successRatio.toFixed(2) + " 未达到阈值 " + requiredRatio.toFixed(2) + "，本轮按故障安全规则停止提交");
         const failedHoldings = validation.failed.filter((symbol) => holdingSymbols.includes(symbol));
-        const debate = checkpoints.research_debate?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"research_debate",RESEARCH_DEBATE_SCRIPT,{research:validation.good,mandate,holdings,rounds:researchRounds},Math.max(1,validation.good.length*(2*researchRounds+2)));
+        const debate = await runStage("research_debate",cachedScripts?.research_debate ?? RESEARCH_DEBATE_SCRIPT,{research:validation.good,mandate,holdings,rounds:researchRounds},Math.max(1,validation.good.length*(2*researchRounds+2)));
         const recommendations = (Array.isArray(debate) ? debate : []).map((row) => row?.trader).filter(Boolean);
-        const draft = checkpoints.portfolio_draft?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"portfolio_draft",PORTFOLIO_SCRIPT,{portfolio,mandate,recommendations},1);
-        const risk = checkpoints.risk_review?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"risk_review",RISK_SCRIPT,{draft,portfolio,mandate,rounds:riskRounds},3*riskRounds+1);
-        const finalResult = checkpoints.final_decision?.result ?? await executeStage(ctx,client,exec,activeRuns,cycleId,"final_decision",FINAL_SCRIPT,{risk,recommendations,mandate},1);
+        const draft = await runStage("portfolio_draft",cachedScripts?.portfolio_draft ?? PORTFOLIO_SCRIPT,{portfolio,mandate,recommendations},1);
+        const risk = await runStage("risk_review",cachedScripts?.risk_review ?? RISK_SCRIPT,{draft,portfolio,mandate,rounds:riskRounds},3*riskRounds+1);
+        const finalResult = await runStage("final_decision",cachedScripts?.final_decision ?? FINAL_SCRIPT,{risk,recommendations,mandate},1);
         const decisions = normalizedDecisions(finalResult?.decisions,targets,failedHoldings);
-        const warnings = validation.failed.map((symbol) => holdingSymbols.includes(symbol) ? symbol+" 基础研究不完整，已强制 HOLD" : symbol+" 基础研究不完整，已从候选决策排除");
+        const warnings = [...collectionWarnings, ...validation.failed.map((symbol) => holdingSymbols.includes(symbol) ? symbol+" 基础研究不完整，已强制 HOLD" : symbol+" 基础研究不完整，已从候选决策排除")];
         // Persist the final decisions FIRST and enter ready_for_execution:
         // the engine canonicalizes the decisions, computes the decision
         // fingerprint and stores both. A later submission bound to this
         // cycle_id must carry exactly this content.
-        const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,result:compact(finalResult)});
+        const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,warnings,result:compact(finalResult)});
         checkCancellation(readyPayload);
         const readyRun = readyPayload?.analysis ?? {};
         let execution = {status:"not_submitted",reason:"本次仅生成研究方案，未进入模拟撮合"};
@@ -586,15 +651,20 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
           execution = await client.issue("submit_decisions",{market:normalizedMarket,decisions,label:safeLabel,note:String(finalResult?.summary ?? "全流程多角色分析完成").slice(0,1800),idempotency_key:cycleId},{requestedBy:"dsh-analysis-workflow",timeoutMs:300000});
           await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"execution",event:"checkpoint",result:compact(execution),agents_started:0,evidence_count:evidenceCount(base)});
           await client.post("/api/analysis/runs/complete",{cycle_id:cycleId,decisions,execution:compact(execution),report:execution?.report??null,audit_file:execution?.audit_file??null,warnings});
-          return {...readyRun,decisions,execution:compact(execution),base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
+          return {...summarize(readyRun),decisions,warnings,execution:compact(execution),base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
         }
         // Manual rounds END at ready_for_execution: analysis is done, trading
         // waits for the user's explicit approval on a later submission call.
-        return {...readyRun,decisions,execution,base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
+        return {...summarize(readyRun),decisions,warnings,execution,base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
       } catch (error) {
-        if (error instanceof AnalysisCancelled) return {...error.analysis,done:true};
+        if (error instanceof AnalysisCancelled) return {...summarize(error.analysis),done:true};
         if (started) await client.post("/api/analysis/runs/fail",{cycle_id:cycleId,error:String(error?.message??error)}).catch(() => {});
         throw error;
+      } finally {
+        if (gateway) {
+          gateway.close();
+          await client.post("/api/analysis/runs/archive", { cycle_id: cycleId, stages: { tool_policy: { ...gateway.summary(), evidence: gateway.archive } } }).catch(() => {});
+        }
       }
     },
     {timeoutMs:1800000},
@@ -607,8 +677,9 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
     {
       cycle_id:{type:"string",description:"轮次幂等键；留空返回最近一次轮次"},
       market:{type:"string",description:"可选：只查某市场最近的轮次（cn/hk/us/etf）"},
+      detail:{type:"boolean",description:"显式读取完整检查点与研究明细，默认仅返回必要进度和最终决策",default:false},
     },
-    async ({cycle_id, market}) => {
+    async ({cycle_id, market, detail = false}) => {
       let payload;
       if (cycle_id) {
         payload = await client.get("/api/analysis/run?cycle_id="+encodeURIComponent(cycle_id));
@@ -618,7 +689,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool) {
       }
       const run = payload?.analysis ?? null;
       if (!run) return {status:"none",hint:"尚无分析轮次记录；请先调用 investment_analysis_workflow 启动固定流程"};
-      const compactRun = compact(run);
+      const compactRun = detail ? run : lightweightResults ? analysisSummary(run) : compact(run);
       const terminal = run.status === "completed" || run.status === "failed" || run.status === "ready_for_execution" || run.status === "cancelled";
       let hint;
       if (run.status === "ready_for_execution") {

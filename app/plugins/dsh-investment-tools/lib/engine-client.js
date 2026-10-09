@@ -7,12 +7,12 @@ export class EngineClient {
     this.token = token;
   }
 
-  async get(path, { timeoutMs = 30000 } = {}) {
+  async get(path, { timeoutMs = 30000, signal } = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(this.baseUrl + path, {
-        signal: controller.signal,
+        signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
         headers: this.token ? { "X-IA-Token": this.token } : {},
       });
       const payload = await response.json();

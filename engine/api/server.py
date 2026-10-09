@@ -185,6 +185,22 @@ class _Handler(BaseHTTPRequestHandler):
 
             self._send(200, {"ok": True, "symbol": symbol, "lookback": lookback, **fetcher.history(symbol, lookback=lookback)})
             return
+        if path == "/api/research/fundamentals":
+            values = _query(self)
+            market, symbol = values.get("market", "").strip().lower(), values.get("symbol", "").strip()
+            if market not in {"cn", "hk", "us", "etf"} or not symbol:
+                self._send(400, {"ok": False, "error": "market and symbol are required"})
+                return
+            from engine.data.fundamentals import fetch_fundamentals
+            from engine.data.providers.base import SymbolNotSupported
+
+            try:
+                payload = fetch_fundamentals(market, symbol)
+            except SymbolNotSupported:
+                self._send(400, {"ok": False, "error": "symbol does not match market"})
+                return
+            self._send(200, {"ok": True, **payload})
+            return
         if path == "/api/market/search":
             keyword = _query(self).get("q", "").strip()
             if not keyword:

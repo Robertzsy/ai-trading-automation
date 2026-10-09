@@ -13,3 +13,5 @@ pymongo>=4.8,<5
 # requires Python >= 3.11; on older interpreters the provider ladder falls
 # through to the bundled Node fetcher.
 akshare==1.19.1
+# Anonymous A-share fundamentals fallback, contacted only after AKShare tiers fail.
+baostock==0.9.4

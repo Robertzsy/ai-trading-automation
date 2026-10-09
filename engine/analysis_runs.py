@@ -203,6 +203,9 @@ def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
             run["status"] = "ready_for_execution"
             run["current_stage"] = "ready_for_execution"
             run["decisions"] = decisions if isinstance(decisions, list) else []
+            warnings = payload.get("warnings")
+            if isinstance(warnings, list):
+                run["warnings"] = [str(item)[:500] for item in warnings[:50]]
             run["decision_fingerprint"] = decision_fingerprint(run.get("market", ""), run.get("decisions", []))
             checkpoints = run.setdefault("checkpoints", {})
             checkpoints[stage] = {
@@ -224,12 +227,21 @@ def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
                 stage_state["agents_failed"] = int(stage_state.get("agents_failed", 0) or 0) + 1
         elif event == "checkpoint":
             result = payload.get("result")
+            registry = payload.get("evidence_registry")
+            if registry is not None and (
+                not isinstance(registry, list)
+                or len(registry) > 5000
+                or any(not isinstance(row, dict) or not isinstance(row.get("id"), str) for row in registry)
+            ):
+                raise ValueError("evidence_registry 必须是最多 5000 条带 id 的证据记录")
             checkpoints = run.setdefault("checkpoints", {})
             checkpoints[stage] = {
                 "status": "completed",
                 "completed_at": now,
                 "agents_started": int(payload.get("agents_started", 0) or 0),
                 "result": result,
+                **({"evidence_registry": copy.deepcopy(registry)} if registry is not None else {}),
+                **({"tool_policy": copy.deepcopy(payload["tool_policy"])} if isinstance(payload.get("tool_policy"), dict) else {}),
             }
             evidence_count = payload.get("evidence_count")
             if isinstance(evidence_count, int) and not isinstance(evidence_count, bool) and evidence_count >= 0:
