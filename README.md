@@ -4,13 +4,13 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.1.5-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
+[![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.0)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
 AI Trading Automation 是一款面向 A 股、港股、美股和场内 ETF 的投资研究与**模拟交易**桌面应用，内置确定性选股、13 角色多智能体分析和硬风控撮合。2.x 基于 DeepSeek Harness（DSH）深度改造，对用户呈现为独立产品：只有 Dashboard、投资助手、分析中心和设置。
 
-当前源码与最新安装包均为 **2.1.5**，包含持仓联动 Dashboard。
+当前源码与最新安装包均为 **2.2.0**，包含命名统一、共享研究数据与持仓联动 Dashboard。
 
 > 本项目只支持研究与模拟交易，不连接真实券商，也不应直接用于真实资金决策。
 
@@ -40,16 +40,16 @@ AI Trading Automation 是一款面向 A 股、港股、美股和场内 ETF 的�
 
 ## 安装
 
-- 下载 [v2.1.5 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5) 中的 `InvestmentAuto-Setup-x64.exe`
+- 下载 [v2.2.0 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.0) 中的 `AiTradingAutomation-Setup-x64.exe`
 - 支持 Windows 10/11 x64；安装包内置 Python、Node.js、.NET 桌面运行时与 WebView2 兜底安装程序
 
-校验文件：[InvestmentAuto-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
+校验文件：[AiTradingAutomation-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.2.0/AiTradingAutomation-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
 
 ```powershell
-Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
 ```
 
-程序默认安装到 `%LocalAppData%\Programs\InvestmentAuto`，用户数据保存在 `%LocalAppData%\InvestmentAuto`。覆盖升级不改动账户、持仓、报告、配置、凭据和会话；2.1.3 升级实测 76,167 个用户数据文件零丢失。
+程序默认安装到 `%LocalAppData%\Programs\InvestmentAuto`，用户数据保存在 `%LocalAppData%\InvestmentAuto`。覆盖升级不改动账户、持仓、报告、配置、凭据和会话；2.2.0 升级实测 78,911 个用户数据文件零丢失（缺失/变化/新增均为 0），DPAPI 密钥全部可解密，旧版可执行文件、旧快捷方式与旧自启项在升级时清理。
 
 ## 从源码运行
 

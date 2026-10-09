@@ -4,13 +4,13 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.1.5-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
+[![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.0)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
 AI Trading Automation is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
 
-The current source and latest installer are both **2.1.5**, including the holdings-linked Dashboard.
+The current source and latest installer are both **2.2.0**, including naming unification, shared research data, and the holdings-linked Dashboard.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -40,16 +40,16 @@ The current source and latest installer are both **2.1.5**, including the holdin
 
 ## Installation
 
-- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
+- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.2.0 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.0)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.2.0/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
 ```powershell
-Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
 ```
 
-The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials, and sessions. The 2.1.3 on-machine upgrade check preserved all 76,167 user-data files with zero missing or changed files.
+The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials, and sessions. The 2.2.0 on-machine upgrade check preserved all 78,911 user-data files with zero missing, changed, or added files, all DPAPI secrets still decrypt, and the upgrade removes pre-rename executables, shortcuts, and autostart entries.
 
 ## Run from Source
 
