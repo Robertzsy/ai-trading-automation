@@ -4,14 +4,13 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.1.4-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.4)
+[![Release](https://img.shields.io/badge/release-v2.1.5-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
 Investment Auto 是一款面向 A 股、港股、美股和场内 ETF 的投资研究与**模拟交易**桌面应用，内置确定性选股、13 角色多智能体分析和硬风控撮合。2.x 基于 DeepSeek Harness（DSH）深度改造，对用户呈现为独立产品：只有 Dashboard、投资助手、分析中心和设置。
 
-当前源码版本为 **2.1.5**，包含持仓联动 Dashboard；已发布的安装包仍为 **2.1.4**。
-下面的下载链接和校验值对应已发布安装包，2.1.5 安装包尚未发布。
+当前源码与最新安装包均为 **2.1.5**，包含持仓联动 Dashboard。
 
 > 本项目只支持研究与模拟交易，不连接真实券商，也不应直接用于真实资金决策。
 
@@ -41,13 +40,13 @@ Investment Auto 是一款面向 A 股、港股、美股和场内 ETF 的投资�
 
 ## 安装
 
-- 下载 [v2.1.4 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.4) 中的 `InvestmentAuto-Setup-x64.exe`
+- 下载 [v2.1.5 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5) 中的 `InvestmentAuto-Setup-x64.exe`
 - 支持 Windows 10/11 x64；安装包内置 Python、Node.js、.NET 桌面运行时与 WebView2 兜底安装程序
 
-SHA-256：
+校验文件：[InvestmentAuto-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
 
-```text
-9E447B2219926EEC07EE7D99CE2E9B13BACB9FF6D36C05503265E468A5D199B9
+```powershell
+Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
 ```
 
 程序默认安装到 `%LocalAppData%\Programs\InvestmentAuto`，用户数据保存在 `%LocalAppData%\InvestmentAuto`。覆盖升级不改动账户、持仓、报告、配置、凭据和会话；2.1.3 升级实测 76,167 个用户数据文件零丢失。
@@ -84,6 +83,25 @@ Investment Auto 的投资智能由三段确定性逻辑构成：**先排除、�
 
 以下是 2026-10-05 一次港股轮次的完整记录（轮次 `hk-manual-20261005-1458`），标的来自确定性选股：
 
+[![港股分析用例：4 只股票、38 个子代理、185 条证据、0 个失败；五阶段合计 401 秒，最终全部 HOLD，未提交交易](docs/assets/hk-case-study.zh.svg)](docs/assets/hk-case-study.zh.svg)
+
+点击图可放大。耗时为各阶段记录之和，不包含启动等额外开销；这张图展示分析过程与决策结果。
+
+<details>
+<summary>展开五阶段流程与原始轮次记录</summary>
+
+```mermaid
+flowchart TD
+    A["确定性选股 · 4 只港股"] --> B["基础研究 · 118 秒"]
+    B --> C["研究辩论 · 190 秒"]
+    C --> D["组合草案 · 16 秒"]
+    D --> E["风险辩论 · 52 秒"]
+    E --> F["最终决策 · 25 秒"]
+    F --> G["4 只全部 HOLD"]
+    G --> H["ready_for_execution"]
+    H --> I["等待用户批准 · submit=false · 未产生交易"]
+```
+
 | 环节 | 实测 |
 |---|---|
 | 输入 | 选股筛出 4 只港股：`01888`、`00700`、`09988`、`01299` |
@@ -92,6 +110,11 @@ Investment Auto 的投资智能由三段确定性逻辑构成：**先排除、�
 | 结果 | 4 只**全部 HOLD**，未开新仓 |
 | 终态 | `ready_for_execution`（等待用户批准；本次 `submit=false`，未产生交易） |
 
+</details>
+
+<details>
+<summary>展开四只股票的判断依据</summary>
+
 四只标的都给出了可核验的具体理由，而不是笼统的「观望」：
 
 - **`00700`** — 研究经理弱共识 0.62，低于建多所需把握；空头因果链时点吻合（业绩发布 → 次日放量破位 → 大行下修）；基本面「偏多」缺乏支撑（Q2 经调整净利 +9% 低于营收 +11%，上半年资本开支同比 +82%）；唯一正向事实（回购、大行目标价）已被自由现金流转负反向限定。
@@ -99,7 +122,9 @@ Investment Auto 的投资智能由三段确定性逻辑构成：**先排除、�
 - **`01299`** — 空头主线锚定引擎一手数据且自洽（跌破全部均线、创 120 日收盘新低、MACD 负柱扩张、下跌放量）；多头承重墙落在非引擎接口与推算值上，方法论降权。
 - **`01888`** — 入场价处 30 日区间 97.9% 分位，量价未确认（当日量 49.82M 低于量能 MA10 62.37M）；结构止损空间 −12.4%，盈亏比仅 0.44；「8–10× 前瞻 PE」为反推值，不可核验。
 
-> 这个用例值得注意的不是「选出了什么」，而是**它在证据不足时选择不出手**：38 个子代理、185 条证据跑完之后，结论是四只全部维持 HOLD。证据门槛与硬风控优先于「必须给出交易建议」。
+</details>
+
+> 本轮在证据不足时维持 HOLD：38 个子代理、185 条证据完成分析后，四只标的均未开新仓，保留等待批准的状态。证据门槛与硬风控约束每一次交易提交。
 
 ## 架构
 
@@ -131,9 +156,9 @@ Python 投资引擎
 | 2.1.2 | 强化成交回执、决策指纹、跨进程租约、失败/重启恢复和用户标的绑定；内部 headless 与角色会话迁入独立 DSH Home，不再污染用户会话栏。 |
 | 2.1.3 | 开放 IA 的文件、PowerShell、搜索、后台任务与 Ralph 自维护能力；加入自维护 Skill，修复工作流 schema 兼容、失败轮次重试竞态、Windows 原子写入和安装器误打包开发数据等问题。 |
 | 2.1.4 | 界面按设计令牌层重建：固定浅色主题、全量 WCAG AA 对比度、统一图标与四档层级，最小字号由 11px 提升至 12px；分析中心重做（一键入口置顶、预检收拢、进度图形化、轮次可停止），Dashboard 改为四列竖卡并新增持仓明细表，涨跌色遵循各市场惯例；「分析流程」页签并入分析中心；修复轮次启动即失败、工作流状态不更新、持仓表列错位等问题。 |
-| 2.1.5（源码，未发行安装包） | 持仓列表与个股历史走势联动；按币种展示账户指标与组合分布，支持 K 线、成本线、成交量与模拟成交日期；版本门禁覆盖 npm 锁文件，浏览器验收适配新版 Dashboard。 |
+| 2.1.5 | 持仓列表与个股历史走势联动；按币种展示账户指标与组合分布，支持 K 线、成本线、成交量与模拟成交日期；版本门禁覆盖 npm 锁文件，浏览器验收适配新版 Dashboard；首页用例增加概览图、耗时图与可展开流程。 |
 
-完整记录见 [中文更新日志](CHANGELOG.md)、[English changelog](CHANGELOG_EN.md) 和 [v2.1.4 双语发行说明](docs/RELEASE_NOTES_2.1.4.md)。
+完整记录见 [中文更新日志](CHANGELOG.md)、[English changelog](CHANGELOG_EN.md) 和 [v2.1.5 双语发行说明](docs/RELEASE_NOTES_2.1.5.md)。
 
 ## 安全边界
 

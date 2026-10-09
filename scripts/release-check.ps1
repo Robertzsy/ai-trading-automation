@@ -153,6 +153,11 @@ Run-Step "Generated Dashboard is current (generate-dashboard.mjs --check)" {
     if ($LASTEXITCODE -ne 0) { throw "generate-dashboard check exit code $LASTEXITCODE" }
 }
 
+Run-Step "README case-study visuals are current (generate-case-study.mjs --check)" {
+    & $node.Exe scripts/generate-case-study.mjs --check | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "case-study visual check exit code $LASTEXITCODE" }
+}
+
 # 4c. The bundler used to produce client.js must never reach the shipped payload.
 #     It lives in devDependencies only; this asserts that is still true.
 Run-Step "Build-only tooling stays out of the shipped app payload" {

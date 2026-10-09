@@ -4,15 +4,13 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.1.4-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.4)
+[![Release](https://img.shields.io/badge/release-v2.1.5-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
 Investment Auto is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
 
-The current source version is **2.1.5**, including the holdings-linked Dashboard.
-The published installer remains **2.1.4**; the download links and checksum below
-refer to that released installer. A 2.1.5 installer has not been published.
+The current source and latest installer are both **2.1.5**, including the holdings-linked Dashboard.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -42,13 +40,13 @@ refer to that released installer. A 2.1.5 installer has not been published.
 
 ## Installation
 
-- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.4 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.4)
+- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-SHA-256:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
-```text
-9E447B2219926EEC07EE7D99CE2E9B13BACB9FF6D36C05503265E468A5D199B9
+```powershell
+Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
 ```
 
 The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials, and sessions. The 2.1.3 on-machine upgrade check preserved all 76,167 user-data files with zero missing or changed files.
@@ -85,6 +83,25 @@ See [Investment Logic](docs/INVESTMENT_LOGIC_EN.md) for the full details: factor
 
 The complete record of one Hong Kong round on 2026-10-05 (cycle `hk-manual-20261005-1458`), with symbols taken from deterministic screening:
 
+[![Hong Kong case: 4 stocks, 38 subagents, 185 evidence items and 0 failures; recorded stages total 401 seconds, with all stocks HOLD and no trades submitted](docs/assets/hk-case-study.en.svg)](docs/assets/hk-case-study.en.svg)
+
+Click the figure to enlarge it. Timings sum the recorded stages and exclude startup and other overhead; the figure shows the research process and decisions.
+
+<details>
+<summary>Expand the five-stage flow and original round record</summary>
+
+```mermaid
+flowchart TD
+    A["Deterministic screening · 4 HK stocks"] --> B["Base research · 118 s"]
+    B --> C["Research debate · 190 s"]
+    C --> D["Portfolio draft · 16 s"]
+    D --> E["Risk debate · 52 s"]
+    E --> F["Final decision · 25 s"]
+    F --> G["All 4 stocks HOLD"]
+    G --> H["ready_for_execution"]
+    H --> I["Awaiting user approval · submit=false · No trades"]
+```
+
 | | Measured |
 |---|---|
 | Input | 4 Hong Kong stocks from screening: `01888`, `00700`, `09988`, `01299` |
@@ -93,6 +110,11 @@ The complete record of one Hong Kong round on 2026-10-05 (cycle `hk-manual-20261
 | Outcome | **all four HOLD**, no new positions opened |
 | Terminal state | `ready_for_execution` (awaiting user approval; `submit=false`, so no trade was placed) |
 
+</details>
+
+<details>
+<summary>Expand the evidence behind each stock decision</summary>
+
 Each symbol came back with a specific, checkable reason rather than a vague "wait and see":
 
 - **`00700`** — the research manager's weak consensus of 0.62 fell below the confidence a long entry requires; the bearish causal chain lined up in time (results release → next-day high-volume breakdown → broker downgrade); the bullish fundamentals lacked support (Q2 adjusted net profit +9% against revenue +11%, H1 capex +82% year on year); the only positive facts (buybacks, a broker target price) were qualified by free cash flow turning negative.
@@ -100,7 +122,9 @@ Each symbol came back with a specific, checkable reason rather than a vague "wai
 - **`01299`** — the bearish case rests on first-party engine data and is internally consistent (below every moving average, a 120-day closing low, expanding negative MACD, falling on volume); the bullish load-bearing claims rest on non-engine interfaces and derived values, so they were down-weighted.
 - **`01888`** — the entry price sat at the 97.9th percentile of its 30-day range with unconfirmed volume (49.82M against a 62.37M volume MA10); the structural stop implied −12.4% for a reward-to-risk of only 0.44; the "8–10× forward PE" claim was a derived value and could not be verified.
 
-> What matters in this example is not what it picked, but that **it declined to act when the evidence was thin**: after 38 subagents and 185 evidence items, the conclusion was HOLD on all four. The evidence bar and hard risk controls outrank any obligation to produce a trade recommendation.
+</details>
+
+> The round kept all four stocks HOLD when the evidence was insufficient. After 38 subagents and 185 evidence items, it opened no new positions and retained the approval-pending state. Evidence requirements and hard risk controls govern every trade submission.
 
 ## Architecture
 
@@ -132,9 +156,9 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 | 2.1.2 | Added durable broker receipts, decision fingerprints, cross-process leases, restart recovery, and strong binding between user-requested symbols and completed analysis. Internal headless and role sessions moved to an isolated DSH Home and no longer pollute the user session list. |
 | 2.1.3 | Enabled IA filesystem, PowerShell, search, background-job, and Ralph self-maintenance capabilities. Added the self-maintenance Skill and fixed workflow-schema compatibility, failed-cycle retry races, Windows atomic writes, and accidental packaging of development data. |
 | 2.1.4 | Rebuilt the interface on a design-token layer: a pinned light theme, full WCAG AA contrast, one icon set and four elevation levels, with the smallest type raised from 11px to 12px. Reworked the Analysis Centre (entries moved to the top, pre-flight collapsed, graphical progress, rounds can be stopped) and the Dashboard (four vertical market cards plus a holdings table, with trend colour following each market's convention). Merged the Analysis Workflow tab into the Analysis Centre. Fixed rounds failing at startup, workflow status that never advanced, and holdings columns offset from their data. |
-| 2.1.5 (source; installer unreleased) | Linked holdings to individual stock history; added per-currency metrics, allocation, candlesticks, cost basis, volume and simulated fill dates; extended the version gate to npm lockfile metadata and updated browser acceptance for the Dashboard. |
+| 2.1.5 | Linked holdings to individual stock history; added per-currency metrics, allocation, candlesticks, cost basis, volume and simulated fill dates; extended the version gate to npm lockfile metadata and updated browser acceptance; added case-study figures and expandable flows to the README. |
 
-See the [Chinese changelog](CHANGELOG.md), [English changelog](CHANGELOG_EN.md), and [bilingual v2.1.4 release notes](docs/RELEASE_NOTES_2.1.4.md) for the complete record.
+See the [Chinese changelog](CHANGELOG.md), [English changelog](CHANGELOG_EN.md), and [bilingual v2.1.5 release notes](docs/RELEASE_NOTES_2.1.5.md) for the complete record.
 
 ## Safety Boundaries
 

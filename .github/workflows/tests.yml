@@ -100,6 +100,9 @@ jobs:
       - name: Generated Dashboard is current
         run: node app/plugins/dsh-product-shell/scripts/generate-dashboard.mjs --check
 
+      - name: README case-study visuals are current
+        run: node scripts/generate-case-study.mjs --check
+
       - uses: actions/setup-dotnet@v4
         if: runner.os == 'Windows'
         with:

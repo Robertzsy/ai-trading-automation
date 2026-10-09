@@ -2,9 +2,9 @@
 
 [简体中文](CHANGELOG.md) | [English](CHANGELOG_EN.md)
 
-This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The exact bilingual GitHub Release body is available in [docs/RELEASE_NOTES_2.1.4.md](docs/RELEASE_NOTES_2.1.4.md).
+This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The bilingual release notes are available in [docs/RELEASE_NOTES_2.1.5.md](docs/RELEASE_NOTES_2.1.5.md).
 
-## 2.1.5 — Holdings-Linked Stock Visualisation (2026-10-09, source update; installer unreleased)
+## 2.1.5 — Holdings-Linked Stock Visualisation (2026-10-09)
 
 - Linked the holdings list and allocations to each stock's daily history, with independent market selection.
 - Added one-month, three-month and one-year ranges; line/candlestick views, cost basis, volume, MA20 and simulated fill dates; pointer, touch and keyboard date inspection.
@@ -14,7 +14,8 @@ This English changelog covers the complete Investment Auto 2.x line. For install
 - Fixed the version writer and gate omitting the lockfile's two product version fields. All 17 declarations now agree on 2.1.5 without changing third-party dependency versions.
 - Updated browser acceptance for the new Dashboard and fixed the empty Chrome profile argument that prevented isolated smoke runs.
 - Validation: 381 Python tests passed, six online checks skipped; 38 plugin tests, 20 desktop tests and installed-product browser acceptance passed. The preceding local Dashboard upgrade preserved all 78,691 user-data files.
-- Source updated; the v2.1.4 tag, installer and historical checksum remain intact. See the [repository audit](docs/REPOSITORY_AUDIT_2026-10-09.md) for remaining packaging and dependency findings.
+- Added bilingual case-study figures for metrics, stage timings and stock decisions, plus expandable Mermaid flows, the original record and detailed evidence. Both figures share one source and a generation gate.
+- Published the matching v2.1.5 installer with a SHA-256 file; v2.1.4 remains intact. See the [repository audit](docs/REPOSITORY_AUDIT_2026-10-09.md) for remaining dependency and portable-ZIP findings.
 
 ## 2.1.4 — Design-Tokenised UI and a Reliable Analysis Pipeline (2026-10-09, branch `dsch/2.0`)
 

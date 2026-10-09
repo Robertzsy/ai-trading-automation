@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-05",
+  "cycle": "hk-manual-20261005-1458",
+  "subagents": 38,
+  "evidence": 185,
+  "failures": 0,
+  "submit": false,
+  "status": "ready_for_execution",
+  "stages": [
+    { "zh": "基础研究", "en": "Base research", "seconds": 118 },
+    { "zh": "研究辩论", "en": "Research debate", "seconds": 190 },
+    { "zh": "组合草案", "en": "Portfolio draft", "seconds": 16 },
+    { "zh": "风险辩论", "en": "Risk debate", "seconds": 52 },
+    { "zh": "最终决策", "en": "Final decision", "seconds": 25 }
+  ],
+  "stocks": [
+    { "code": "00700", "action": "HOLD", "zh": ["弱共识与现金流约束", "多头依据缺乏支撑"], "en": ["Weak consensus and cash-flow constraints.", "Insufficient support for a long entry."] },
+    { "code": "09988", "action": "HOLD", "zh": ["短周期极端超卖", "缺少跨周期反弹证据"], "en": ["Extreme oversold readings are short-term.", "No cross-horizon evidence for a bounce."] },
+    { "code": "01299", "action": "HOLD", "zh": ["引擎一手数据偏空", "多头论据来源被降权"], "en": ["Bearish case uses first-party engine data.", "Bullish claims were down-weighted."] },
+    { "code": "01888", "action": "HOLD", "zh": ["30 日区间 97.9% 分位", "收益风险比仅 0.44"], "en": ["97.9th percentile of its 30-day range.", "Reward-to-risk ratio: 0.44."] }
+  ]
+}
