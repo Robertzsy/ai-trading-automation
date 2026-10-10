@@ -46,23 +46,45 @@ AKShare 的接口与字段说明见[官方股票数据文档](https://akshare.ak
 | 字段 | 含义 |
 | --- | --- |
 | `article_id` | 市场、股票及规范 URL 生成的稳定新闻条目标识；不是工具证据登记 ID |
-| `title`、`summary` | 搜索返回的标题和节选，不另行生成事实摘要 |
+| `title`、`summary`、`summary_kind` | 标题与摘要；区分 `source_excerpt`（来源节选）、`model_summary_unverified`（联网模型归纳）和 `missing` |
 | `source_url`、`canonical_url`、`source_host` | 原始引用、用于去重的 URL、来源域名；仅去掉跟踪参数和片段，不改写原始引用 |
 | `published_at`、`publication_date_raw`、`date_quality` | 标准日期、原始日期、日期质量；相对日期或无法确认的日期保持未知 |
 | `collected_at`、`time_scope` | 采集时间；区分 `recent`、`background`、`unknown` |
-| `evidence_kind`、`full_text_verified`、`relevance_verified` | 固定为搜索节选、全文未核验、标的相关性待核验 |
+| `model_published_at` | 联网模型报告的日期线索，不自动成为已确认发布日期 |
+| `evidence_kind`、`full_text_verified`、`relevance_verified` | 区分搜索节选和模型归纳；全文、相关性没有验证时保持 false |
+| `event_types`、`related_article_ids` | 根据观察到的标题与摘要分类，关联同标题、同日期报道；保留原引用，不证明事件已覆盖完整 |
 
 相同规范 URL 去重，重复项可补充更完整节选、缺失标题或日期。未来日期和非法链接被排除；窗口之外的报道只作为背景。模型仍负责核验来源、日期和标的相关性，不得把未知日期当近期事实，也不得把搜索节选称作已读全文。
 
 各角色复用共享材料。只有关键资料缺失、过期或存在明确矛盾时，才按具体原因定向补查；可选财务指标缺失仅披露缺口。这个流程规范没有额外启用强制查询次数预算，补查仍使用既有工具能力。
 
-宿主原生联网服务目前不提供响应 usage，新闻包明确记录 `usage.available: false`。共享检索可减少重复取证，但不能据此推算联网总费用或宣称已达到模型缓存命中率目标。
+产品配置通过原生 DeepSeek 联网 provider 保留真实响应 usage。设置 `IA_ENRICH_RESEARCH_NEWS=1` 可试验真实搜索链接对应的摘要与日期线索，默认不改原检索提示词。模型新增的链接不进入资料包；摘要不是原文核验，模型日期不自动升级为确证。`coverage.confirmed_absence` 保持 false，未检出某类新闻不能写成已确认无事件。其他 provider 缺少 usage 时仍明确记录未知。
+
+## 专用角色、计算与补证
+
+`researchRoles` 将工作流子角色设为研究专用。技术角色读取行情与历史，基本面角色读取财务，新闻与情绪角色读取联网资料；经理默认消费上游报告。子角色首个请求起使用固定系统指令与相应工具范围。主助手仍保留维护工具，模型和输出上限不因此改变。
+
+`investment_research_evidence` 在研究子角色内部提供完整共享资料，`kind` 支持 `snapshot`、`history`、`fundamentals`、`news`、`calculations`、`analyses`、`portfolio`、`mandate`。股票角色限定本股票，组合角色可读取本轮目标。`analyses` 返回未节选的上游报告。必要新闻补证指定 `kind=news`、`symbol`、`query`、具体 `reason`；服务共享同一请求并更新资料 `revision` 和登记证据，后续读取取得当前版本。直接新闻检索也进入共享包。
+
+`deduplicateResearch` 独立启用本轮只读请求复用与并发合并，不自动启用强制次数预算。参数、证券、市场、版本和窗口不同不能误复用；相同请求连续失败两次后仅短时抑制 30 秒。单个读者取消不会取消其他读者仍需的请求。数据层复用统计与供应商模型缓存命中率分别计量。
+
+额外的登记证据强制校验独立配置为 `strictEvidence` / `IA_VERIFY_RESEARCH_EVIDENCE`，默认关闭，保持 2.2.0 在 policy=off 时的实际行为。角色自身的结构化输出 schema、基础研究完整性检查和引擎交易硬风控仍生效；开启额外校验时，登记 ID、证券归属和引用来源必须匹配，修正次数有界。开启专用角色不能同时暗中开启这一实验门禁。
+
+程序计算 MA5、MA20 成交量比，明确窗口包含当日，以及分母、日期、单位和公式。财务同比要求可比较的报告类型、币种、指标单位；累计转单季要求声明累计起点和相同口径的上一季度。TTM 与报告期数字不混用，输入不足不生成派生值，跨币种估值不假定汇率。原始记录始终可读取。
+
+## 模型调用计量
+
+轮次的 `model_usage` 包含常规 Chat、原生联网、标题等辅助调用的实际 usage。按通道、模型、阶段和角色汇总；重试及取消后的已消耗 usage 仍计入，幂等请求 ID 防止上报重试重复累计。推理 token 包含在输出内，不再次相加。缺失 usage 或缓存字段保持未知，不能按零计费。
+
+`request_coverage=observed_requests` 表示已观察请求的统计范围，不等于供应商账单核销。输入命中率为命中输入 / 全部输入；缓存数据不完整时不给出完整命中率。`telemetry` 显式记录待上报数和进程级归属缺口。费用状态为 `not_reconciled`，应按实际调用时模型及峰谷价格另行核对。接口与账本不保存模型提示词、凭据或账户载荷。
 
 ## 配置、归档与发行
 
-桌面及 headless 源码配置均启用 `sharedResearch: true`。可用 `IA_SHARED_RESEARCH=0` 关闭这一开关；完整回到旧采集路径还需要 `IA_CACHE_OPTIMIZATION=0`、`IA_RESEARCH_TOOL_POLICY=off`。取证强制预算与统一模型输出保持独立开关，不能将格式统一等同于启用这些试验。
+桌面及 headless 默认保持 `sharedResearch: true`，新增角色、去重和摘要生成作为独立试验开关，默认关闭：分别设置 `IA_RESEARCH_ROLES=1`、`IA_DEDUPLICATE_RESEARCH=1`、`IA_ENRICH_RESEARCH_NEWS=1` 试验；设为 0 回退。`researchPolicy` 仍为 off，未强制启用次数预算。完整回到旧采集路径还需 `IA_SHARED_RESEARCH=0`、`IA_CACHE_OPTIMIZATION=0`、`IA_RESEARCH_TOOL_POLICY=off`。联网 provider 与调用计量默认保留，记录实际 usage 不额外发起模型请求，不改变审批边界。开关扩大前须比较实际未命中量、费用与质量，工具减少或请求去重本身不证明已降本。
 
 基础研究启动前，完整资料通过 `/api/analysis/runs/archive` 保存到轮次归档的 `shared_research` 阶段，便于追溯来源选择、日期和缺口。归档失败会进入轮次警告。模型提示词只限制冗长文本，保持合法完整 JSON；新闻引用 URL、证据 ID 和意见条目保留，完整输入仍在归档中。
+
+`GET /api/analysis/evidence?cycle_id=...&stage=shared_research` 沿用本地 API 访问控制，仅接受命名的研究阶段。续跑恢复完整共享包与阶段归档，不重新采集后混入旧裁决；必要完整归档缺失时要求新轮次。逐请求 usage 账本位于 `runtime/analysis_runs/usage/`，不作为单独分析轮次展示。
 
 发行依赖固定为 AKShare `1.19.1`、BaoStock `0.9.4`，打包脚本检查二者能从捆绑 Python 独立导入。新增源文件和依赖声明需要随发行包一起更新；源码修改不会自动替换用户已安装的桌面端。
 

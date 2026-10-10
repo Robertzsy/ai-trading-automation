@@ -2,6 +2,7 @@
 
 import { assertObjectJsonSchema } from "@deepseek-ai/dsh-tools";
 import { collectResearchPackets, cacheWorkflowScripts } from "./analysis-cache.js";
+import { installAnalysisMeter } from "./analysis-meter.js";
 import { ResearchGateway, installResearchPolicy, evidenceIndex } from "./research-policy.js";
 import { analysisSummary, uniformScript, validateStage } from "./research-contract.js";
 
@@ -396,6 +397,7 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
       await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:settled.value}}, {timeoutMs:120000});
     } catch { /* auxiliary: never fail research over the archive */ }
     policyRun?.validate(stage, settled.value, args);
+    if (policyRun) policyRun.gateway.stageResults[stage] = structuredClone(settled.value);
     const result = compact(settled.value);
     checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result),
       ...(policyRun ? { evidence_registry: policyRun.registry(), tool_policy: policyRun.gateway.summary() } : {})}));
@@ -409,13 +411,14 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
 }
 
 /** Register the deterministic multi-stage analysis tool. */
-export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true } = {}) {
+export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true, researchRoles = false, deduplicateResearch = false } = {}) {
   if (!["off", "observe", "enforce"].includes(researchPolicy)) throw new Error("researchPolicy must be off, observe or enforce");
-  const policy = researchPolicy !== "off" ? installResearchPolicy(ctx, { schemas: WORKFLOW_AGENT_SCHEMAS, strictEvidence, uniformOutput }) : null;
+  const policy = researchPolicy !== "off" || researchRoles || deduplicateResearch ? installResearchPolicy(ctx, { schemas: WORKFLOW_AGENT_SCHEMAS, strictEvidence, uniformOutput, researchRoles }) : null;
   const collectShared = sharedResearch || cacheOptimization || Boolean(policy);
-  const cachedScripts = collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS) : null;
+  const cachedScripts = collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS, { researchRoles }) : null;
   const summarize = lightweightResults ? analysisSummary : value => value;
   const activeRuns = new Map();
+  const meter = ctx.get?.("analysisMeter") ?? installAnalysisMeter(ctx, client);
   if (typeof ctx.on === "function") {
     // The DSH workflow engine publishes BOTH arguments:
     //   workflow/agent-start (info, agent)   info={id,meta}  agent={seq,label,phase?,childId}
@@ -429,6 +432,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
       const active = activeRuns.get(String(info.id));
       if (!active) return;
       active.scope?.bind(agent?.childId, agent?.label);
+      meter.bind(active.cycleId, active.stage, agent?.childId, agent?.label);
       void client.post("/api/analysis/runs/events", {
         cycle_id:active.cycleId,
         stage:active.stage,
@@ -575,6 +579,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         const expectedAgents = targets.length * (6 + 2 * researchRounds) + 3 * riskRounds + 3;
         const startPayload = await client.post("/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket,label:safeLabel,symbols:targets,symbols_source:symbolsSource,submit:Boolean(submit),holding_symbols:holdingSymbols,expected_agents:expectedAgents});
         started = true;
+        meter.begin(cycleId, exec.agent);
         const runState = startPayload.analysis ?? {};
         if (runState.status === "completed" || runState.status === "cancelled") return {...summarize(runState),resumed:true,done:true};
         const checkpoints = runState.checkpoints ?? {};
@@ -587,6 +592,8 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         const inheritedRegistry = Object.values(checkpoints).flatMap(row => row?.evidence_registry ?? []);
         if (policy) {
           gateway = new ResearchGateway({ cycleId, market: normalizedMarket, symbols: targets, signal: exec.signal, mode: researchPolicy });
+          gateway.portfolio = portfolio; gateway.mandate = mandatePayload;
+          gateway.stageResults = {};
           // These reads already happened at admission. The same response shapes
           // seed the gateway; a child does not start a second independent client.
           await gateway.read("investment_portfolio", { market: normalizedMarket }, () => portfolio, { prefetch: true });
@@ -602,14 +609,24 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         const runStage = async (stage, script, args, maxAgents) => {
           if (policy) args.evidence_registry = registry();
           const saved = checkpoints[stage]?.result;
-          if (saved !== undefined) { policyRun?.validate(stage, saved, args); return saved; }
+          if (saved !== undefined) {
+            const restored = researchRoles ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=" + stage).catch(() => null))?.evidence : saved;
+            if (researchRoles && restored == null) throw new Error("本轮完整研究归档缺失，不能无损续跑；请使用新的 cycle_id");
+            policyRun?.validate(stage, restored, args);
+            if (gateway) gateway.stageResults[stage] = restored;
+            return restored;
+          }
           return executeStage(ctx, client, exec, activeRuns, cycleId, stage,
             uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun);
         };
-        const packets = collectShared && !checkpoints.base_research?.result
+        const packets = collectShared && checkpoints.base_research?.result && researchRoles
+          ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=shared_research").catch(() => null))?.evidence
+          : collectShared && !checkpoints.base_research?.result
           ? await collectResearchPackets(ctx, client, targets, normalizedMarket, { memory, mandate, holdings, signal: exec.signal,
             ...(policy ? { read: (tool, args, symbol) => policy.prefetch(gateway, tool, args, exec.signal, symbol, exec.agent) } : {}) })
           : undefined;
+        if (gateway) gateway.packets = packets;
+        if (researchRoles && checkpoints.base_research?.result && !packets) throw new Error("本轮共享原始资料归档缺失，不能无损续跑；请使用新的 cycle_id");
         const collectionWarnings = [];
         if (packets) {
           // Preserve the full normalized inputs before model prompts shorten
@@ -620,7 +637,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           } catch { collectionWarnings.push("共享取证归档接口失败；本轮数据追溯不完整"); }
         }
         if (collectShared) checkCancellation(await client.get("/api/analysis/run?cycle_id=" + encodeURIComponent(cycleId)));
-        const base = await runStage("base_research",cachedScripts?.base_research ?? BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory,packets},targets.length*4);
+        const base = await runStage("base_research",cachedScripts?.base_research ?? BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory,packets,research_roles:researchRoles},targets.length*4);
         const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations);
         const successRatio = validation.good.length / targets.length;
         const requiredRatio = Math.max(0,Math.min(1,Number(workflowConfig.minimum_symbol_research_success_ratio ?? 0.8)));
@@ -661,9 +678,11 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         if (started) await client.post("/api/analysis/runs/fail",{cycle_id:cycleId,error:String(error?.message??error)}).catch(() => {});
         throw error;
       } finally {
+        const telemetry = await meter.flush(started ? cycleId : undefined);
+        if (telemetry.pending_usage_events || telemetry.unattributed_requests || telemetry.status_delivery_failed) console.warn("Analysis usage telemetry incomplete:", JSON.stringify(telemetry));
         if (gateway) {
           gateway.close();
-          await client.post("/api/analysis/runs/archive", { cycle_id: cycleId, stages: { tool_policy: { ...gateway.summary(), evidence: gateway.archive } } }).catch(() => {});
+          await client.post("/api/analysis/runs/archive", { cycle_id: cycleId, stages: { ...(gateway.packets ? { shared_research: gateway.packets } : {}), tool_policy: { ...gateway.summary(), evidence: gateway.archive } } }).catch(() => {});
         }
       }
     },

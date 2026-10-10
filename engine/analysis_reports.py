@@ -129,6 +129,20 @@ def archive_stage_results(cycle_id: str, results: Mapping[str, Any]) -> Optional
         return None
 
 
+def read_archived_stage(cycle_id: str, stage: str) -> Any:
+    """Read a named research stage, without accepting filesystem paths."""
+    from engine.analysis_runs import _cycle_id
+
+    cycle_id = _cycle_id(cycle_id)
+    if stage not in {"shared_research", "base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"}:
+        raise ValueError("unknown research archive stage")
+    target = _analysis_dir() / "archive" / _slug(cycle_id) / f"{stage}.json"
+    try:
+        return json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
 def _goal_section(goal: Optional[Mapping[str, Any]], history_row: Optional[Mapping[str, Any]], number: int) -> List[str]:
     """Render the objective-completion section (empty when no goal is attached)."""
     if not goal and not history_row:

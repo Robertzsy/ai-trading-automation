@@ -137,5 +137,11 @@ export function analysisSummary(run) {
     if (run[key] !== undefined) result[key] = run[key];
   }
   result.details = { tool: "investment_analysis_status", cycle_id: run.cycle_id, detail: true };
+  if (run.model_usage) {
+    result.model_usage = {};
+    for (const key of ["schema_version", "request_coverage", "totals", "telemetry", "billing"]) {
+      if (run.model_usage[key] !== undefined) result.model_usage[key] = run.model_usage[key];
+    }
+  }
   return result;
 }

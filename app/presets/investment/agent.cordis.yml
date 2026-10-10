@@ -222,6 +222,9 @@
         lightweightResults: true
         sharedResearch: true
         researchPolicy: 'off'
+        researchRoles: false
+        deduplicateResearch: false
+        strictEvidence: false
         uniformOutput: false
 
     - id: tool-workflow

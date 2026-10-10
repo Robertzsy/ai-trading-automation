@@ -122,3 +122,12 @@
 - insert:
     - id: product-shell
       name: '@ai-trading-automation/dsh-product-shell'
+
+# Retain native search settings and provider identity; record actual usage.
+- id: web-search-deepseek
+  disabled: true
+- insert:
+    - id: investment-research-search
+      name: '@ai-trading-automation/dsh-investment-tools/lib/research-search.js'
+      config:
+        apiKeyEnv: DEEPSEEK_API_KEY

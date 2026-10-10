@@ -284,6 +284,32 @@ def apply_event(payload: Mapping[str, Any]) -> Dict[str, Any]:
         run = _read(path)
         if run is None:
             raise KeyError(f"analysis run not found: {cycle_id}")
+        if payload.get("event") == "model_usage":
+            from engine.analysis_usage import normalize_request, summarize
+            ledger_path = path.parent / "usage" / path.name
+            ledger_path.parent.mkdir(parents=True, exist_ok=True)
+            ledger = _read(ledger_path) or {"requests": {}}
+            row = normalize_request(payload.get("request") or {})
+            ledger["requests"][row["request_id"]] = row
+            _write(ledger_path, ledger)
+            telemetry = run.get("model_usage", {}).get("telemetry")
+            run["model_usage"] = summarize(ledger["requests"])
+            if telemetry is not None:
+                run["model_usage"]["telemetry"] = telemetry
+            run["updated_at"] = _now()
+            _write(path, run)
+            return copy.deepcopy(run)
+        if payload.get("event") == "model_usage_status":
+            from engine.analysis_usage import summarize
+            value = payload.get("telemetry") or {}
+            if not isinstance(value, Mapping):
+                raise ValueError("telemetry must be an object")
+            telemetry = {key: max(0, int(value.get(key) or 0)) for key in ("pending_usage_events", "unattributed_requests")}
+            telemetry.update(attribution_scope="process", request_coverage="observed_requests")
+            run.setdefault("model_usage", summarize({}))["telemetry"] = telemetry
+            run["updated_at"] = _now()
+            _write(path, run)
+            return copy.deepcopy(run)
         if run.get("status") == "cancelled":
             return copy.deepcopy(run)
         analysis_events.ensure_shape(run)

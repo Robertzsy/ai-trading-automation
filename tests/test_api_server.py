@@ -77,6 +77,12 @@ def test_raw_research_archive_accepts_more_than_a_compact_checkpoint(api, monkey
     assert payload["ok"] is True
     saved = tmp_path / "analysis_runs" / "archive" / "large-archive" / "base_research.json"
     assert json.loads(saved.read_text(encoding="utf-8"))["summary"] == long_text
+    restored = _get(api, "/api/analysis/evidence?cycle_id=large-archive&stage=base_research")
+    assert restored["evidence"]["summary"] == long_text
+    for query in ("cycle_id=..&stage=base_research", "cycle_id=large-archive&stage=../config"):
+        with pytest.raises(urllib.error.HTTPError) as error:
+            _get(api, "/api/analysis/evidence?" + query)
+        assert error.value.code == 400
 
 
 def test_status_endpoint_reports_engine_state(api):

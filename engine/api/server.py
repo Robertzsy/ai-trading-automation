@@ -375,6 +375,17 @@ class _Handler(BaseHTTPRequestHandler):
                 limit = 20
             self._send(200, {"ok": True, "runs": list_runs(market=market, limit=limit)})
             return
+        if path == "/api/analysis/evidence":
+            from engine.analysis_reports import read_archived_stage
+
+            values = _query(self)
+            try:
+                evidence = read_archived_stage(values.get("cycle_id", ""), values.get("stage", "shared_research"))
+            except ValueError as error:
+                self._send(400, {"ok": False, "error": str(error)})
+                return
+            self._send(200 if evidence is not None else 404, {"ok": evidence is not None, "evidence": evidence})
+            return
         if path == "/api/analysis/run":
             from engine.analysis_runs import get
 

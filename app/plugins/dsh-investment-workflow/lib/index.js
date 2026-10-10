@@ -34,6 +34,8 @@ export function apply(ctx, config) {
     researchPolicy: process.env.IA_RESEARCH_TOOL_POLICY ?? config?.researchPolicy ?? "off",
     lightweightResults: process.env.IA_LIGHTWEIGHT_RESULTS !== undefined ? process.env.IA_LIGHTWEIGHT_RESULTS === "1" : config?.lightweightResults === true,
     uniformOutput: process.env.IA_UNIFORM_RESEARCH_OUTPUT !== undefined ? process.env.IA_UNIFORM_RESEARCH_OUTPUT === "1" : config?.uniformOutput === true,
-    strictEvidence: config?.strictEvidence !== false,
+    strictEvidence: process.env.IA_VERIFY_RESEARCH_EVIDENCE !== undefined ? process.env.IA_VERIFY_RESEARCH_EVIDENCE === "1" : config?.strictEvidence !== false,
+    researchRoles: process.env.IA_RESEARCH_ROLES !== undefined ? process.env.IA_RESEARCH_ROLES === "1" : config?.researchRoles === true,
+    deduplicateResearch: process.env.IA_DEDUPLICATE_RESEARCH !== undefined ? process.env.IA_DEDUPLICATE_RESEARCH === "1" : config?.deduplicateResearch === true,
   });
 }

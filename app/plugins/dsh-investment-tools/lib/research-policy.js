@@ -1,7 +1,10 @@
 /** Round-local evidence gateway. Never used for account writes or controls. */
 import { createHash } from "node:crypto";
 import { createUserMessage } from "@deepseek-ai/dsh-llm";
+import { defineTool } from "@deepseek-ai/dsh-tools";
 import { roleContract, validateRoleOutput } from "./research-contract.js";
+import { rolePolicy } from "./research-roles.js";
+import { normalizeNews } from "./research-news.js";
 
 export const RESEARCH_TOOLS = Object.freeze([
   "investment_market_snapshot", "investment_market_history", "investment_fundamentals", "investment_security_search",
@@ -10,6 +13,11 @@ export const RESEARCH_TOOLS = Object.freeze([
 ]);
 const READS = new Set(RESEARCH_TOOLS);
 const hash = value => createHash("sha256").update(value).digest("hex").slice(0, 20);
+function factsVersion(value) {
+  // Billing and retrieval bookkeeping cannot change a fact's identity.
+  const { usage, fetched_at, collected_at, cached, elapsed_ms, ...facts } = value;
+  return hash(JSON.stringify(canonical(facts)));
+}
 export function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])]));
@@ -17,6 +25,7 @@ export function canonical(value) {
 }
 export function readArgs(tool, input = {}) {
   const args = { ...input };
+  if (tool === "web_search" && typeof args.query === "string") args.query = args.query.trim().replace(/\s+/g, " ");
   if (typeof args.market === "string") args.market = args.market.toLowerCase();
   if (tool === "investment_market_history") args.lookback = Math.trunc(args.lookback ?? 60);
   if (tool === "investment_reports") args.limit = Math.trunc(args.limit ?? 10);
@@ -49,6 +58,28 @@ function waitFor(promise, signal) {
 function loadRead(definition, args, exec, sharedSignal) {
   const signal = AbortSignal.any([sharedSignal, AbortSignal.timeout(definition.timeoutMs ?? 60000)]);
   return waitFor(Promise.resolve().then(() => definition.execute(args, { ...exec, signal })), signal);
+}
+
+function shareNews(gateway, symbol, result, query) {
+  const packet = gateway.packets?.[symbol];
+  if (!packet) return;
+  gateway.sharedNews ??= new Set();
+  if (gateway.sharedNews.has(result.entry.id)) return;
+  gateway.sharedNews.add(result.entry.id);
+  packet.news = normalizeNews([{ query: "已有共享新闻", sources: packet.news.sources }, { query, ...result.value }], { symbol, market: gateway.market });
+  packet.revision = (packet.revision ?? 1) + 1;
+  return packet.revision;
+}
+
+function notifyNews(scope, actor, symbol, revision) {
+  if (!revision) return;
+  for (const row of scope.children.values()) {
+    if (!row.child || row.child.id === actor.id || row.child.structured_committed) continue;
+    const [target, role] = row.child.label.split(":");
+    if (target !== symbol || !["news_analyst", "sentiment_analyst", "research-manager"].includes(role)) continue;
+    row.agent.steer?.(createUserMessage({ source: { kind: "plugin", plugin: "@ai-trading-automation/research-policy" },
+      content: [{ type: "text", text: symbol + " 的共享新闻资料已更新为 revision=" + revision + "。有需要时通过 investment_research_evidence(kind=news) 读取；保留来源和未核验状态，不必重复搜索。" }] }));
+  }
 }
 
 export class ResearchGateway {
@@ -101,7 +132,9 @@ export class ResearchGateway {
     let entry = this.entries.get(key);
     if (entry?.value !== undefined && entry.expires <= this.now()) { this.entries.delete(key); entry = undefined; }
     if (!entry) {
-      if ((this.failures.get(key) ?? 0) >= 2) throw new Error("相同取证请求已失败两次，受控重试耗尽");
+      const failure = this.failures.get(key);
+      if (failure && this.now() - failure.at < 30000 && failure.count >= 2) throw new Error("相同取证请求已失败两次，受控重试耗尽；30 秒后可重新获取");
+      if (failure && this.now() - failure.at >= 30000) this.failures.delete(key);
       const controller = new AbortController();
       const id = "E-" + hash(key);
       const stockScoped = ["investment_market_snapshot", "investment_market_history", "investment_fundamentals", "investment_security_search", "web_search", "web_fetch"].includes(tool);
@@ -112,8 +145,9 @@ export class ResearchGateway {
         if (!value || typeof value !== "object" || value.ok === false || value.unavailable === true || value.statusCode >= 400) throw new Error(value?.error ?? "取证接口未返回有效资料");
         this.controller.signal.throwIfAborted(); controller.signal.throwIfAborted();
         current.value = structuredClone(value);
+        this.failures.delete(key);
         current.expires = this.now() + (tool.startsWith("investment_market_") ? 60000 : 600000);
-        current.version = hash(JSON.stringify(canonical(value)));
+        current.version = factsVersion(value);
         // Identity follows facts, not a random round/time nonce. The request
         // memo remains round-local; changed data always gets a different ID.
         current.id = "E-" + hash(JSON.stringify([this.market, current.symbol, tool, normalized, current.version]));
@@ -122,7 +156,7 @@ export class ResearchGateway {
       }).catch(error => {
         if (this.entries.get(key) === current) this.entries.delete(key);
         if (!controller.signal.aborted && !this.controller.signal.aborted) {
-          this.failures.set(key, (this.failures.get(key) ?? 0) + 1); this.stats.failures++;
+          this.failures.set(key, { count: (this.failures.get(key)?.count ?? 0) + 1, at: this.now() }); this.stats.failures++;
         }
         throw error;
       });
@@ -157,7 +191,7 @@ export class ResearchGateway {
 /** The pre-step gate binds a child to the worker's trusted label BEFORE its
  * first request. agent/created alone has no role label; prompt text is not
  * treated as authority. Ordinary agents never enter this ownership map. */
-export function installResearchPolicy(ctx, { schemas, strictEvidence = true, uniformOutput = false } = {}) {
+export function installResearchPolicy(ctx, { schemas, strictEvidence = true, uniformOutput = false, researchRoles = false } = {}) {
   const owners = new WeakMap(), attached = new Map();
   const agents = ctx.get("agents"), tools = ctx.get("tools");
   if (!agents?.isOwnedBy || !tools?.get) throw new Error("Research policy requires the public DSH agent registry and tool runtime");
@@ -171,11 +205,78 @@ export function installResearchPolicy(ctx, { schemas, strictEvidence = true, uni
     scope.children.set(String(agent.id), row);
     const definitions = RESEARCH_TOOLS.map(name => tools.get(name, agent)).filter(Boolean);
     const scopedTools = agent.ctx.get("tools");
-    scopedTools.restrict({ allow: definitions.map(tool => tool.name) });
+    if (researchRoles || scope.gateway.mode !== "off") scopedTools.restrict({ allow: definitions.map(tool => tool.name) });
+    if (researchRoles) {
+      // The SDK assembles the FIRST prompt before agent/pre-step. Install the
+      // stable section now and gate assembly itself on the trusted worker label.
+      const prompt = agent.ctx.get("systemPrompt");
+      prompt?.section?.({ name: "research:persona", order: 0, complete: true, text: rolePolicy("", "").persona });
+      prompt?.suppressRuntimeContext?.();
+      agent.ctx.on("system-prompt/assemble", async (_assembly, _context, next) => {
+        await waitFor(binding, AbortSignal.any([scope.signal, AbortSignal.timeout(10000)]));
+        if (row.error) throw row.error;
+        const result = await next(), role = rolePolicy(scope.stage, row.child.label);
+        return { ...result, tools: result.tools.filter(tool => role.tools.includes(tool.name)), contexts: [] };
+      });
+    }
     scopedTools.guard(exec => {
+      if (!researchRoles && scope.gateway.mode === "off") return;
+      if (researchRoles && row.child && !rolePolicy(scope.stage, row.child.label).tools.includes(exec.name)) return "当前角色通过 investment_research_evidence 读取或申请共享补证";
+      if (researchRoles && exec.name === "investment_research_evidence") return;
       if (exec.name === "structured_output" || exec.name === "run_code" || READS.has(exec.name)) return;
       scope.gateway.stats.denied++;
       return "研究子代理仅有只读取证和结构化提交能力，维护与交易操作由外层流程处理";
+    });
+    const sharedRecords = new WeakMap();
+    if (researchRoles) scopedTools.register(defineTool({
+      name: "investment_research_evidence", description: "读取本轮完整共享资料；有重要新闻缺口时说明 reason 并提供 query，共享服务统一补查。保留返回的证据登记 id/source。",
+      parameters: { symbol: { type: "string" }, kind: { type: "string", required: true, enum: ["snapshot", "history", "fundamentals", "news", "calculations", "analyses", "portfolio", "mandate"] },
+        reason: { type: "string" }, query: { type: "string" } },
+      output: { schema: { type: "object", additionalProperties: true }, render: (_args, value) => [{ type: "text", text: JSON.stringify(value) }] },
+      async execute({ symbol, kind, reason, query }, exec) {
+        await waitFor(binding, AbortSignal.any([exec.signal, scope.signal]));
+        if (row.error) throw row.error;
+        const expected = row.child.label.split(":")[0];
+        symbol ??= scope.gateway.symbols.has(expected) ? expected : undefined;
+        if (symbol && (!scope.gateway.symbols.has(symbol) || (scope.gateway.symbols.has(expected) && symbol !== expected))) throw new Error("只能读取本角色目标证券的本轮资料");
+        if (query && (kind !== "news" || !symbol || !reason?.trim())) throw new Error("共享新闻补查须提供 symbol、kind=news 和具体 reason");
+        if (query) {
+          const definition = tools.get("web_search");
+          if (!definition) throw new Error("新闻补查服务不可用，请披露缺口");
+          const result = await scope.gateway.read("web_search", { query: query.trim() },
+            sharedSignal => loadRead(definition, { query: query.trim() }, exec, sharedSignal), { signal: exec.signal, stock: symbol });
+          const packet = scope.gateway.packets?.[symbol];
+          if (!packet) throw new Error("本轮共享资料缺失");
+          notifyNews(scope, row.child, symbol, shareNews(scope.gateway, symbol, result, query));
+          row.child.supplement_requests = (row.child.supplement_requests ?? 0) + 1;
+        }
+        const value = kind === "analyses" ? Object.fromEntries(Object.entries(scope.gateway.stageResults ?? {}).map(([stage, data]) => [stage,
+          symbol && Array.isArray(data) ? data.filter(item => item.symbol === symbol) : data]))
+          : kind === "portfolio" ? scope.gateway.portfolio : kind === "mandate" ? scope.gateway.mandate : scope.gateway.packets?.[symbol]?.[kind];
+        if (!value) throw new Error("共享资料缺失，请明确披露：" + kind);
+        const payload = { symbol: symbol ?? null, kind, revision: scope.gateway.packets?.[symbol]?.revision ?? 1, value: structuredClone(value), evidence_registry: scope.registry().filter(item => !symbol || !item.symbol || item.symbol === symbol) };
+        const marker = "[shared-evidence:" + hash(JSON.stringify([symbol, kind, factsVersion(payload)])) + "]";
+        const retained = new Set(agent.session?.surface?.nodes ?? []);
+        const duplicate = row.child.delivered.has(marker) && (agent.session?.events ?? []).some(event => event.type === "tool/result" && retained.has(event.seq) && JSON.stringify(event).includes(marker));
+        sharedRecords.set(exec, { marker, duplicate });
+        row.child.shared_reads = (row.child.shared_reads ?? 0) + 1;
+        return payload;
+      },
+      finalizeContent(exec, result) {
+        const record = sharedRecords.get(exec);
+        if (!record || result.isError) return result.content;
+        if (record.duplicate) { scope.gateway.stats.projected++; return [{ type: "text", text: record.marker + "\n本会话已收到此版本的完整共享资料，请引用先前事实。" }]; }
+        return [...result.content, { type: "text", text: record.marker }];
+      },
+    }));
+    agent.ctx.on("tools/result", (exec, result) => {
+      const record = sharedRecords.get(exec);
+      if (record && !result.isError) {
+        row.child.delivered.add(record.marker);
+        const chars = JSON.stringify(result.content).length;
+        row.child.shared_returned_chars = (row.child.shared_returned_chars ?? 0) + chars;
+        scope.gateway.stats.returned_chars += chars;
+      }
     });
     agent.ctx.on("tools/pre-execute", async (exec, next) => {
       if (exec.name !== "structured_output" || !schemas || !strictEvidence) return next();
@@ -208,6 +309,10 @@ export function installResearchPolicy(ctx, { schemas, strictEvidence = true, uni
           const result = await scope.gateway.read(definition.name, args,
             sharedSignal => loadRead(definition, args, exec, sharedSignal),
             { signal: exec.signal, child: row.child });
+          if (researchRoles && definition.name === "web_search") {
+            const symbol = row.child.label.split(":")[0];
+            notifyNews(scope, row.child, symbol, shareNews(scope.gateway, symbol, result, args.query));
+          }
           // A reference is safe only after the full result entered this very
           // session. Concurrent calls in the same batch still get full facts.
           const marker = "[research-evidence:" + result.entry.id + ":" + result.entry.version + "]";
@@ -276,6 +381,12 @@ export function installResearchPolicy(ctx, { schemas, strictEvidence = true, uni
           if (!row) throw new Error("Workflow child was not admitted by the research policy");
           if (!scope.labels.has(label)) row.error = new Error("Unexpected workflow role label: " + label);
           else row.child = gateway.child(String(childId), stage, label);
+          if (researchRoles && row.child) {
+            const role = rolePolicy(stage, label);
+            // restrict() filters inherited/global names. Scoped tools extend
+            // the fence and must not be passed as unknown global names.
+            row.agent.ctx.get("tools").restrict({ allow: role.tools.filter(name => tools.get(name)) });
+          }
           row.resolveBinding();
         },
         close() {

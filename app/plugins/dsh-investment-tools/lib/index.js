@@ -24,6 +24,7 @@
  */
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { EngineClient } from "./engine-client.js";
+import { installAnalysisMeter } from "./analysis-meter.js";
 
 export const name = "@ai-trading-automation/dsh-investment-tools";
 export const inject = ["tools"];
@@ -73,6 +74,7 @@ export function apply(ctx, config) {
     (typeof config?.engineUrl === "string" ? config.engineUrl : "http://127.0.0.1:8790");
   const token = process.env.ATA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
   const client = new EngineClient(engineUrl, token);
+  ctx.provide?.("analysisMeter", installAnalysisMeter(ctx, client));
 
   registerTool(
     ctx,
