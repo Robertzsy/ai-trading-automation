@@ -71,9 +71,9 @@ test("real Cordis-loaded workflow collects shared news through the optional serv
   }
 });
 
-test("bounded text remains valid JSON and preserves all evidence identities and opinions", () => {
-  const evidence = Array.from({ length: 60 }, (_, id) => ({ id: 'E' + id, source: 'https://example.com/' + id, claim: '事实'.repeat(2500) }));
-  const views = Array.from({ length: 9 }, (_, role) => ({ role, assessment: '意见'.repeat(2500), evidence_ids: ['E59'] }));
+test("shared serialization preserves full facts and late counterarguments", () => {
+  const evidence = Array.from({ length: 60 }, (_, id) => ({ id: 'E' + id, source: 'https://example.com/' + id, claim: '事实'.repeat(2500) + '末尾披露：公司存在重大诉讼' }));
+  const views = Array.from({ length: 9 }, (_, role) => ({ role, assessment: '意见'.repeat(2500) + '反证：核心订单取消，原投资逻辑失效', evidence_ids: ['E59'] }));
   const citation = 'https://example.com/news?source=' + 'a'.repeat(2000);
   const parsed = JSON.parse(contextJson({ evidence, views, news: { source_url: citation, canonical_url: citation } }));
   assert.equal(parsed.evidence.length, 60);
@@ -83,7 +83,8 @@ test("bounded text remains valid JSON and preserves all evidence identities and 
   assert.deepEqual(parsed.views[8].evidence_ids, ['E59']);
   assert.equal(parsed.news.source_url, citation);
   assert.equal(parsed.news.canonical_url, citation);
-  assert.match(parsed.views[8].assessment, /文本节选/);
+  assert.equal(parsed.evidence[59].claim, evidence[59].claim);
+  assert.equal(parsed.views[8].assessment, views[8].assessment);
 });
 
 test("four base roles receive the identical evidence prefix and original schema", async () => {
@@ -91,15 +92,19 @@ test("four base roles receive the identical evidence prefix and original schema"
   assert.equal(calls.length, 4);
   assert.equal(new Set(calls.map(call => call.prompt.split('<role_instruction>')[0])).size, 1);
   assert(calls.every(call => call.schema.required.includes('data_quality')));
+  assert(calls.every(call => call.prompt.includes('主动调用 web_search')));
+  assert(calls.every(call => call.prompt.includes('不代表事件覆盖完整')));
+  assert(calls.every(call => !call.prompt.includes('不超过 600 字') && !call.prompt.includes('只有关键材料缺失')));
 });
 
 test("research manager retains every debate round and shares exactly the same base material", async () => {
-  const { calls } = await runScript('research_debate', { research: [{ symbol:'00700', analyses:[{ evidence:[{id:'E1'}] }] }], rounds:3, mandate:{}, holdings:{} }, options => options.label.includes('manager') ? { verdict:'HOLD' } : { side:options.label, thesis:'理由'.repeat(2500), evidence_ids:['E1'] });
+  const { calls } = await runScript('research_debate', { research: [{ symbol:'00700', analyses:[{ evidence:[{id:'E1'}] }] }], rounds:3, mandate:{}, holdings:{} }, options => options.label.includes('manager') ? { verdict:'HOLD' } : { side:options.label, thesis:'理由'.repeat(2500) + '反证：订单取消', evidence_ids:['E1'] });
   assert.equal(calls.length, 8);
   const manager = calls.find(call => call.label.endsWith('research-manager'));
   assert.equal(manager.prompt.split('</shared_evidence>')[0], calls[0].prompt.split('</shared_evidence>')[0]);
   assert.match(manager.prompt, /bear-r3/);
   assert.match(manager.prompt, /bull-r3/);
+  assert.equal(manager.prompt.match(/反证：订单取消/g)?.length, 6);
   assert(manager.schema.required.includes('verdict'));
 });
 
