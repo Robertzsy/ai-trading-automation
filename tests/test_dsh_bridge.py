@@ -105,6 +105,20 @@ def test_runner_spawns_headless_profile_with_task(monkeypatch, tmp_path):
     assert result["warnings"]
 
 
+def test_profile_sync_failure_never_spawns_paid_research(monkeypatch, tmp_path):
+    cli = tmp_path / "app/node_modules/@deepseek-ai/dsh/lib/bin.js"
+    cli.parent.mkdir(parents=True)
+    cli.write_text("", encoding="utf-8")
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setattr(dsh_bridge, "_sync_internal_home", lambda *a, **kw: (_ for _ in ()).throw(OSError("profile locked")))
+    monkeypatch.setattr(dsh_bridge.subprocess, "run", lambda *a, **kw: pytest.fail("must stop before launching node"))
+    runner = dsh_bridge.DshBridgeRunner(app_dir=tmp_path / "app", node="node.exe", dsh_home=str(home))
+    result = runner.run_analysis_round("cn", symbols=["600519"], symbols_source="user", label="sync-failure", submit=False, cycle_id="sync-failure")
+    assert result["status"] == "error"
+    assert "配置同步失败" in result["error"]
+
+
 def test_runner_passes_engine_url_from_api_port(monkeypatch, tmp_path):
     (tmp_path / "app" / "node_modules" / "@deepseek-ai" / "dsh" / "lib").mkdir(parents=True)
     (tmp_path / "app" / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js").write_text("", encoding="utf-8")

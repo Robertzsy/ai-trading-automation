@@ -167,7 +167,7 @@ def test_startup_recovery_skips_terminal_and_fresh_runs(isolate):
     assert len(isolate["spawned"]) == 0
 
 
-def test_stale_running_run_resumes_from_checkpoints(isolate):
+def test_stale_running_run_requires_explicit_resume(isolate):
     analysis_rounds.start(_payload())
     # The worker "died": no active thread, and the run record goes stale.
     with analysis_rounds._lock:
@@ -176,8 +176,12 @@ def test_stale_running_run_resumes_from_checkpoints(isolate):
     run["updated_at"] = "2020-01-01T00:00:00+00:00"
     analysis_runs._write(analysis_runs._path("20260822-cn-user-0000001"), run)
     assert analysis_runs.stale_after(run, seconds=60) is True
+    deferred = analysis_rounds.start(_payload())
+    assert deferred["retry_required"] is True
+    assert deferred["analysis"]["status"] == "failed"
+    assert len(isolate["spawned"]) == 1
 
-    result = analysis_rounds.start(_payload())
+    result = analysis_rounds.start(_payload(retry=True))
     assert result["started"] is True
     assert result["resumed"] is True
     assert len(isolate["spawned"]) == 2

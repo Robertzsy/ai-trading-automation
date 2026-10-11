@@ -7,7 +7,7 @@ import { ResearchGateway, installResearchPolicy, evidenceIndex } from "./researc
 import { analysisSummary, uniformScript, validateStage } from "./research-contract.js";
 import { BRIEF_FORMAT, briefWorkflowScripts, briefSchema, briefContext } from "./research-briefs.js";
 import { THINKING_POLICY, installResearchThinking } from "./research-thinking.js";
-import { singleRoundAttempt, installCoordinatorGuard, saveCheckpoint } from "./round-recovery.js";
+import { singleRoundAttempt, installCoordinatorGuard, saveCheckpoint, saveRunState } from "./round-recovery.js";
 
 const MARKETS = new Set(["cn", "hk", "us", "etf"]);
 const STAGES = ["base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"];
@@ -159,7 +159,8 @@ const rows = await pipeline(args.research, async (_previous, item) => {
       () => agent("你是多头研究员。第 " + round + " 轮针对 " + item.symbol + " 提出最强多头论证并回应既有观点；只能引用已有 evidence id。基础材料：" + source + " 既有辩论：" + prior,{label:item.symbol+":bull-r"+round,phase:"研究辩论与个股决策",schema:debateSchema}),
       () => agent("你是空头研究员。第 " + round + " 轮针对 " + item.symbol + " 提出最强空头论证并回应既有观点；只能引用已有 evidence id，指出数据缺口。基础材料：" + source + " 既有辩论：" + prior,{label:item.symbol+":bear-r"+round,phase:"研究辩论与个股决策",schema:debateSchema})
     ]);
-    sides.push(...pair.filter(Boolean));
+    if (pair.length !== 2 || pair.some(row => !row)) throw new Error("多空意见不完整：" + item.symbol);
+    sides.push(...pair);
   }
   const manager = await agent("你是研究经理。裁决 " + item.symbol + " 的多空辩论，检查证据是否真的支持结论，不得新增事实。基础研究与辩论：" + JSON.stringify({item,sides}).slice(0,22000),{label:item.symbol+":research-manager",phase:"研究辩论与个股决策",schema:managerSchema});
   if (!manager) return null;
@@ -189,7 +190,8 @@ for (let round = 1; round <= args.rounds; round += 1) {
     () => agent("你是保守风险分析师。第 "+round+" 轮重点检查回撤、集中度、流动性、现金储备、数据缺口和极端情景，并回应既有观点。材料："+material+" 既有观点："+prior,{label:"risk-conservative-r"+round,phase:"风险辩论",schema:viewSchema}),
     () => agent("你是中立风险分析师。第 "+round+" 轮平衡收益风险，检查一致性和换手成本，并回应既有观点。材料："+material+" 既有观点："+prior,{label:"risk-neutral-r"+round,phase:"风险辩论",schema:viewSchema})
   ]);
-  views.push(...trio.filter(Boolean));
+  if (trio.length !== 3 || trio.some(row => !row)) throw new Error("风险三方意见不完整");
+  views.push(...trio);
 }
 const manager = await agent("你是风险经理。裁决三方风险意见并给出修订后的决策清单；引擎稍后仍会独立执行不可绕过的硬风控。不得新增事实或证据。材料：" + JSON.stringify({material,views}).slice(0,32000),{label:"risk-manager",phase:"风险辩论",schema:managerSchema});
 return {views,manager};
@@ -299,7 +301,7 @@ function evidenceCount(value) {
     Object.entries(value).filter(([key]) => key !== "evidence").reduce((total, [, item]) => total + evidenceCount(item), 0);
 }
 
-function validBaseResearch(rows, minimumAnalysts, minimumCitations, requireCitations) {
+function validBaseResearch(rows, minimumAnalysts, minimumCitations, requireCitations, expectedSymbols = []) {
   const good = [];
   const failed = [];
   for (const row of Array.isArray(rows) ? rows : []) {
@@ -310,6 +312,7 @@ function validBaseResearch(rows, minimumAnalysts, minimumCitations, requireCitat
     if (analyses.length >= minimumAnalysts) good.push({ symbol: String(row.symbol), analyses });
     else failed.push(String(row?.symbol ?? ""));
   }
+  for (const symbol of expectedSymbols) if (!good.some(row => row.symbol === symbol)) failed.push(symbol);
   return { good, failed: uniqueSymbols(failed) };
 }
 
@@ -350,6 +353,14 @@ function checkCancellation(payload) {
   if (payload?.analysis?.status === "cancelled") throw new AnalysisCancelled(payload.analysis);
 }
 
+async function submitReadyRun(client, run, label, note) {
+  const cycleId = run.cycle_id;
+  const decisions = run.decisions ?? [];
+  const execution = await client.issue("submit_decisions", {market:run.market,decisions,label,note,idempotency_key:cycleId}, {requestedBy:"dsh-analysis-workflow",timeoutMs:300000});
+  const complete = await saveRunState(client, "/api/analysis/runs/complete", {cycle_id:cycleId,decisions,execution:compact(execution),report:execution?.report??null,audit_file:execution?.audit_file??null,warnings:run.warnings??[]});
+  return {run:complete.analysis ?? run, execution:compact(execution)};
+}
+
 function stageLabels(stage, args) {
   if (stage === "base_research") return args.symbols.flatMap(symbol => args.roles.map(role => symbol + ":" + role));
   if (stage === "research_debate") return args.research.flatMap(item => [
@@ -361,8 +372,34 @@ function stageLabels(stage, args) {
   return ["portfolio-manager"];
 }
 
+function requireCompleteStage(stage, value, args) {
+  let complete = true;
+  if (stage === "research_debate") {
+    const symbols = new Set((args.research ?? []).map(row => row.symbol));
+    complete = Array.isArray(value) && value.length === symbols.size && value.every(row =>
+      symbols.delete(row?.symbol) && row.manager && row.trader && Array.isArray(row.sides) &&
+      row.sides.length === 2 * args.rounds && row.sides.every(Boolean));
+  } else if (stage === "portfolio_draft" || stage === "final_decision") {
+    complete = value && Array.isArray(value.decisions);
+  } else if (stage === "risk_review") {
+    complete = Array.isArray(value?.views) && value.views.length === 3 * args.rounds &&
+      value.views.every(Boolean) && value.manager && Array.isArray(value.manager.decisions);
+  }
+  if (!complete) throw new Error("阶段必要角色结果不完整：" + stage);
+}
+
 async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents, policyRun, briefRun, thinking) {
-  checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"stage_start"}));
+  checkCancellation(await saveRunState(client, "/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"stage_start"}));
+  // The SDK returns null for refusal, truncation or missing structured output.
+  // Only base research has an explicit partial-success policy. Required debate
+  // and manager roles must stop their stage instead of silently filtering null.
+  if (stage !== "base_research") script = `
+const requiredAgent = async (prompt, options) => {
+  const result = await agent(prompt, options);
+  if (result == null) throw new Error("必要角色未返回完整结构化结果：" + options.label);
+  return result;
+};
+` + script.replace(/\bagent\(/g, "requiredAgent(");
   const controller = new AbortController();
   const signal = exec.signal ? AbortSignal.any([exec.signal, controller.signal]) : controller.signal;
   const scope = policyRun?.policy.begin(exec.agent, policyRun.gateway, stage, stageLabels(stage, args), signal,
@@ -417,6 +454,7 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
     }
     // Archive the raw value immediately. Later stages and durable checkpoints
     // retain the compact form, but failure/resume cannot discard this evidence.
+    requireCompleteStage(stage, value, args);
     policyRun?.validate(stage, value, args);
     if (policyRun) policyRun.gateway.stageResults[stage] = structuredClone(value);
     const result = compact(value);
@@ -430,7 +468,9 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
     activeRuns.delete(String(run.id));
     scope?.close();
     thinkingScope?.close();
-    await run.dispose();
+    controller.abort();
+    try { await run.dispose(); }
+    catch (error) { console.warn("Workflow cleanup failed:", String(error?.message ?? error)); }
   }
 }
 
@@ -566,7 +606,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           current_stage: run.current_stage ?? "preparing",
           symbols: run.symbols ?? symbols,
           symbols_source: run.symbols_source ?? symbolsSource,
-          hint: "固定分析流程已在后台启动。请用 investment_analysis_status(cycle_id=\"" + cycleId + "\") 轮询进度，直到状态为 ready_for_execution（分析完成，等待用户批准）或 failed；不要再次调用本工具，也不要自行调用行情/新闻工具重写分析。",
+          hint: run?.status === "failed" ? "该轮次失败且未重启。先报告原错误；只有用户明确要求时才传同一 cycle_id 和 retry=true 续跑。" : run?.status === "cancelled" ? "该轮次已停止；原 cycle_id 不重启。" : "请用 investment_analysis_status(cycle_id=\"" + cycleId + "\") 查询进度；不要重复启动或自行重写分析。",
         };
       }
 
@@ -616,11 +656,16 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         const researchRounds = Math.max(1,Math.min(3,Number(workflowConfig.research_debate_rounds ?? 1)));
         const riskRounds = Math.max(1,Math.min(3,Number(workflowConfig.risk_debate_rounds ?? 1)));
         const expectedAgents = targets.length * (6 + 2 * researchRounds) + 3 * riskRounds + 3;
-        const startPayload = await client.post("/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket,label:safeLabel,symbols:targets,symbols_source:symbolsSource,submit:Boolean(submit),holding_symbols:holdingSymbols,expected_agents:expectedAgents});
+        const startPayload = await saveRunState(client, "/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket,label:safeLabel,symbols:targets,symbols_source:symbolsSource,submit:Boolean(submit),holding_symbols:holdingSymbols,expected_agents:expectedAgents});
         started = true;
         meter.begin(cycleId, exec.agent);
         const runState = startPayload.analysis ?? {};
         if (["completed", "cancelled", "failed"].includes(runState.status)) return {...summarize(runState),resumed:true,done:true};
+        if (runState.status === "ready_for_execution") {
+          if (!submit || !runState.submit) return {...summarize(runState),resumed:true,done:true};
+          const saved = await submitReadyRun(client, runState, safeLabel, "使用已保存的最终决策完成本轮模拟提交");
+          return {...summarize(saved.run),execution:saved.execution,resumed:true,done:true};
+        }
         const checkpoints = runState.checkpoints ?? {};
         const mandate = mandatePayload?.mandate ?? {};
         const memory = (previousPayload?.runs ?? []).filter((row) => row.cycle_id !== cycleId).slice(0, Number(workflowConfig.memory_entries_per_role ?? 6)).map((row) => ({decisions:row.decisions??[],warnings:row.warnings??[],completed_at:row.completed_at}));
@@ -666,6 +711,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
             const restored = (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=" + stage).catch(() => null))?.evidence ?? ((researchRoles || researchBriefs) ? null : saved);
             if (restored == null) throw new Error("本轮完整研究归档缺失，不能无损续跑；请在用户对话中处理");
             const value = researchBriefs ? restored : compact(restored);
+            requireCompleteStage(stage, value, args);
             policyRun?.validate(stage, value, args);
             if (gateway) gateway.stageResults[stage] = value;
             return value;
@@ -692,7 +738,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         }
         if (collectShared) checkCancellation(await client.get("/api/analysis/run?cycle_id=" + encodeURIComponent(cycleId)));
         const base = await runStage("base_research",cachedScripts?.base_research ?? BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory,packets,research_roles:researchRoles},targets.length*4);
-        const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations);
+        const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations,targets);
         const successRatio = validation.good.length / targets.length;
         const requiredRatio = Math.max(0,Math.min(1,Number(workflowConfig.minimum_symbol_research_success_ratio ?? 0.8)));
         if (successRatio < requiredRatio) throw new Error("基础研究成功率 " + successRatio.toFixed(2) + " 未达到阈值 " + requiredRatio.toFixed(2) + "，本轮按故障安全规则停止提交");
@@ -702,13 +748,14 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         const draft = await runStage("portfolio_draft",cachedScripts?.portfolio_draft ?? PORTFOLIO_SCRIPT,{portfolio,mandate,recommendations},1);
         const risk = await runStage("risk_review",cachedScripts?.risk_review ?? RISK_SCRIPT,{draft,portfolio,mandate,rounds:riskRounds},3*riskRounds+1);
         const finalResult = await runStage("final_decision",cachedScripts?.final_decision ?? FINAL_SCRIPT,{risk,recommendations,mandate},1);
-        const decisions = normalizedDecisions(finalResult?.decisions,targets,failedHoldings);
+        const decisionSymbols = uniqueSymbols([...validation.good.map(row => row.symbol), ...failedHoldings]);
+        const decisions = normalizedDecisions(finalResult?.decisions,decisionSymbols,failedHoldings);
         const warnings = [...collectionWarnings, ...validation.failed.map((symbol) => holdingSymbols.includes(symbol) ? symbol+" 基础研究不完整，已强制 HOLD" : symbol+" 基础研究不完整，已从候选决策排除")];
         // Persist the final decisions FIRST and enter ready_for_execution:
         // the engine canonicalizes the decisions, computes the decision
         // fingerprint and stores both. A later submission bound to this
         // cycle_id must carry exactly this content.
-        const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,warnings,result:compact(finalResult),...(researchBriefs ? {research_format:BRIEF_FORMAT} : {}),...(thinking ? {research_thinking:THINKING_POLICY} : {})});
+        const readyPayload = await saveRunState(client, "/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,warnings,result:compact(finalResult),...(researchBriefs ? {research_format:BRIEF_FORMAT} : {}),...(thinking ? {research_thinking:THINKING_POLICY} : {})});
         checkCancellation(readyPayload);
         const readyRun = readyPayload?.analysis ?? {};
         let execution = {status:"not_submitted",reason:"本次仅生成研究方案，未进入模拟撮合"};
@@ -719,23 +766,27 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           // paper broker, and its execution receipt (same atomic write as
           // the account mutation) guarantees exactly-once fills; the bound
           // run is finalized by the engine.
-          execution = await client.issue("submit_decisions",{market:normalizedMarket,decisions,label:safeLabel,note:String(finalResult?.summary ?? "全流程多角色分析完成").slice(0,1800),idempotency_key:cycleId},{requestedBy:"dsh-analysis-workflow",timeoutMs:300000});
-          await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"execution",event:"checkpoint",result:compact(execution),agents_started:0,evidence_count:evidenceCount(base)});
-          await client.post("/api/analysis/runs/complete",{cycle_id:cycleId,decisions,execution:compact(execution),report:execution?.report??null,audit_file:execution?.audit_file??null,warnings});
-          return {...summarize(readyRun),decisions,warnings,execution:compact(execution),base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
+          const submitted = await submitReadyRun(client, readyRun, safeLabel, String(finalResult?.summary ?? "全流程多角色分析完成").slice(0,1800));
+          return {...summarize(submitted.run),decisions,warnings,execution:submitted.execution,base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
         }
         // Manual rounds END at ready_for_execution: analysis is done, trading
         // waits for the user's explicit approval on a later submission call.
         return {...summarize(readyRun),decisions,warnings,execution,base_research_success_ratio:successRatio,screening_note:screeningNote,symbols_source:symbolsSource,resumed:Object.keys(checkpoints).length>0};
       } catch (error) {
         if (error instanceof AnalysisCancelled) return {...summarize(error.analysis),done:true};
-        if (started) await client.post("/api/analysis/runs/fail",{cycle_id:cycleId,error:String(error?.message??error)}).catch(() => {});
+        if (started) {
+          const persisted = (await client.get("/api/analysis/run?cycle_id=" + encodeURIComponent(cycleId)).catch(() => null))?.analysis;
+          if (["ready_for_execution", "completed", "cancelled"].includes(persisted?.status)) return {...summarize(persisted),done:true,resumed:true,warning:String(error?.message??error)};
+          await saveRunState(client, "/api/analysis/runs/fail",{cycle_id:cycleId,error:String(error?.message??error)}).catch(() => {});
+        }
         throw error;
       } finally {
-        const telemetry = await meter.flush(started ? cycleId : undefined);
-        if (telemetry.pending_usage_events || telemetry.unattributed_requests || telemetry.status_delivery_failed) console.warn("Analysis usage telemetry incomplete:", JSON.stringify(telemetry));
+        try {
+          const telemetry = await meter.flush(started ? cycleId : undefined);
+          if (telemetry.pending_usage_events || telemetry.unattributed_requests || telemetry.status_delivery_failed) console.warn("Analysis usage telemetry incomplete:", JSON.stringify(telemetry));
+        } catch (error) { console.warn("Auxiliary delivery failed:", String(error?.message ?? error)); }
         if (gateway) {
-          gateway.close();
+          try { gateway.close(); } catch (error) { console.warn("Research cleanup failed:", String(error?.message ?? error)); }
           await client.post("/api/analysis/runs/archive", { cycle_id: cycleId, stages: { ...(gateway.packets ? { shared_research: gateway.packets } : {}), tool_policy: { ...gateway.summary(), evidence: gateway.archive } } }).catch(() => {});
         }
       }

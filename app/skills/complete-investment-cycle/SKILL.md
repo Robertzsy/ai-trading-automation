@@ -24,6 +24,7 @@ investment_analysis_workflow(market=..., symbols=[...], symbols_source=..., subm
 ```
 记住返回的 cycle_id。持仓信息只作为上下文，不得擅自扩大目标列表。
 3. `investment_analysis_status(cycle_id=...)` 轮询直到 **ready_for_execution**（分析完成）或 failed；不要重复启动轮次。failed 时先报告原始错误，只有用户明确要求重试时才传同一 cycle_id 和 retry=true；后台不得自行改代码或重跑。
+   产品缺陷另走修复确认：先只读诊断，再用 `investment_repair_plan` 展示完整方案并等待桌面确认；执行已确认的文件和命令，取得实际验证结果后用 `investment_repair_finish` 关闭授权。验证失败停止；原分析不自动重跑。
 4. 向用户总结最终决策、故障安全处理与风险提示。
 
 ## 执行（仅用户明确批准后）

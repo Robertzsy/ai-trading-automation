@@ -33,8 +33,13 @@ export function installCoordinatorGuard(ctx) {
 }
 
 export async function saveCheckpoint(client, payload) {
+  return saveRunState(client, "/api/analysis/runs/checkpoint", payload);
+}
+
+/** Only retry idempotent state writes, not research or submission commands. */
+export async function saveRunState(client, path, payload) {
   for (let attempt = 0; ; attempt++) {
-    try { return await client.post("/api/analysis/runs/checkpoint", payload, { timeoutMs: 120000 }); }
+    try { return await client.post(path, payload, { timeoutMs: 120000 }); }
     catch (error) {
       // Retry persistence only, never the model stage. Deterministic HTTP
       // validation errors are not retried. The server commit is idempotent.

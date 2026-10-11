@@ -2108,10 +2108,10 @@ window.__ModuleLoader__.load({
 			const retryCycleId = String(pending?.cycle_id ?? "") || String(run?.cycle_id ?? "");
 			// 重试 targets a round the user already started: either a stored
 			// pending snapshot (a start that never reached the engine) or a round
-			// the engine parked in failed/cancelled. A completed round is not
-			// retryable — the engine would only replay it as a duplicate.
+			// the engine parked in failed. Finished or cancelled rounds are
+			// not retryable; a fresh analysis needs a new cycle_id.
 			const retryStatus = String(run?.status ?? "");
-			const canRetry = !submitting && !hasRunningRound && Boolean(retryCycleId) && (Boolean(pending) || retryStatus === "failed" || retryStatus === "cancelled");
+			const canRetry = !submitting && !hasRunningRound && Boolean(retryCycleId) && (retryStatus === "failed" || (Boolean(pending) && !["completed", "ready_for_execution", "cancelled"].includes(retryStatus)));
 
 			const refreshAll = () => {
 				runState.reload();
@@ -2127,7 +2127,8 @@ window.__ModuleLoader__.load({
 					market: options.market,
 					symbols: options.symbols,
 					symbols_source: options.symbolsSource,
-					label: options.label
+					label: options.label,
+					retry: options.retry === true
 				};
 				if (options.goalId) body.goal_id = options.goalId;
 				try {
@@ -2149,7 +2150,7 @@ window.__ModuleLoader__.load({
 						text: result?.resumed
 							? "已从检查点恢复该轮次（沿用同一 cycle_id）。"
 							: result?.started === false
-								? (result?.retry_deferred ? "该轮次的租约仍被占用，重试已延后；稍后再试。" : "该 cycle_id 已存在，引擎未重复启动。")
+								? (result?.retry_required ? "该轮次已中断，请点击重试以明确续跑。" : result?.retry_deferred ? "该轮次的租约仍被占用，重试已延后；稍后再试。" : "该 cycle_id 已存在，引擎未重复启动。")
 								: "分析轮次已启动，正在拉取实时进度。"
 					});
 				} catch (error) {
@@ -2270,7 +2271,8 @@ window.__ModuleLoader__.load({
 					label: String(snapshot.label ?? label) || "manual",
 					symbols: snapshotSymbols,
 					symbolsSource: String(snapshot.symbols_source ?? source) || "user",
-					goalId: String(snapshot.goal_id ?? goalId ?? "")
+					goalId: String(snapshot.goal_id ?? goalId ?? ""),
+					retry: true
 				});
 			};
 			const handleStop = async () => {

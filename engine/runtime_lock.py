@@ -56,6 +56,23 @@ class AtomicClaim:
         if self.descriptor is not None:
             return True
         self.lock_path.parent.mkdir(parents=True, exist_ok=True)
+        # Serialize inspection/reclamation as well as creation. Without this,
+        # two processes can read the same dead PID and the second can unlink
+        # the first process's newly acquired lease. The OS releases this guard
+        # on process death; its harmless file remains as a stable lock target.
+        guard = ProcessLease(self.lock_path.with_name(self.lock_path.name + ".guard")) if self.check_owner else None
+        if guard is not None:
+            try:
+                guard.acquire()
+            except RuntimeError:
+                return False
+        try:
+            return self._acquire_unlocked()
+        finally:
+            if guard is not None:
+                guard.release()
+
+    def _acquire_unlocked(self) -> bool:
         for _ in range(2):
             try:
                 descriptor = os.open(str(self.lock_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)

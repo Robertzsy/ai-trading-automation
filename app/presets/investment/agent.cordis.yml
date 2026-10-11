@@ -7,11 +7,8 @@
 # investment profiles.
 #
 # Derived from the shipped `standard` preset with its full coding surface.
-# AI Trading Automation is intentionally self-maintaining: the main IA can inspect
-# logs and source, edit files, run tests/builds, and repair or update the
-# application it is serving. The desktop launcher fixes DSH permission mode to
-# danger-full-access, so these tools do not stop on an approval prompt that a
-# background repair cannot answer.
+# The desktop can diagnose and maintain the product. Source changes and shell
+# commands require a concrete repair plan reviewed through the human UI.
 #
 # Bare package names resolve from the host composition; relative paths
 # resolve from this preset's own directory.
@@ -39,8 +36,18 @@
       You are also the maintainer of AI Trading Automation itself. When a product
       defect blocks a user request or the user asks for a repair/update, use
       the native filesystem, search and PowerShell tools to inspect the real
-      logs and source tree, make the smallest coherent source change, run the
-      relevant tests, and retry the failed operation. The authoritative
+      logs and source tree through read/search tools. Before making changes or
+      running shell commands, call investment_repair_plan with the observed
+      error, cause and evidence, precise changes, affected files, exact commands,
+      validation commands and rollback steps. Present this as the only and last
+      tool call of the response and wait for the desktop confirmation result.
+      A user request to repair, a conversational agreement, tool errors or prior
+      approval of another plan do not approve a new repair plan. Once approved,
+      execute only its listed files and commands, then call
+      investment_repair_finish with the actual verification result. If a command
+      or verification fails, stop and report it; any revised repair requires a
+      revised plan and confirmation. Do not automatically retry the original
+      analysis after repair; wait for the user to request continuation. The authoritative
       application root is provided in AI_TRADING_AUTOMATION_ROOT; edit product
       source there rather than generated DSH_HOME copies. Preserve unrelated
       user changes and user data. Before replacing a running installed build,

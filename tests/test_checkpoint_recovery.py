@@ -2,6 +2,8 @@
 import json
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 import pytest
 
@@ -80,3 +82,32 @@ def test_dead_cycle_owner_is_recovered_without_hour_long_wait(tmp_path, monkeypa
     claim = runtime_lock.AtomicClaim(path, check_owner=True)
     assert claim.acquire()
     claim.release()
+
+
+def test_final_ready_commit_survives_lost_acknowledgement_and_late_failure():
+    checkpoint()
+    payload = {"cycle_id": "recovery", "stage": "final_decision", "event": "execution_ready", "decisions": []}
+    ready = analysis_runs.update(payload)
+    assert analysis_runs.update(payload) == ready
+    assert analysis_runs.finish({"cycle_id": "recovery", "error": "lost acknowledgement"}, failed=True) == ready
+    assert analysis_runs.update({"cycle_id": "recovery", "stage": "base_research", "event": "stage_start"}) == ready
+    payload["decisions"] = [{"symbol": "600519", "action": "BUY"}]
+    with pytest.raises(ValueError, match="覆盖"):
+        analysis_runs.update(payload)
+
+
+def test_concurrent_reclamation_never_creates_two_cycle_owners(tmp_path):
+    path = tmp_path / "cycle.lease"
+    path.write_text("pid=0 time=0", encoding="ascii")
+    barrier = Barrier(12)
+    def compete(_):
+        claim = runtime_lock.AtomicClaim(path, check_owner=True)
+        barrier.wait()
+        return claim, claim.acquire()
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        results = list(pool.map(compete, range(12)))
+    try:
+        assert sum(owned for _, owned in results) == 1
+    finally:
+        for claim, _ in results:
+            claim.release()

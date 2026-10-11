@@ -70,6 +70,8 @@ def commit_checkpoint(payload: Mapping[str, Any]) -> Dict[str, Any]:
             raise KeyError(f"analysis run not found: {cycle_id}")
         if run.get("status") in _TERMINAL_OR_CANCELLED:
             return copy.deepcopy(run)
+        if run.get("status") == "ready_for_execution":
+            return copy.deepcopy(run)
         checkpoint = {key: copy.deepcopy(value) for key, value in payload.items() if key != "archives"}
         checkpoint["event"] = "checkpoint"
         registry = checkpoint.get("evidence_registry")
@@ -240,6 +242,12 @@ def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
         if run.get("status") in _TERMINAL_OR_CANCELLED:
             return copy.deepcopy(run)
         analysis_events.ensure_shape(run)
+        if run.get("status") == "ready_for_execution":
+            # Analysis is already committed. Lost acknowledgements and late
+            # workers cannot reopen stages or replace approved content.
+            if payload.get("event") == "execution_ready" and payload.get("decisions", []) != run.get("decisions", []):
+                raise ValueError("已完成分析的最终决策不可被不同结果覆盖")
+            return copy.deepcopy(run)
         stage = str(payload.get("stage") or run.get("current_stage") or "running").strip()[:80]
         event = str(payload.get("event") or "checkpoint").strip().lower()
         run["current_stage"] = stage
@@ -464,7 +472,7 @@ def finish(payload: Mapping[str, Any], *, failed: bool = False) -> Dict[str, Any
         run = _read(path)
         if run is None:
             raise KeyError(f"analysis run not found: {cycle_id}")
-        if str(run.get("status")) in {"cancelled", "completed"}:
+        if str(run.get("status")) in {"cancelled", "completed"} or (failed and run.get("status") == "ready_for_execution"):
             # A cancelled round is already terminal; a late worker must not
             # resurrect it into completed/failed.
             return copy.deepcopy(run)

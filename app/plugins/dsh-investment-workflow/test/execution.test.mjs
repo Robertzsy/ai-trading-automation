@@ -1,22 +1,23 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { registerAnalysisWorkflow } from "../../dsh-investment-tools/lib/analysis-workflow.js";
+import { registerAnalysisWorkflow, validBaseResearch } from "../../dsh-investment-tools/lib/analysis-workflow.js";
 
 // Exercise the real executor without model calls, keeping both the raw archive
 // and compact checkpoint payloads visible at the engine boundary.
-function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheckpoint, loseCheckpointReply } = {}) {
+function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheckpoint, loseCheckpointReply, loseReadyReply, failCleanup, failFlush, submit=false, loseSubmitReply } = {}) {
   const tools = new Map(), archives = {}, calls = [], started = [], disposed = [];
-  const state = { cycle_id: "execution-test", status: initialStatus, checkpoints: {} };
+  const state = { cycle_id: "execution-test", market:"us", submit, status: initialStatus, checkpoints: {} };
   const longText = "研究证据".repeat(1000);
   const values = {
     base_research: [{ symbol: "AAPL", analyses: Array.from({ length: 4 }, () => ({ summary: longText, evidence: [{ id: "e1", claim: longText }] })) }],
-    research_debate: [{ trader: { symbol: "AAPL", action: "HOLD" } }],
-    portfolio_draft: { summary: "draft" },
-    risk_review: { summary: "risk" },
+    research_debate: [{ symbol:"AAPL", sides:[{},{}], manager:{}, trader: { symbol: "AAPL", action: "HOLD" } }],
+    portfolio_draft: { summary: "draft", decisions:[] },
+    risk_review: { views:[{},{},{}], manager:{decisions:[]} },
     final_decision: { summary: "final", decisions: [] },
   };
   const ctx = {
     on() {},
+    get(name) { if (name === "analysisMeter") return { begin() {}, bind() {}, async flush() { if (failFlush) throw new Error("auxiliary delivery failed"); return {}; } }; },
     workflowEngine: {
       start(options) {
         const stage = options.meta.name.replace("investment-", "").replaceAll("-", "_");
@@ -24,7 +25,7 @@ function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheck
         const result = onStart?.(stage, options.signal, state) ?? Promise.resolve(
           stage === failAt ? { stopReason: "error", error: "synthetic stage failure" } : { stopReason: "completed", value: values[stage], agentsStarted: 1 },
         );
-        return { id: stage, result, async dispose() { disposed.push(stage); } };
+        return { id: stage, result, async dispose() { disposed.push(stage); if (failCleanup) throw new Error("cleanup failed"); } };
       },
     },
   };
@@ -46,20 +47,26 @@ function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheck
           state.checkpoints[body.stage] = { result: body.result };
           if (body.stage === cancelAfterCheckpoint) state.status = "cancelled";
         }
-        if (body.event === "execution_ready") state.status = "ready_for_execution";
+        if (body.event === "execution_ready") { state.status = "ready_for_execution"; state.decisions=body.decisions; }
       }
       if (path.endsWith("/fail") && state.status !== "cancelled") state.status = "failed";
       if (path.endsWith("/checkpoint") && loseCheckpointReply) {
         loseCheckpointReply = false;
         throw new Error("fetch failed after durable save");
       }
+      if (body.event === "execution_ready" && loseReadyReply) { loseReadyReply = false; throw new Error("fetch failed after ready save"); }
       return { ok: true, analysis: structuredClone(state) };
+    },
+    async issue(command, body) {
+      calls.push({path:command,body});state.status="completed";state.execution={fills:[{status:"synthetic-receipt"}]};
+      if(loseSubmitReply)throw new Error("lost submission receipt");
+      return state.execution;
     },
   };
   registerAnalysisWorkflow(ctx, client, (_ctx, name, _description, _schema, execute) => tools.set(name, execute));
   return {
     archives, calls, started, disposed, state, longText,
-    execute: (exec = { agent: {} }) => tools.get("investment_analysis_workflow")({ market: "us", symbols: ["AAPL"], cycle_id: state.cycle_id, submit: false }, exec),
+    execute: (exec = { agent: {} }) => tools.get("investment_analysis_workflow")({ market: "us", symbols: ["AAPL"], cycle_id: state.cycle_id, submit }, exec),
     status: () => tools.get("investment_analysis_status")({ cycle_id: state.cycle_id }),
   };
 }
@@ -92,6 +99,20 @@ test("completed research remains archived when a later stage fails", () => headl
   assert.deepEqual(Object.keys(run.archives), ["base_research", "research_debate", "portfolio_draft"]);
 }));
 
+test("a dropped base pipeline row is a failed stock, including a missing holding", () => {
+  const result=validBaseResearch([],4,1,true,["AAPL"]);
+  assert.deepEqual(result.failed,["AAPL"]);assert.deepEqual(result.good,[]);
+});
+
+test("legacy incomplete checkpoints stop recovery before a later manager starts", () => headless(async () => {
+  const run=pipeline();
+  run.archives.risk_review={views:[{},{}],manager:null};
+  run.state.checkpoints.risk_review={result:run.archives.risk_review};
+  await assert.rejects(run.execute(),/阶段必要角色结果不完整/);
+  assert.equal(run.state.status,"failed");
+  assert.equal(run.started.some(row=>row.stage==="final_decision"),false);
+}));
+
 test("lost checkpoint reply retries persistence without rerunning completed research", () => headless(async () => {
   const run = pipeline({ loseCheckpointReply: true });
   assert.equal((await run.execute()).status, "ready_for_execution");
@@ -111,6 +132,53 @@ test("a persisted failed round is replayed without redoing paid work", () => hea
   const run = pipeline({ initialStatus: "failed" });
   assert.equal((await run.execute()).status, "failed");
   assert.equal(run.started.length, 0);
+}));
+
+test("already-ready analysis is replayed without restarting any models", () => headless(async () => {
+  const run = pipeline({ initialStatus: "ready_for_execution" });
+  assert.equal((await run.execute()).status, "ready_for_execution");
+  assert.equal(run.started.length, 0);
+}));
+
+test("lost final-ready acknowledgement never converts finished analysis to failed", () => headless(async () => {
+  const run = pipeline({ loseReadyReply: true });
+  assert.equal((await run.execute()).status, "ready_for_execution");
+  assert.equal(run.state.status, "ready_for_execution");
+  assert.equal(run.started.length, 5);
+}));
+
+test("cleanup failure after a saved stage does not break the research chain", () => headless(async () => {
+  const run = pipeline({ failCleanup: true });
+  assert.equal((await run.execute()).status, "ready_for_execution");
+  assert.equal(run.started.length, 5);
+}));
+
+test("cleanup failure never hides the original stage failure", () => headless(async () => {
+  const run = pipeline({ failAt: "research_debate", failCleanup: true });
+  await assert.rejects(run.execute(), /synthetic stage failure/);
+  assert.equal(run.started.length, 2);
+}));
+
+test("auxiliary flush failure does not override a completed result", () => headless(async () => {
+  const run = pipeline({ failFlush: true });
+  assert.equal((await run.execute()).status, "ready_for_execution");
+  assert.equal(run.state.status, "ready_for_execution");
+}));
+
+test("lost submission receipt replays durable completion and never submits twice",()=>headless(async()=>{
+  const run=pipeline({submit:true,loseSubmitReply:true});
+  assert.equal((await run.execute()).status,"completed");
+  assert.equal((await run.execute()).status,"completed");
+  assert.equal(run.calls.filter(row=>row.path==="submit_decisions").length,1);
+  assert.equal(run.started.length,5);
+}));
+
+test("approved autonomous ready run submits stored decisions without research",()=>headless(async()=>{
+  const run=pipeline({initialStatus:"ready_for_execution",submit:true});
+  run.state.decisions=[];
+  assert.equal((await run.execute()).status,"completed");
+  assert.equal(run.started.length,0);
+  assert.equal(run.calls.filter(row=>row.path==="submit_decisions").length,1);
 }));
 
 test("stopping an active stage aborts its children and admits no later stages", { timeout: 5000 }, () => headless(async () => {

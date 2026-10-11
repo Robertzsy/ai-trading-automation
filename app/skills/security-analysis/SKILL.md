@@ -50,3 +50,4 @@ investment_submit_decisions(market=..., decisions=<流程最终决策原样>, id
 - 引擎校验提交内容与该轮记录的决策指纹完全一致，不一致直接拒绝（不得自行改动任何字段）。
 - 同一 cycle_id 只成交一次；超时重试返回原结果，不得更换幂等键重试绕过。
 - 失败（failed）轮次先报告原始错误；只有用户明确要求重试时，使用同一 cycle_id 和 retry=true 从已保存检查点继续。后台不得自行改代码、换 id 或重跑。
+- 若需要修复产品：先只读诊断，调用 `investment_repair_plan` 展示原因依据、文件、修改、精确命令、验证和回退，等待桌面确认。确认后只执行列明范围；验证失败停止，完成调用 `investment_repair_finish` 关闭授权。修复完成不自动续跑分析。

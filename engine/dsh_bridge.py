@@ -372,8 +372,11 @@ class DshBridgeRunner:
             internal = _internal_home(home)
             try:
                 _sync_internal_home(self.app_dir, Path(home), internal, file_credentials=file_credentials)
-            except Exception as exc:  # noqa: BLE001 - sync must not kill a round
+            except Exception as exc:  # noqa: BLE001 - stop before a stale profile can run
                 logger.warning("[DSH-BRIDGE:%s] internal home sync failed: %s", market, exc)
+                error = f"后台运行配置同步失败，未启动研究: {exc}"
+                self._fail_running(cycle_id, error)
+                return {"status": "error", "error": error}
             env["DSH_HOME"] = str(internal)
         command = [self.node, str(self.bin), "--profile", "investment"]
         # Desktop rounds always install DPAPI, even without a token. Source

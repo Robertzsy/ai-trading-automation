@@ -206,7 +206,7 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
     The same ``cycle_id`` never starts a second round: a completed or
     execution-ready run is replayed, a failed run requires explicit retry (trading
     is independently idempotent), an active run returns its live state, and
-    an orphaned running run (stale + no live worker) is resumed.
+    an orphaned running run requires explicit retry from its checkpoints.
     """
     cycle_id = _cycle_id(payload.get("cycle_id"))
     market = _market(payload.get("market"))
@@ -233,6 +233,16 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
         run = analysis_runs.get(cycle_id)
         if run is not None:
             status = run.get("status")
+            active_thread = _active.get(cycle_id)
+            if status == "running" and not (active_thread and active_thread.is_alive()) and analysis_runs.stale_after(run, seconds=STALE_SECONDS):
+                claim = AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS, check_owner=True)
+                if not claim.acquire():
+                    return {"ok": True, "started": False, "duplicate": True, "running": True, "analysis": run}
+                try:
+                    run = analysis_runs.finish({"cycle_id": cycle_id, "error": "后台进程中断；已保留检查点，请明确重试后续跑"}, failed=True)
+                    status = run["status"]
+                finally:
+                    claim.release()
             if status in {"completed", "ready_for_execution", "cancelled"}:
                 return {"ok": True, "started": False, "duplicate": True, "analysis": run}
             if status == "failed":
@@ -277,9 +287,7 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
                 return {"ok": True, "started": False, "duplicate": True, "running": True, "analysis": run}
             if not analysis_runs.stale_after(run, seconds=STALE_SECONDS):
                 return {"ok": True, "started": False, "duplicate": True, "running": True, "analysis": run}
-            # Orphaned round (worker died without a terminal post): resume
-            # from the last durable checkpoint.
-            resumed = True
+            return {"ok": True, "started": False, "duplicate": True, "running": True, "analysis": run}
         else:
             run = analysis_runs.start_or_resume(
                 {

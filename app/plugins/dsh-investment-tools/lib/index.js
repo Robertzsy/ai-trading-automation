@@ -25,6 +25,7 @@
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { EngineClient } from "./engine-client.js";
 import { installAnalysisMeter } from "./analysis-meter.js";
+import { installRepairProtocol } from "./repair-protocol.js";
 
 export const name = "@ai-trading-automation/dsh-investment-tools";
 export const inject = ["tools"];
@@ -75,6 +76,7 @@ export function apply(ctx, config) {
   const token = process.env.ATA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
   const client = new EngineClient(engineUrl, token);
   ctx.provide?.("analysisMeter", installAnalysisMeter(ctx, client));
+  installRepairProtocol(ctx, registerTool);
 
   registerTool(
     ctx,

@@ -296,6 +296,7 @@ export function apply(ctx) {
                   symbols_source: body.symbols_source,
                   label: body.label,
                   goal_id: body.goal_id,
+                  retry: body.retry === true,
                 },
               }));
               return;
