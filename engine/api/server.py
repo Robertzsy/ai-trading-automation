@@ -207,6 +207,17 @@ class _Handler(BaseHTTPRequestHandler):
                 return
             self._send(200, {"ok": True, **payload})
             return
+        if path == "/api/securities/search":
+            from engine.data.securities import search_securities
+            values = _query(self)
+            try:
+                payload = search_securities(values.get("q", ""), values.get("market", ""),
+                                            int(values.get("limit", "8")))
+            except (ValueError, TypeError) as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
+                return
+            self._send(200, {"ok": True, **payload})
+            return
         if path == "/api/market/search":
             keyword = _query(self).get("q", "").strip()
             if not keyword:
@@ -464,6 +475,23 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(403, {"ok": False, "error": "invalid access token"})
             return
         path = urlsplit(self.path).path
+        if path == "/api/securities/refresh":
+            payload = _read_json(self)
+            if payload is None:
+                self._send(400, {"ok": False, "error": "invalid JSON body"})
+                return
+            from engine.data.securities import refresh_catalog
+            try:
+                result = refresh_catalog(str(payload.get("market", "")).lower())
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
+                return
+            except Exception:
+                logger.exception("security catalogue refresh failed")
+                self._send(503, {"ok": False, "error": "股票目录更新失败，原目录已保留，请稍后手动重试"})
+                return
+            self._send(200, {"ok": True, **result})
+            return
         if path == "/api/analysis/rounds/start":
             payload = _read_json(self)
             if payload is None:

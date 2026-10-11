@@ -539,6 +539,13 @@ window.__ModuleLoader__.load({
 			   panel, and the textual status stays in the KPIs above for anyone who
 			   cannot see the ring. */
 			".ia-an-board{position:sticky;top:0;z-index:var(--ia-z-sticky);background:var(--ia-surface);padding-bottom:6px}",
+			".ia-research-toolbar,.ia-research-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.ia-research-heading h2{font-size:calc(var(--ia-fs-body) * 1.25);margin:0 0 6px}.ia-research-controls{display:flex;gap:8px;flex-wrap:wrap}",
+			".ia-research-grid{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;align-items:start}.ia-research-workspace{min-width:0}.ia-research-history{position:sticky;top:12px}.ia-research-rounds{max-height:65vh;overflow:auto}.ia-research-rounds .ia-an-report-item{margin:5px 0}",
+			".ia-research-tabs{display:flex;gap:8px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--dsw-alias-border-l2);margin-bottom:16px}.ia-research-tabs button[aria-selected=true]{background:var(--ia-hover-solid);border-color:var(--ia-brand);color:var(--dsw-alias-label-primary)}",
+			".ia-research-page .ia-an-report-body{max-height:none;overflow:visible}.ia-research-page .ia-an-board{position:static}.ia-an-role-groups details{padding:12px 0;border-top:1px solid var(--dsw-alias-border-l2)}.ia-an-role-groups summary{cursor:pointer;font-size:var(--ia-fs-body-sm)}.ia-an-evidence-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:var(--ia-fs-caption)}",
+			".ia-an-drawer{box-sizing:border-box;width:min(590px,calc(100% - 32px));max-height:calc(100vh - 48px);margin:24px 24px 24px auto;padding:18px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--ia-r-card);background:var(--ia-surface);color:var(--dsw-alias-label-primary);box-shadow:var(--ia-shadow-lg);overflow:auto}.ia-an-drawer::backdrop{background:color-mix(in srgb,var(--dsw-alias-label-primary) 25%,transparent)}.ia-an-drawer .ia-an-start{position:static}.ia-an-drawer h2{font-size:calc(var(--ia-fs-body) * 1.25);margin:0}",
+			".ia-an-lookup{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}.ia-an-stock-option{display:flex;justify-content:space-between;gap:10px;text-align:left;width:100%;padding:9px;border:0;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--ia-surface);color:var(--dsw-alias-label-primary);font:inherit;font-size:var(--ia-fs-body-sm);cursor:pointer;flex-wrap:wrap}.ia-an-stock-option:hover,.ia-an-stock-option[aria-selected=true]{background:var(--ia-hover-solid)}.ia-an-catalog{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}",
+			"@media(max-width:850px){.ia-research-grid{grid-template-columns:minmax(0,1fr)}.ia-research-history{position:static}.ia-research-rounds{max-height:220px}.ia-an-drawer{margin:16px auto}.ia-research-controls{width:100%}.ia-an-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}",
 			/* The start panel carries the three entries; on a tall page it would
 			   otherwise scroll off exactly when a long-running action makes the
 			   user want to look at it again. */
@@ -1594,6 +1601,20 @@ window.__ModuleLoader__.load({
 			const safeLabel = String(label ?? "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 40) || "manual";
 			return new Date().toISOString().slice(0, 10).replace(/-/g, "") + "-" + market + "-" + safeLabel + "-" + suffix;
 		}
+		function normalizeAnalysisSymbols(text, market) {
+			const symbols = [], invalid = [];
+			for (const value of parseAnalysisSymbols(text)) {
+				const explicitMarket = value.match(/^(HK|SH|SZ|BJ)(?=\d)|\.(HK|SH|SZ|BJ|US)$/i);
+				const tag = (explicitMarket?.[1] || explicitMarket?.[2] || "").toUpperCase();
+				if (tag && (tag === "HK" ? market !== "hk" : tag === "US" ? market !== "us" : !["cn", "etf"].includes(market))) { invalid.push(value); continue; }
+				let code = value.normalize("NFKC").toUpperCase().replace(/^(HK|SH|SZ|BJ)(?=\d)/, "").replace(/\.(HK|SH|SZ|BJ|US)$/, "");
+				if (market === "hk" && /^\d{1,5}$/.test(code)) code = code.padStart(5, "0");
+				else if (["cn", "etf"].includes(market) && /^\d{1,6}$/.test(code)) code = code.padStart(6, "0");
+				else if (!(market === "us" && /^[A-Z][A-Z0-9.-]{0,15}$/.test(code))) { invalid.push(value); continue; }
+				if (!symbols.includes(code)) symbols.push(code);
+			}
+			return { symbols, invalid };
+		}
 		function readPendingAnalysis() {
 			try {
 				if (typeof sessionStorage === "undefined") return null;
@@ -1816,6 +1837,63 @@ window.__ModuleLoader__.load({
 			return { ...state, reload: load };
 		}
 
+		function StockLookup({ market, onSelect }) {
+			const h = react.createElement;
+			const [query, setQuery] = react.useState("");
+			const [composing, setComposing] = react.useState(false);
+			const [active, setActive] = react.useState(-1);
+			const [refreshing, setRefreshing] = react.useState(false);
+			const [revision, setRevision] = react.useState(0);
+			const [state, setState] = react.useState({ key: "", results: [], catalog: null, loading: false, error: "" });
+			const key = market + "|" + query.trim();
+			const results = state.key === key ? state.results : [];
+			react.useEffect(() => {
+				let cancelled = false;
+				setActive(-1);
+				if (composing) return undefined;
+				const timer = setTimeout(async () => {
+					setState(previous => ({ ...previous, key, results: [], loading: true, error: "" }));
+					try {
+						const payload = await jsonFetch("/api/investment/analysis?action=securities&market=" + encodeURIComponent(market) + "&q=" + encodeURIComponent(query.trim()));
+						if (!cancelled) setState({ key, results: payload.results ?? [], catalog: payload.catalog, loading: false, error: "" });
+					} catch (error) {
+						if (!cancelled) setState({ key, results: [], catalog: null, loading: false, error: String(error?.message ?? error) });
+					}
+				}, query.trim() ? 180 : 0);
+				return () => { cancelled = true; clearTimeout(timer); };
+			}, [market, query, composing, revision]);
+			const choose = row => { onSelect(row); setQuery(""); setActive(-1); };
+			const refresh = async () => {
+				if (refreshing) return;
+				setRefreshing(true);
+				try {
+					await jsonFetch("/api/investment/analysis?action=refresh-securities", { method: "POST", body: JSON.stringify({ market }) });
+					setRevision(value => value + 1);
+				} catch (error) { setState(previous => ({ ...previous, error: String(error?.message ?? error) })); }
+				finally { setRefreshing(false); }
+			};
+			return h("div", { className: "ia-an-lookup" },
+				h("label", { className: "ia-an-lab", htmlFor: "ia-stock-query" }, "搜索股票名称或代码"),
+				h("input", { id: "ia-stock-query", className: "ia-an-input", value: query, maxLength: 80, autoComplete: "off", role: "combobox", "aria-autocomplete": "list", "aria-controls": "ia-stock-options", "aria-expanded": results.length > 0, "aria-activedescendant": active >= 0 && active < results.length ? "ia-stock-option-" + active : undefined,
+					placeholder: "例如：腾讯、00700、Apple", onChange: event => setQuery(event.target.value), onCompositionStart: () => setComposing(true), onCompositionEnd: () => setComposing(false),
+					onKeyDown: event => { if (composing || event.nativeEvent?.isComposing) return; if (event.key === "ArrowDown" && results.length) { event.preventDefault(); setActive(value => (value + 1) % results.length); } else if (event.key === "ArrowUp" && results.length) { event.preventDefault(); setActive(value => (value <= 0 ? results.length : value) - 1); } else if (event.key === "Enter" && active >= 0 && results[active]) { event.preventDefault(); choose(results[active]); } else if (event.key === "Escape") { setQuery(""); setActive(-1); } } }),
+				h("div", { id: "ia-stock-options", role: "listbox", "aria-label": "股票候选" }, ...results.map((row, i) => h("button", { id: "ia-stock-option-" + i, key: row.market + row.symbol, type: "button", role: "option", "aria-selected": i === active, className: "ia-an-stock-option", onClick: () => choose(row) }, h("span", null, row.name || row.symbol), h("span", { className: "ia-an-note" }, row.symbol + " · " + (marketName[row.market] ?? row.market) + (row.match === "similar" ? " · 近似名称，请核对" : ""))))),
+				h("div", { className: "ia-an-note", "aria-live": "polite" }, state.loading ? "正在匹配本地目录…" : state.error ? "股票目录不可用：" + state.error : query.trim() && !results.length && state.key === key ? "未找到本地候选，可输入准确代码或手动更新目录。" : "点选候选加入清单；近似名称不会自动替换。"),
+				h("div", { className: "ia-an-catalog" }, h("span", { className: "ia-an-note" }, state.catalog ? "本地 " + state.catalog.count + " 个标的" + (state.catalog.scope !== "full-market" ? " · 目录覆盖有限" : "") + (state.catalog.generated_at ? " · " + formatClock(state.catalog.generated_at) : "") : "本地股票目录"), h("button", { className: "ia-an-btn", type: "button", disabled: refreshing, onClick: refresh }, refreshing ? "目录更新中…" : "更新目录（联网）")));
+		}
+
+		function AnalysisEvidencePanel({ cycleId, run }) {
+			const h = react.createElement;
+			const completed = Object.keys(run?.checkpoints ?? {}).filter(stage => ["base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"].includes(stage));
+			const [stage, setStage] = react.useState(completed[0] ?? "base_research");
+			const data = useAsync(() => cycleId && completed.includes(stage) ? jsonFetch("/api/investment/analysis?action=evidence&cycle_id=" + encodeURIComponent(cycleId) + "&stage=" + encodeURIComponent(stage)) : Promise.resolve(null), [cycleId, stage, completed.join(",")]);
+			return h("section", { className: "ia-an-panel" }, h("h3", null, "阶段证据"),
+				h("div", { className: "ia-an-note" }, "已保存的完整阶段材料；未知日期、来源与估值口径请结合报告核对。"),
+				completed.length ? h("label", { className: "ia-an-field" }, "选择阶段", h("select", { className: "ia-an-select", value: stage, onChange: event => setStage(event.target.value) }, ...completed.map(value => h("option", { key: value, value }, analysisStageLabel(value))))) : h("div", { className: "ia-empty" }, "尚无已保存的阶段证据"),
+				data.error ? h("div", { className: "ia-notice", "data-kind": "err" }, "读取证据失败：" + data.error) : null,
+				data.loading ? h("div", { className: "ia-empty" }, "正在读取证据…") : data.data?.evidence ? h("details", null, h("summary", null, "展开原始材料"), h("pre", { className: "ia-an-evidence-text" }, JSON.stringify(data.data.evidence, null, 2))) : null);
+		}
+
 		function AnalysisPipelineView({ run, loading, error, cycleId }) {
 			const [logsOpen, setLogsOpen] = react.useState(false);
 			const stages = run && run.stages && typeof run.stages === "object" ? run.stages : {};
@@ -1874,7 +1952,6 @@ window.__ModuleLoader__.load({
 						className: "ia-an-board",
 						children: [
 							error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "读取轮次失败：" + error }) : null,
-							run?.error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "轮次失败：" + String(run.error) }) : null,
 							warnings.length > 0 ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "warn", children: "警告 " + warnings.length + " 条：" + warnings.slice(0, 3).map((item) => String(item)).join("；") }) : null,
 							react_jsx_runtime.jsxs("div", {
 								className: "ia-an-kpis",
@@ -1909,8 +1986,12 @@ window.__ModuleLoader__.load({
 						]
 					}, row.stage)) }) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: loading ? "正在读取阶段…" : cycleId ? "该轮次尚未写入阶段记录" : "尚未启动分析轮次" }),
 					agents.length > 0 ? react_jsx_runtime.jsx("div", {
+						className: "ia-an-role-groups",
+						children: [...new Set(agents.map(agent => agent.stage))].map(stage => react_jsx_runtime.jsxs("details", {
+							open: agents.some(agent => agent.stage === stage && ["running", "failed"].includes(agent.status)),
+							children: [react_jsx_runtime.jsx("summary", {children: analysisStageLabel(stage) + " · " + agents.filter(agent => agent.stage === stage && agent.status === "completed").length + "/" + agents.filter(agent => agent.stage === stage).length + " 角色完成"}), react_jsx_runtime.jsx("div", {
 						className: "ia-an-agents",
-						children: agents.map((agent) => react_jsx_runtime.jsxs("div", {
+						children: agents.filter(agent => agent.stage === stage).map((agent) => react_jsx_runtime.jsxs("div", {
 							className: "ia-an-agent",
 							"data-status": String(agent.status ?? ""),
 							children: [
@@ -1922,6 +2003,8 @@ window.__ModuleLoader__.load({
 								agent.error ? react_jsx_runtime.jsx("div", { className: "ia-an-agent-body", children: String(agent.error) }) : agent.summary ? react_jsx_runtime.jsx("div", { className: "ia-an-agent-body", children: String(agent.summary) }) : null
 							]
 						}, String(agent.stage ?? "") + ":" + String(agent.label ?? "") + ":" + String(agent.seq ?? "")))
+					})]
+						}, stage))
 					}) : null,
 					reportMeta?.round_report ? react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 10 }, children: "轮次报告：" + String(reportMeta.round_report).split(/[\\/]/).pop() + "（" + formatBytes(reportMeta.bytes) + " · " + formatClock(reportMeta.generated_at) + "）" }) : null,
 					react_jsx_runtime.jsxs("div", {
@@ -1941,11 +2024,13 @@ window.__ModuleLoader__.load({
 			});
 		}
 
-		function AnalysisReportPanel({ refreshToken, highlightCycleId }) {
-			const index = useAsync(() => jsonFetch("/api/investment/reports?action=index&limit=50"), []);
+		function AnalysisReportPanel({ refreshToken, highlightCycleId, embedded = false }) {
+			const index = useAsync(() => embedded ? Promise.resolve({ reports: [] }) : jsonFetch("/api/investment/reports?action=index&limit=50"), [embedded]);
 			const [marketFilter, setMarketFilter] = react.useState("");
-			const [selected, setSelected] = react.useState("");
-			const [content, setContent] = react.useState({ loading: false, error: "", data: null });
+			const [storedSelected, setSelected] = react.useState("");
+			const selected = embedded ? String(highlightCycleId ?? "") : storedSelected;
+			const [contentState, setContent] = react.useState({ loading: false, error: "", data: null, cycleId: "" });
+			const content = contentState.cycleId === selected ? contentState : { loading: Boolean(selected), error: "", data: null };
 			const [exportError, setExportError] = react.useState("");
 			const rows = Array.isArray(index.data?.reports) ? index.data.reports : [];
 			const visibleRows = marketFilter ? rows.filter((row) => String(row?.market ?? "") === marketFilter) : rows;
@@ -1961,18 +2046,19 @@ window.__ModuleLoader__.load({
 			react.useEffect(() => {
 				if (!selected) return undefined;
 				let cancelled = false;
-				setContent({ loading: true, error: "", data: null });
+				setExportError("");
+				setContent({ loading: true, error: "", data: null, cycleId: selected });
 				jsonFetch("/api/investment/reports?action=content&cycle_id=" + encodeURIComponent(selected))
 					.then((payload) => {
-						if (!cancelled) setContent({ loading: false, error: "", data: payload });
+						if (!cancelled) setContent({ loading: false, error: "", data: payload, cycleId: selected });
 					})
 					.catch((error) => {
-						if (!cancelled) setContent({ loading: false, error: String(error?.message ?? error), data: null });
+						if (!cancelled) setContent({ loading: false, error: String(error?.message ?? error), data: null, cycleId: selected });
 					});
 				return () => {
 					cancelled = true;
 				};
-			}, [selected]);
+			}, [selected, refreshToken]);
 			const handleSelect = (cycleId) => {
 				setExportError("");
 				setSelected(cycleId);
@@ -2004,9 +2090,9 @@ window.__ModuleLoader__.load({
 						children: [
 							react_jsx_runtime.jsxs("div", { children: [
 								react_jsx_runtime.jsx("h3", { children: "轮次报告" }),
-								react_jsx_runtime.jsx("div", { className: "ia-an-note", children: rows.length + " 个轮次 · 来自 reports?action=index" })
+								!embedded ? react_jsx_runtime.jsx("div", { className: "ia-an-note", children: rows.length + " 个轮次" }) : null
 							]}),
-							react_jsx_runtime.jsxs("div", { style: { display: "flex", gap: 6, alignItems: "center" }, children: [
+							!embedded ? react_jsx_runtime.jsxs("div", { style: { display: "flex", gap: 6, alignItems: "center" }, children: [
 								react_jsx_runtime.jsxs("select", {
 									className: "ia-an-select",
 									style: { width: "auto" },
@@ -2019,11 +2105,11 @@ window.__ModuleLoader__.load({
 									]
 								}),
 								react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-an-btn", type: "button", onClick: () => reloadIndex(), children: index.loading ? "刷新中…" : "刷新" })
-							]})
+							]}) : null
 						]
 					}),
 					index.error ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "报告索引不可用：" + index.error }) : null,
-					visibleRows.length > 0 ? react_jsx_runtime.jsx("ul", {
+					!embedded ? visibleRows.length > 0 ? react_jsx_runtime.jsx("ul", {
 						className: "ia-an-report-list",
 						children: visibleRows.map((row, position) => react_jsx_runtime.jsx("li", {
 							children: react_jsx_runtime.jsxs("button", {
@@ -2037,7 +2123,7 @@ window.__ModuleLoader__.load({
 								]
 							})
 						}, String(row?.cycle_id ?? "") + ":" + position))
-					}) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: index.loading ? "正在读取报告索引…" : "暂无轮次报告" }),
+					}) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: index.loading ? "正在读取报告索引…" : "暂无轮次报告" }) : null,
 					selected ? react_jsx_runtime.jsxs("div", { children: [
 						react_jsx_runtime.jsxs("div", { className: "ia-an-log-head", style: { marginTop: 10 }, children: [
 							react_jsx_runtime.jsx("span", { children: content.data?.file ? String(content.data.file) : selected }),
@@ -2053,6 +2139,7 @@ window.__ModuleLoader__.load({
 		}
 
 		function AnalysisCenter() {
+			const h = react.createElement;
 			const summaryState = useInvestmentSummary(ANALYSIS_POLL_IDLE_MS);
 			const summary = summaryState.data ?? {};
 			const engineStatus = summary.status ?? {};
@@ -2080,8 +2167,21 @@ window.__ModuleLoader__.load({
 			const [preflightOpen, setPreflightOpen] = react.useState(false);
 			const [notice, setNotice] = react.useState(null);
 			const [refreshToken, setRefreshToken] = react.useState(0);
+			const [selectedCycleId, setSelectedCycleId] = react.useState("");
+			const [drawerOpen, setDrawerOpen] = react.useState(false);
+			const drawerRef = react.useRef(null);
+			react.useEffect(() => {
+				const drawer = drawerRef.current;
+				if (!drawer) return;
+				if (drawerOpen && !drawer.open) drawer.showModal();
+				else if (!drawerOpen && drawer.open) drawer.close();
+			}, [drawerOpen]);
+			const [tab, setTab] = react.useState("process");
+			const history = useAsync(() => jsonFetch("/api/investment/analysis?action=runs&limit=50"), []);
+			const reloadHistory = history.reload;
+			react.useEffect(() => { if (refreshToken) reloadHistory(); }, [refreshToken, reloadHistory]);
 
-			const watchCycleId = String(pending?.cycle_id ?? "") || String(summaryAnalysis?.cycle_id ?? "");
+			const watchCycleId = selectedCycleId || String(pending?.cycle_id ?? "") || String(summaryAnalysis?.cycle_id ?? "");
 			const runState = useAnalysisRun(watchCycleId);
 			const run = runState.data && (!watchCycleId || String(runState.data.cycle_id) === watchCycleId)
 				? runState.data
@@ -2094,12 +2194,14 @@ window.__ModuleLoader__.load({
 			const runningRound = activeState.rounds.find((row) => String(row?.status ?? "") === "running") ?? runningFromSummary ?? (String(run?.status ?? "") === "running" ? run : null);
 			const hasRunningRound = Boolean(runningRound);
 
-			const symbols = parseAnalysisSymbols(symbolsText);
+			const normalizedSymbols = normalizeAnalysisSymbols(symbolsText, market);
+			const symbols = normalizedSymbols.symbols;
+			const invalidSymbols = normalizedSymbols.invalid;
 			const symbolCount = symbols.length;
 			const symbolOverflow = symbolCount > MAX_ANALYSIS_SYMBOLS;
 			const killSwitch = control.kill_switch === true;
 			const engineReachable = !engineError;
-			const screenerRun = [run, ...summaryRuns].find((row) => row && Array.isArray(row.symbols) && row.symbols.length > 0 && String(row.symbols_source ?? "").toLowerCase() === "screening") ?? null;
+			const screenerRun = [run, ...summaryRuns].find((row) => row && row.market === market && Array.isArray(row.symbols) && row.symbols.length > 0 && String(row.symbols_source ?? "").toLowerCase() === "screening") ?? null;
 			const goalOptions = [];
 			for (const row of [run, ...summaryRuns]) {
 				const value = String(row?.goal_id ?? "");
@@ -2108,7 +2210,7 @@ window.__ModuleLoader__.load({
 
 			// The five start-button preconditions, in the same order as the spec.
 			const checks = [
-				{ key: "symbols", ok: symbolCount > 0, label: "标的清单非空", detail: symbolCount > 0 ? "已识别 " + symbolCount + " 个标的" : "尚未填写标的" },
+				{ key: "symbols", ok: symbolCount > 0 && invalidSymbols.length === 0, label: "股票代码有效", detail: invalidSymbols.length ? "请核对：" + invalidSymbols.join("、") + "；股票名称请从搜索候选选择" : symbolCount > 0 ? "已识别 " + symbolCount + " 个标的" : "尚未填写标的" },
 				{ key: "limit", ok: !symbolOverflow, label: "不超过 " + MAX_ANALYSIS_SYMBOLS + " 个", detail: symbolCount + " / " + MAX_ANALYSIS_SYMBOLS + (symbolOverflow ? " · 超出上限" : "") },
 				{ key: "kill_switch", ok: !killSwitch, label: "风控未紧急停止", detail: killSwitch ? "紧急停止已开启" : control.paused ? "引擎已暂停（分析仍可启动）" : "正常" },
 				{ key: "running", ok: !hasRunningRound, label: "无运行中的轮次", detail: hasRunningRound ? "轮次 " + String(runningRound?.cycle_id ?? "-") + " 正在运行" : "无" },
@@ -2116,9 +2218,10 @@ window.__ModuleLoader__.load({
 			];
 			// The collapsed pre-flight line needs both a count and a way to expand.
 			const checksFailed = checks.filter((check) => !check.ok).length;
-			const canStart = !submitting && symbolCount > 0 && !symbolOverflow && !killSwitch && !hasRunningRound && engineReachable;
+			const canStart = !submitting && !quickBusy && symbolCount > 0 && !symbolOverflow && !invalidSymbols.length && !killSwitch && !hasRunningRound && engineReachable;
 			const blockReason = submitting
 				? "正在提交…"
+				: invalidSymbols.length ? "请核对股票代码；名称请从搜索候选选择"
 				: symbolCount === 0
 					? "请先填写标的清单"
 					: symbolOverflow
@@ -2144,6 +2247,12 @@ window.__ModuleLoader__.load({
 				activeState.reload();
 				setRefreshToken((value) => value + 1);
 			};
+			react.useEffect(() => {
+				setTab(["completed", "ready_for_execution"].includes(run?.status) ? "report" : "process");
+			}, [watchCycleId, run?.status]);
+			const historyRows = [...new Map([...(history.data?.runs ?? []), ...summaryRuns, run].filter(row => row?.cycle_id).map(row => [row.cycle_id, row])).values()].sort((a, b) => String(b.started_at ?? "").localeCompare(String(a.started_at ?? "")));
+			const selectRound = cycleId => { setSelectedCycleId(cycleId); setPending(writePendingAnalysis(null)); setNotice(null); };
+			const addStock = row => { if (row.market !== market) return; setSymbolsText(previous => { const parsed = normalizeAnalysisSymbols(previous, market); return [...new Set([...parsed.symbols, ...parsed.invalid, row.symbol])].join(", "); }); setSource("user"); };
 
 			const submitStart = async (options) => {
 				setSubmitting(true);
@@ -2171,6 +2280,8 @@ window.__ModuleLoader__.load({
 						goal_id: options.goalId || undefined,
 						requested_at: new Date().toISOString()
 					}));
+					setSelectedCycleId(options.cycleId);
+					setDrawerOpen(false);
 					setNotice({
 						kind: result?.started === false ? "warn" : "ok",
 						text: result?.resumed
@@ -2245,6 +2356,7 @@ window.__ModuleLoader__.load({
 			// "whole pipeline" still means research only -- it never trades.
 			const handleFullPipeline = async () => {
 				if (!canQuick) return;
+				if (invalidSymbols.length || symbolOverflow) { setNotice({ kind: "err", text: "请先核对股票清单，不能包含无效名称或超过数量上限。" }); return; }
 				setQuickBusy("full");
 				setNotice(null);
 				try {
@@ -2327,7 +2439,7 @@ window.__ModuleLoader__.load({
 			const sourceNote = source === "screening"
 				? screenerRun
 					? "来自选股：沿用最近一次选股轮次 " + String(screenerRun.cycle_id ?? "-") + " 的 " + (screenerRun.symbols?.length ?? 0) + " 个候选。"
-					: "来自选股：产品壳代理未暴露选股接口，也没有 symbols_source=screening 的历史轮次；请在引擎侧先运行选股，或切回手动输入。"
+					: symbolCount ? "来自本次选股：候选已填入下方清单，可直接分析。" : "尚无选股结果，请点击一键筛选股票，或切回手动输入。"
 				: "手动输入：逗号、空格或换行分隔，自动去重，上限 " + MAX_ANALYSIS_SYMBOLS + " 个。";
 
 			const renderStartPanel = () => react_jsx_runtime.jsxs("div", {
@@ -2391,11 +2503,12 @@ window.__ModuleLoader__.load({
 										id: "ia-an-market",
 										className: "ia-an-select",
 										value: market,
-										onChange: (event) => setMarket(event.target.value),
+										onChange: (event) => { setMarket(event.target.value); setSymbolsText(""); setSource("user"); },
 										children: ANALYSIS_MARKETS.map(([id, name]) => react_jsx_runtime.jsx("option", { value: id, children: name }, id))
 									})
 								]
 							}),
+							react_jsx_runtime.jsx(StockLookup, { market, onSelect: addStock }),
 							react_jsx_runtime.jsxs("div", {
 								className: "ia-an-field",
 								children: [
@@ -2485,44 +2598,32 @@ window.__ModuleLoader__.load({
 					react_jsx_runtime.jsxs("section", {
 						className: "ia-an-panel",
 						children: [
-							react_jsx_runtime.jsx("h3", { style: { margin: "0 0 8px", fontSize: 13 }, children: "契约提示" }),
-							react_jsx_runtime.jsx("div", { className: "ia-an-note", children: "分析轮次只做研究：引擎强制 submit=false，不会下任何单。需要执行时在引擎侧用同一 cycle_id 显式批准，由引擎校验决策指纹。" }),
-							react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 6 }, children: "所有请求都走产品壳代理（/api/investment/analysis、/api/investment/reports），浏览器侧看不到引擎地址与 token。" })
+									react_jsx_runtime.jsx("h3", { style: { margin: "0 0 8px", fontSize: 13 }, children: "研究与执行" }),
+										react_jsx_runtime.jsx("div", { className: "ia-an-note", children: "分析只生成研究报告和交易建议。交易执行仍需另行批准。" })
 						]
 					})
 				]
 			});
 
-			return react_jsx_runtime.jsxs("div", {
-				className: "ia-page",
-				children: [
-					react_jsx_runtime.jsx(PageHeader, {
-						title: "分析中心",
-						subtitle: "手动开始分析 · 实时阶段与子任务 · 每轮报告",
-						status: engineError ? "投资引擎不可达" : run ? analysisStageLabel(run.current_stage) + " · " + analysisStatusLabel(run.status) : "尚未启动分析轮次",
-						statusKind: engineError || run?.status === "failed" ? "error" : run?.status === "completed" ? "ok" : run?.status === "running" ? "warn" : "warn"
-					}),
-					react_jsx_runtime.jsxs("div", {
-						className: "ia-page-content",
-						children: [
-							engineError ? react_jsx_runtime.jsx("div", { className: "ia-notice", "data-kind": "err", children: "引擎暂不可达：" + engineError }) : null,
-							react_jsx_runtime.jsxs("div", {
-								className: "ia-an-grid",
-								children: [
-									renderStartPanel(),
-									react_jsx_runtime.jsxs("div", {
-										className: "ia-an-main",
-										children: [
-											react_jsx_runtime.jsx(AnalysisPipelineView, { run, loading: runState.loading, error: runState.error, cycleId: watchCycleId }),
-											react_jsx_runtime.jsx(AnalysisReportPanel, { refreshToken, highlightCycleId: String(run?.cycle_id ?? "") })
-										]
-									})
-								]
-							})
-						]
-					})
-				]
-			});
+			return h("div", { className: "ia-page ia-research-page" },
+				h(PageHeader, { title: "投资研究", subtitle: "股票研究、分析过程与历史报告", status: engineError ? "投资引擎不可达" : run ? analysisStatusLabel(run.status) : "尚无研究轮次", statusKind: engineError || run?.status === "failed" ? "error" : ["completed", "ready_for_execution"].includes(run?.status) ? "ok" : "warn" }),
+				h("div", { className: "ia-page-content" },
+					h("div", { className: "ia-research-toolbar" }, h("span", { className: "ia-an-note" }, "分析生成建议，交易需另行批准"), h("button", { type: "button", className: "ia-an-btn ia-elev ia-elev-lg", onClick: () => { if (!symbolsText && run?.market) setMarket(run.market); setDrawerOpen(true); } }, "＋ 新建研究")),
+					engineError ? h("div", { className: "ia-notice", "data-kind": "err" }, "引擎暂不可达：" + engineError) : null,
+					h("div", { className: "ia-research-grid" },
+						h("aside", { className: "ia-an-panel ia-research-history" }, h("div", { className: "ia-an-panel-head" }, h("h3", null, "研究记录"), h("button", { className: "ia-an-btn", type: "button", onClick: refreshAll }, "刷新")),
+							history.error ? h("div", { className: "ia-notice", "data-kind": "err" }, "历史读取失败：" + history.error) : null,
+							h("div", { className: "ia-research-rounds" }, ...historyRows.map(row => h("button", { key: row.cycle_id, className: "ia-an-report-item", "data-active": row.cycle_id === watchCycleId, "aria-pressed": row.cycle_id === watchCycleId, type: "button", onClick: () => selectRound(row.cycle_id) }, h("div", { className: "ia-an-report-title" }, (marketName[row.market] ?? row.market) + " · " + (row.label || "股票研究")), h("div", { className: "ia-an-report-meta" }, formatClock(row.started_at)), h("div", { className: "ia-an-report-meta" }, analysisStatusLabel(row.status) + " · " + (row.symbols?.length ?? 0) + " 个标的")))),
+							!historyRows.length ? h("div", { className: "ia-empty" }, history.loading ? "正在读取研究记录…" : "还没有研究，点击新建研究开始") : null),
+						h("main", { className: "ia-research-workspace" },
+							h("div", { className: "ia-research-heading" }, h("div", null, h("h2", null, run ? (marketName[run.market] ?? run.market) + " · " + (run.label || "股票研究") : "研究工作区"), h("div", { className: "ia-an-note" }, run ? (run.symbols ?? []).join(" · ") || "等待选股" : "选择左侧记录，或新建研究")),
+								h("div", { className: "ia-research-controls" }, h("button", { className: "ia-an-btn", type: "button", disabled: !canStop, onClick: handleStop }, "停止研究"), h("button", { className: "ia-an-btn", type: "button", disabled: !canRetry, onClick: handleRetry }, "从检查点续跑"))),
+							run?.error ? h("div", { className: "ia-notice", "data-kind": "err" }, "研究已停止：" + run.error + "。已保存 " + Object.keys(run.checkpoints ?? {}).length + " 个阶段；续跑需要手动操作。") : null,
+							notice ? h("div", { className: "ia-notice", "data-kind": notice.kind, "aria-live": "polite" }, notice.text) : null,
+							h("div", { className: "ia-research-tabs", role: "tablist", "aria-label": "研究内容" }, ...[["report", "研究报告"], ["process", "研究过程"], ["evidence", "阶段证据"]].map(([value, name]) => h("button", { id: "ia-research-tab-" + value, className: "ia-an-btn", type: "button", role: "tab", "aria-selected": tab === value, "aria-controls": "ia-research-content", onClick: () => setTab(value), key: value }, name))),
+							h("div", { id: "ia-research-content", role: "tabpanel", "aria-labelledby": "ia-research-tab-" + tab },
+								tab === "report" ? h(AnalysisReportPanel, { embedded: true, refreshToken, highlightCycleId: watchCycleId }) : tab === "evidence" ? h(AnalysisEvidencePanel, { key: watchCycleId, cycleId: watchCycleId, run }) : h(AnalysisPipelineView, { run, loading: runState.loading, error: runState.error, cycleId: watchCycleId }))))),
+				h("dialog", { ref: drawerRef, className: "ia-an-drawer", "aria-label": "新建研究", onCancel: () => setDrawerOpen(false) }, h("div", { className: "ia-an-panel-head" }, h("h2", null, "新建研究"), h("button", { className: "ia-an-btn", type: "button", onClick: () => setDrawerOpen(false) }, "关闭")), drawerOpen ? renderStartPanel() : null));
 		}
 
 		// ── settings sections ─────────────────────────────────────────────
@@ -3095,7 +3196,7 @@ window.__ModuleLoader__.load({
 			const navigation = [
 				["dashboard", "layoutDashboard", "Dashboard"],
 				["assistant", "messageSquare", "投资助手"],
-				["analyze", "radar", "分析中心"],
+				["analyze", "radar", "投资研究"],
 				["settings", "settings", "设置"]
 			];
 

@@ -226,6 +226,16 @@ export function apply(ctx) {
           const action = (url.searchParams.get("action") ?? "").trim();
 
           if (req.method === "GET") {
+            if (action === "securities") {
+              const query = new URLSearchParams({market: url.searchParams.get("market") ?? "", q: url.searchParams.get("q") ?? "", limit: "8"});
+              sendJson(res, 200, await engineFetch(`/api/securities/search?${query}`));
+              return;
+            }
+            if (action === "evidence") {
+              const query = new URLSearchParams({cycle_id: url.searchParams.get("cycle_id") ?? "", stage: url.searchParams.get("stage") ?? ""});
+              sendJson(res, 200, await engineFetch(`/api/analysis/evidence?${query}`));
+              return;
+            }
             if (action === "run") {
               const cycleId = (url.searchParams.get("cycle_id") ?? "").trim();
               if (!cycleId) {
@@ -271,6 +281,10 @@ export function apply(ctx) {
 
           if (req.method === "POST") {
             const body = await readBody(req);
+            if (action === "refresh-securities") {
+              sendJson(res, 200, await engineFetch("/api/securities/refresh", {method: "POST", body: {market: body.market}}));
+              return;
+            }
             if (action === "start") {
               // Mirror the engine's manual-entry contract in the proxy so an
               // obviously invalid request never reaches the engine at all.

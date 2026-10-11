@@ -65,6 +65,22 @@ def test_health_endpoint(api):
     assert payload["service"] == "ai-trading-automation-engine"
 
 
+def test_local_security_lookup_and_explicit_refresh_routes(api, monkeypatch):
+    calls = []
+    def search(query, market, limit):
+        calls.append((query, market, limit))
+        return {"results": [{"symbol": "00700", "name": "腾讯控股", "market": market}], "local_only": True}
+    monkeypatch.setattr("engine.data.securities.search_securities", search)
+    payload = _get(api, "/api/securities/search?market=hk&q=%E8%85%BE%E8%AE%AF")
+    assert calls == [("腾讯", "hk", 8)] and payload["local_only"]
+    monkeypatch.setattr("engine.data.securities.refresh_catalog", lambda market: {"market": market, "count": 5000})
+    status, payload = _post(api, "/api/securities/refresh", {"market": "hk"})
+    assert status == 200 and payload["count"] == 5000
+    with pytest.raises(urllib.error.HTTPError) as error:
+        _get(api, "/api/securities/refresh")
+    assert error.value.code == 404
+
+
 def test_raw_research_archive_accepts_more_than_a_compact_checkpoint(api, monkeypatch, tmp_path):
     from engine import analysis_reports
 

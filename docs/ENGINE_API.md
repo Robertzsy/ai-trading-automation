@@ -18,6 +18,8 @@
 | GET | `/api/analysis/latest` | 最近分析轮次、阶段、Agent/证据计数与检查点 |
 | GET | `/api/analysis/runs` | 分析轮次列表（支持 `market` / `limit`） |
 | GET | `/api/analysis/run` | 按 `cycle_id` 读取一轮完整状态 |
+| GET | `/api/securities/search?market=hk&q=腾讯&limit=8` | 本地股票名称/别名/代码及近似名称候选；返回标准代码、市场、匹配类型和目录覆盖，不发起行情发现或模型调用 |
+| POST | `/api/securities/refresh` | `{market}`：用户显式更新该市场名称目录；使用已有免密钥行情源，失败保留旧目录，不启动选股/研究/交易 |
 | POST | `/api/analysis/runs/start` | 创建或恢复同一 cycle id 的工作流 |
 | POST | `/api/analysis/runs/update` | 更新阶段、Agent 事件或原子检查点 |
 | POST | `/api/analysis/runs/checkpoint` | 原子保存完整阶段证据和检查点；重复保存同内容幂等，上限 32MB |
