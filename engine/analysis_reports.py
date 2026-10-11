@@ -32,6 +32,7 @@ posture ``decision_execution`` takes for its own report/notify step.
 from __future__ import annotations
 
 import json
+import html
 import logging
 import re
 from datetime import datetime, timezone
@@ -134,7 +135,7 @@ def read_archived_stage(cycle_id: str, stage: str) -> Any:
     from engine.analysis_runs import _cycle_id
 
     cycle_id = _cycle_id(cycle_id)
-    if stage not in {"shared_research", "base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"}:
+    if stage not in {"shared_research", "research_briefs", "base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"}:
         raise ValueError("unknown research archive stage")
     target = _analysis_dir() / "archive" / _slug(cycle_id) / f"{stage}.json"
     try:
@@ -359,6 +360,85 @@ def _log_section(run: Mapping[str, Any]) -> List[str]:
     return lines
 
 
+def _brief_section(run: Mapping[str, Any]) -> List[str]:
+    """Expand archived facts and every role's own reasoning, without another model call."""
+    try:
+        bundle = read_archived_stage(str(run.get("cycle_id") or ""), "research_briefs")
+    except ValueError:
+        return []
+    if not isinstance(bundle, dict) or bundle.get("format") != "research-brief-v1":
+        return []
+    lines = ["## 六、研究论据与完整事实", "",
+             "事实由程序按原始字段展开；各角色的判断、反证与失效条件完整保留。新闻节选未自动视为已核验原文。", "",
+             "### 共享事实（每个编号展开一次）", ""]
+
+    def prose(value: Any) -> None:
+        # No character cap here: a late counterargument must survive the report.
+        lines.extend("> " + html.escape(part, quote=False) for part in str(value if value is not None else "").splitlines())
+        lines.append("")
+
+    def structured(value: Any) -> None:
+        payload = json.dumps(value, ensure_ascii=False, indent=2)
+        # Model/source strings cannot terminate the code block.
+        fence = "`" * (max([len(item) for item in re.findall(r"`+", payload)] + [2]) + 1)
+        lines.extend([fence + "json", payload, fence, ""])
+
+    for stage, errors in (bundle.get("errors") or {}).items():
+        if errors:
+            lines.extend(["**引用校验失败：该阶段未通过（" + _safe(stage, 80) + "）**", ""])
+            for error in errors:
+                prose(str(error.get("label") or "") + "：" + str(error.get("error") or ""))
+
+    seen = set()
+    for fact in bundle.get("facts") or []:
+        if not isinstance(fact, dict) or fact.get("id") in seen:
+            continue
+        seen.add(fact.get("id"))
+        lines.append("#### " + _safe(fact.get("id"), 500))
+        lines.append("")
+        prose("来源：" + str(fact.get("source") or "") + "；" + str(fact.get("title") or ""))
+        try:
+            structured(json.loads(fact.get("claim") or ""))
+        except (TypeError, json.JSONDecodeError):
+            prose(fact.get("claim"))
+
+    labels = {"summary": "结论", "stance": "倾向", "confidence": "置信度", "risks": "风险/缺口",
+              "data_quality": "数据质量", "thesis": "论证", "verdict": "研究裁决", "reason": "决策理由",
+              "open_risks": "未解决风险", "assessment": "风险判断", "approved": "是否通过",
+              "adjustments": "修订要求", "decisions": "决策清单", "cash_reserve_rationale": "现金安排",
+              "evidence_ids": "引用证据", "target_weight": "目标权重", "action": "行动"}
+    for stage in ("base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"):
+        rows = (bundle.get("stages") or {}).get(stage) or []
+        if not rows:
+            continue
+        lines.extend(["### " + stage, ""])
+        for row in rows:
+            if not isinstance(row, dict) or not isinstance(row.get("value"), dict):
+                continue
+            lines.extend(["#### " + _safe(row.get("label"), 160), ""])
+            for key, value in row["value"].items():
+                if key in {"symbol", "role", "side"}:
+                    continue
+                if key == "arguments":
+                    for index, argument in enumerate(value or [], 1):
+                        lines.extend([f"**论据 {index}**", ""])
+                        prose(argument.get("inference"))
+                        prose("证据：" + ", ".join(argument.get("evidence_refs") or []))
+                        prose("反证/异议：" + str(argument.get("counterargument") or "未提供"))
+                        prose("失效条件：" + str(argument.get("invalid_if") or "未提供"))
+                elif key == "supplemental_evidence":
+                    if value:
+                        lines.extend(["**补查证据（模型提交，未自动核验）**", ""])
+                        structured(value)
+                else:
+                    lines.extend(["**" + labels.get(key, key) + "**", ""])
+                    if isinstance(value, (dict, list)):
+                        structured(value)
+                    else:
+                        prose(value)
+    return lines
+
+
 def render_round_report(
     run: Mapping[str, Any],
     *,
@@ -417,6 +497,7 @@ def render_round_report(
         _agent_section(run, 3),
         _decision_section(run, 4),
         _risk_section(run, 5),
+        _brief_section(run),
     ):
         if not block:
             continue

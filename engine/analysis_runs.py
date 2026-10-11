@@ -213,6 +213,7 @@ def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
                 "completed_at": now,
                 "agents_started": int(payload.get("agents_started", 0) or 0),
                 "result": payload.get("result"),
+                **({"research_format": "research-brief-v1"} if payload.get("research_format") == "research-brief-v1" else {}),
             }
             _end_stage(stage_state, "completed", now, payload.get("result"))
         elif event == "agent_start":
@@ -242,6 +243,7 @@ def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
                 "result": result,
                 **({"evidence_registry": copy.deepcopy(registry)} if registry is not None else {}),
                 **({"tool_policy": copy.deepcopy(payload["tool_policy"])} if isinstance(payload.get("tool_policy"), dict) else {}),
+                **({"research_format": "research-brief-v1"} if payload.get("research_format") == "research-brief-v1" else {}),
             }
             evidence_count = payload.get("evidence_count")
             if isinstance(evidence_count, int) and not isinstance(evidence_count, bool) and evidence_count >= 0:

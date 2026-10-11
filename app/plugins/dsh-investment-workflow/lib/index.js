@@ -37,5 +37,6 @@ export function apply(ctx, config) {
     strictEvidence: process.env.IA_VERIFY_RESEARCH_EVIDENCE !== undefined ? process.env.IA_VERIFY_RESEARCH_EVIDENCE === "1" : config?.strictEvidence !== false,
     researchRoles: process.env.IA_RESEARCH_ROLES !== undefined ? process.env.IA_RESEARCH_ROLES === "1" : config?.researchRoles === true,
     deduplicateResearch: process.env.IA_DEDUPLICATE_RESEARCH !== undefined ? process.env.IA_DEDUPLICATE_RESEARCH === "1" : config?.deduplicateResearch === true,
+    researchBriefs: process.env.IA_RESEARCH_BRIEFS !== undefined ? process.env.IA_RESEARCH_BRIEFS === "1" : config?.researchBriefs === true,
   });
 }

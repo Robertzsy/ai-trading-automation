@@ -5,6 +5,7 @@ import { collectResearchPackets, cacheWorkflowScripts } from "./analysis-cache.j
 import { installAnalysisMeter } from "./analysis-meter.js";
 import { ResearchGateway, installResearchPolicy, evidenceIndex } from "./research-policy.js";
 import { analysisSummary, uniformScript, validateStage } from "./research-contract.js";
+import { BRIEF_FORMAT, briefWorkflowScripts, briefSchema, briefContext } from "./research-briefs.js";
 
 const MARKETS = new Set(["cn", "hk", "us", "etf"]);
 const STAGES = ["base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"];
@@ -358,7 +359,7 @@ function stageLabels(stage, args) {
   return ["portfolio-manager"];
 }
 
-async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents, policyRun) {
+async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents, policyRun, briefRun) {
   checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"stage_start"}));
   const controller = new AbortController();
   const signal = exec.signal ? AbortSignal.any([exec.signal, controller.signal]) : controller.signal;
@@ -391,17 +392,40 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
     const settled = await run.result;
     signal.throwIfAborted();
     if (settled.stopReason !== "completed") throw new Error(settled.error ?? ("workflow stage " + stage + " " + settled.stopReason));
+    let value = settled.value;
+    if (briefRun) {
+      if (value?.format !== BRIEF_FORMAT || value.stage !== stage || !Array.isArray(value.briefs)) throw new Error("简洁论据阶段契约不匹配");
+      briefRun.bundle.stages[stage] = value.briefs;
+      briefRun.bundle.errors ??= {};
+      briefRun.bundle.errors[stage] = value.errors ?? [];
+      value = value.data;
+      if (stage === "base_research") {
+        const facts = new Map();
+        for (const row of value ?? []) for (const analysis of row.analyses ?? []) for (const fact of analysis.evidence ?? []) {
+          const previous = facts.get(fact.id);
+          if (previous && JSON.stringify(previous) !== JSON.stringify(fact)) throw new Error("简洁论据存在冲突证据编号：" + fact.id);
+          facts.set(fact.id, fact);
+        }
+        briefRun.bundle.facts = [...facts.values()];
+      }
+      // The report/resume depends on these full arguments. Unlike auxiliary
+      // archives, a missing brief archive must stop this experimental path.
+      const archive = await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:value,research_briefs:briefRun.bundle}}, {timeoutMs:120000});
+      if (!archive.archive_dir) throw new Error("简洁论据归档失败，不能继续或无损续跑");
+      if (briefRun.bundle.errors[stage].length) throw new Error("简洁论据绑定失败：" + briefRun.bundle.errors[stage].map(row => row.label + " " + row.error).join("；"));
+    }
     // Archive the raw value immediately. Later stages and durable checkpoints
     // retain the compact form, but failure/resume cannot discard this evidence.
     try {
-      await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:settled.value}}, {timeoutMs:120000});
+      if (!briefRun) await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:value}}, {timeoutMs:120000});
     } catch { /* auxiliary: never fail research over the archive */ }
-    policyRun?.validate(stage, settled.value, args);
-    if (policyRun) policyRun.gateway.stageResults[stage] = structuredClone(settled.value);
-    const result = compact(settled.value);
+    policyRun?.validate(stage, value, args);
+    if (policyRun) policyRun.gateway.stageResults[stage] = structuredClone(value);
+    const result = compact(value);
     checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result),
+      ...(briefRun ? { research_format: BRIEF_FORMAT } : {}),
       ...(policyRun ? { evidence_registry: policyRun.registry(), tool_policy: policyRun.gateway.summary() } : {})}));
-    return result;
+    return briefRun ? value : result;
   } finally {
     clearInterval(timer);
     activeRuns.delete(String(run.id));
@@ -411,11 +435,13 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
 }
 
 /** Register the deterministic multi-stage analysis tool. */
-export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true, researchRoles = false, deduplicateResearch = false } = {}) {
+export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true, researchRoles = false, deduplicateResearch = false, researchBriefs = false } = {}) {
   if (!["off", "observe", "enforce"].includes(researchPolicy)) throw new Error("researchPolicy must be off, observe or enforce");
+  if (researchBriefs && (researchRoles || deduplicateResearch || uniformOutput || researchPolicy !== "off")) throw new Error("researchBriefs 试验需关闭其他角色、去重、输出与工具策略试验");
+  if (researchBriefs) assertObjectJsonSchema(briefSchema(WORKFLOW_AGENT_SCHEMAS.baseResearch));
   const policy = researchPolicy !== "off" || researchRoles || deduplicateResearch ? installResearchPolicy(ctx, { schemas: WORKFLOW_AGENT_SCHEMAS, strictEvidence, uniformOutput, researchRoles }) : null;
-  const collectShared = sharedResearch || cacheOptimization || Boolean(policy);
-  const cachedScripts = collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS, { researchRoles }) : null;
+  const collectShared = sharedResearch || cacheOptimization || Boolean(policy) || researchBriefs;
+  const cachedScripts = researchBriefs ? briefWorkflowScripts(WORKFLOW_AGENT_SCHEMAS) : collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS, { researchRoles }) : null;
   const summarize = lightweightResults ? analysisSummary : value => value;
   const activeRuns = new Map();
   const meter = ctx.get?.("analysisMeter") ?? installAnalysisMeter(ctx, client);
@@ -589,6 +615,17 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         const minimumCitations = Math.max(1, Number(workflowConfig.minimum_citations ?? 1));
         const requireCitations = workflowConfig.require_citations !== false;
 
+        const savedStages = STAGES.filter(stage => checkpoints[stage]?.result !== undefined);
+        for (const stage of savedStages) {
+          const previousBrief = checkpoints[stage].research_format === BRIEF_FORMAT;
+          if (previousBrief !== researchBriefs) throw new Error("不能在同一轮次中切换简洁论据契约；请使用新的 cycle_id");
+        }
+        const context = researchBriefs ? briefContext({ portfolio, mandate, targets, researchRounds, riskRounds }) : null;
+        const restoredBriefs = researchBriefs && savedStages.length ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=research_briefs"))?.evidence : null;
+        if (researchBriefs && savedStages.length && (restoredBriefs?.format !== BRIEF_FORMAT || restoredBriefs.context !== context)) throw new Error("简洁论据归档缺失或账户/授权书已变化；请使用新的 cycle_id");
+        if (researchBriefs && savedStages.some(stage => !Array.isArray(restoredBriefs?.stages?.[stage]) || restoredBriefs.errors?.[stage]?.length)) throw new Error("已完成阶段的简洁论据归档不完整；请使用新的 cycle_id");
+        const briefRun = researchBriefs ? { bundle: restoredBriefs ?? {format:BRIEF_FORMAT,context,stages:{},facts:[]} } : null;
+
         const inheritedRegistry = Object.values(checkpoints).flatMap(row => row?.evidence_registry ?? []);
         if (policy) {
           gateway = new ResearchGateway({ cycleId, market: normalizedMarket, symbols: targets, signal: exec.signal, mode: researchPolicy });
@@ -608,25 +645,26 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           validate: (stage, value, task) => { if (strictEvidence) validateStage(stage, value, WORKFLOW_AGENT_SCHEMAS, targets, registry(), task); } } : null;
         const runStage = async (stage, script, args, maxAgents) => {
           if (policy) args.evidence_registry = registry();
+          if (briefRun) args.brief_facts = briefRun.bundle.facts;
           const saved = checkpoints[stage]?.result;
           if (saved !== undefined) {
-            const restored = researchRoles ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=" + stage).catch(() => null))?.evidence : saved;
-            if (researchRoles && restored == null) throw new Error("本轮完整研究归档缺失，不能无损续跑；请使用新的 cycle_id");
+            const restored = researchRoles || researchBriefs ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=" + stage).catch(() => null))?.evidence : saved;
+            if ((researchRoles || researchBriefs) && restored == null) throw new Error("本轮完整研究归档缺失，不能无损续跑；请使用新的 cycle_id");
             policyRun?.validate(stage, restored, args);
             if (gateway) gateway.stageResults[stage] = restored;
             return restored;
           }
           return executeStage(ctx, client, exec, activeRuns, cycleId, stage,
-            uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun);
+            uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun, briefRun);
         };
-        const packets = collectShared && checkpoints.base_research?.result && researchRoles
+        const packets = collectShared && checkpoints.base_research?.result && (researchRoles || researchBriefs)
           ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=shared_research").catch(() => null))?.evidence
           : collectShared && !checkpoints.base_research?.result
-          ? await collectResearchPackets(ctx, client, targets, normalizedMarket, { memory, mandate, holdings, signal: exec.signal,
+          ? await collectResearchPackets(ctx, client, targets, normalizedMarket, { memory, mandate, holdings, researchRoles, signal: exec.signal,
             ...(policy ? { read: (tool, args, symbol) => policy.prefetch(gateway, tool, args, exec.signal, symbol, exec.agent) } : {}) })
           : undefined;
         if (gateway) gateway.packets = packets;
-        if (researchRoles && checkpoints.base_research?.result && !packets) throw new Error("本轮共享原始资料归档缺失，不能无损续跑；请使用新的 cycle_id");
+        if ((researchRoles || researchBriefs) && checkpoints.base_research?.result && !packets) throw new Error("本轮共享原始资料归档缺失，不能无损续跑；请使用新的 cycle_id");
         const collectionWarnings = [];
         if (packets) {
           // Preserve the full normalized inputs before model prompts shorten
@@ -654,7 +692,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         // the engine canonicalizes the decisions, computes the decision
         // fingerprint and stores both. A later submission bound to this
         // cycle_id must carry exactly this content.
-        const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,warnings,result:compact(finalResult)});
+        const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,warnings,result:compact(finalResult),...(researchBriefs ? {research_format:BRIEF_FORMAT} : {})});
         checkCancellation(readyPayload);
         const readyRun = readyPayload?.analysis ?? {};
         let execution = {status:"not_submitted",reason:"本次仅生成研究方案，未进入模拟撮合"};

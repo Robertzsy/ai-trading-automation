@@ -111,3 +111,50 @@ export function normalizeNews(results, { symbol, market, now = Date.now(), lookb
       : { available: false, reason: "one or more search responses did not expose model usage" },
   };
 }
+
+// Released model-facing representation; detailed provenance remains opt-in.
+export function normalizeReleasedNews(results, { symbol, market, now = Date.now(), lookbackDays = 14 } = {}) {
+  const collectedAt = new Date(now).toISOString();
+  const window = newsWindow(market, now, lookbackDays);
+  const { since, until } = window;
+  const items = new Map(), errors = [], warnings = [];
+  let invalidSources = 0;
+  for (const result of results) {
+    if (result.unavailable || result.error) errors.push({ query: result.query, error: String(result.error ?? "search unavailable") });
+    if (result.truncated) warnings.push("search provider truncated returned sources");
+    for (const source of result.sources ?? []) {
+      const canonical = canonicalNewsUrl(source.url);
+      if (!canonical) { invalidSources++; continue; }
+      const published = publicationDate(source.publishedAt ?? source.published_at);
+      if (published.published_at && published.published_at > until) { invalidSources++; continue; }
+      const item = {
+        article_id: "N-" + createHash("sha256").update(`${market}:${symbol}:${canonical}`).digest("hex").slice(0, 16),
+        symbol, market, title: String(source.title ?? ""), summary: String(source.snippet ?? source.summary ?? ""),
+        source_url: source.url, canonical_url: canonical, source_host: new URL(canonical).hostname,
+        ...published, collected_at: collectedAt,
+        time_scope: !published.published_at ? "unknown" : published.published_at < since ? "background" : "recent",
+        evidence_kind: "search_excerpt", full_text_verified: false, relevance_verified: false,
+      };
+      const previous = items.get(canonical);
+      if (!previous) items.set(canonical, item);
+      else {
+        // Retain the original citation URL while enriching duplicate snippets.
+        if (item.summary.length > previous.summary.length) previous.summary = item.summary;
+        if (!previous.title) previous.title = item.title;
+        if (!previous.published_at && item.published_at) Object.assign(previous, published, { time_scope: item.time_scope });
+      }
+    }
+  }
+  const articles = [...items.values()].sort((a, b) => a.canonical_url.localeCompare(b.canonical_url));
+  if (invalidSources) warnings.push(`${invalidSources} invalid URLs or future-dated sources omitted`);
+  if (articles.some(item => !item.published_at)) warnings.push("some search sources lack a confirmed publication date");
+  if (!articles.some(item => item.time_scope === "recent")) warnings.push("no dated source confirmed within the requested news window");
+  return {
+    schema_version: 1, symbol, market, provider: "host-native-web-search", collected_at: collectedAt,
+    requested_window: window, status: articles.length ? "ok" : "unavailable",
+    items: articles, queries: results.map(result => result.query), errors, warnings,
+    // Compatible with the evidence registry; original URLs are never rewritten.
+    sources: articles.map(item => ({ url: item.source_url, title: item.title, snippet: item.summary, publishedAt: item.published_at })),
+    usage: { available: false, reason: "host web-search service does not expose native model response usage" },
+  };
+}
