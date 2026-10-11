@@ -248,6 +248,49 @@ def test_finish_closes_dangling_stages(runtime):
     assert run["stages"]["risk_review"]["duration_ms"] is not None
 
 
+def test_failure_stops_unfinished_children_without_inventing_failed_results(runtime):
+    cycle = _run()["cycle_id"]
+    analysis_runs.apply_event({"cycle_id": cycle, "stage": "risk_review", "event": "agent_start", "label": "pending"})
+    run = analysis_runs.finish({"cycle_id": cycle, "error": "worker interrupted"}, failed=True)
+    child = run["agents"]["risk_review:pending"]
+    assert child["status"] == "cancelled"
+    assert child["finished_at"] == run["completed_at"]
+    assert child["error"] == "worker interrupted"
+    assert run["failed_agents"] == 0
+    assert run["completed_agents"] == 0
+    assert analysis_runs.get(cycle)["agents"]["risk_review:pending"] == child
+
+
+def test_legacy_failed_children_read_as_stopped_without_rewriting_history(runtime):
+    cycle = _run()["cycle_id"]
+    analysis_runs.apply_event({"cycle_id": cycle, "stage": "base_research", "event": "agent_start", "label": "pending"})
+    path = analysis_runs._path(cycle)
+    legacy = json.loads(path.read_text(encoding="utf-8"))
+    legacy.update(status="failed", error="old failure", completed_at=legacy["updated_at"])
+    path.write_text(json.dumps(legacy), encoding="utf-8")
+    before = path.read_bytes()
+    assert analysis_runs.get(cycle)["agents"]["base_research:pending"]["status"] == "cancelled"
+    assert analysis_runs.latest()["agents"]["base_research:pending"]["status"] == "cancelled"
+    assert path.read_bytes() == before
+
+
+def test_ui_created_run_accepts_workflow_count_once_without_restarting(runtime):
+    run = _run(expected_agents=0)
+    cycle = run["cycle_id"]
+    analysis_runs.apply_event({"cycle_id": cycle, "stage": "base_research", "event": "agent_start", "label": "active"})
+    declared = analysis_runs.start_or_resume({"cycle_id": cycle, "market": "cn", "expected_agents": 14})
+    assert declared["expected_agents"] == 14
+    assert declared["started_at"] == run["started_at"]
+    assert declared["started_agents"] == 1
+    assert declared["agents"]["base_research:active"]["status"] == "running"
+    replay = analysis_runs.start_or_resume({"cycle_id": cycle, "market": "cn", "expected_agents": 166})
+    assert replay["expected_agents"] == 14
+    analysis_runs.finish({"cycle_id": cycle, "error": "interrupted"}, failed=True)
+    failed = analysis_runs.start_or_resume({"cycle_id": cycle, "market": "cn", "expected_agents": 22})
+    assert failed["status"] == "failed"
+    assert failed["expected_agents"] == 14
+
+
 def test_ms_between_handles_bad_input(runtime):
     assert analysis_events.ms_between("nonsense", "also nonsense") is None
     start = datetime(2026, 9, 1, tzinfo=timezone.utc)

@@ -30,14 +30,20 @@ internal sealed class ProcessManager : IDisposable
     private readonly string _pythonW;
     private readonly string _node;
     private readonly string _token;
+    private readonly object _processGate = new();
+    private readonly Func<ProcessStartInfo, Process?> _startProcess;
     private int _enginePort;
     private int _webPort;
     private Process? _webProcess;
+    private Process? _apiProcess;
+    private Process? _agentProcess;
     private IntPtr _jobHandle;
     private bool _disposed;
 
-    public ProcessManager(string? appRoot = null, string? dataRoot = null)
+    public ProcessManager(string? appRoot = null, string? dataRoot = null,
+        Func<ProcessStartInfo, Process?>? startProcess = null)
     {
+        _startProcess = startProcess ?? Process.Start;
         _appRoot = appRoot ?? AppDomain.CurrentDomain.BaseDirectory;
         _dataRoot = dataRoot
             ?? Environment.GetEnvironmentVariable("AI_TRADING_AUTOMATION_DATA_DIR")
@@ -120,43 +126,55 @@ internal sealed class ProcessManager : IDisposable
     public async Task<ChatReady> EnsureRunningAsync(CancellationToken cancellationToken)
     {
         var ready = ReadReadyFile();
-        if (ready != null && await IsHealthyAsync(ready, cancellationToken)) return ready;
+        if (ready != null && ready.Token == _token
+            && await IsHealthyAsync(ready, cancellationToken)
+            && await IsEngineHealthyAsync(cancellationToken)) return ready;
 
         StartPublicServices();
-        for (int attempt = 0; attempt < 120 && !cancellationToken.IsCancellationRequested; attempt++)
+        var startup = Stopwatch.StartNew();
+        while (startup.Elapsed < TimeSpan.FromSeconds(60))
         {
             await Task.Delay(500, cancellationToken);
             ready = ReadReadyFile();
-            if (ready != null && await IsHealthyAsync(ready, cancellationToken)) return ready;
+            if (ready != null && ready.Token == _token
+                && await IsHealthyAsync(ready, cancellationToken)
+                && await IsEngineHealthyAsync(cancellationToken)) return ready;
         }
-        throw new TimeoutException("对话服务在 60 秒内未就绪。请查看日志。");
+        throw new TimeoutException("投资引擎或对话服务在 60 秒内未就绪。请查看日志。");
     }
 
     public void StartPublicServices()
     {
-        // Idempotent per instance: ports are picked once, the engine is
-        // guarded by its own locks, and the web app binds its fixed port.
-        CreateJobObject();
-        if (_enginePort == 0) _enginePort = PickFreePort();
-        if (_webPort == 0) _webPort = PickFreePort();
+        lock (_processGate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            // Serialize ownership before Python publishes its first heartbeat.
+            CreateJobObject();
+            if (_enginePort == 0) _enginePort = PickFreePort();
+            if (_webPort == 0) _webPort = PickFreePort();
 
-        // The API-only engine always serves the command API (bridge tools +
-        // setup page); the autonomous scheduler must NOT start trading
-        // before the wizard finished. Post-setup, StartAgent() brings up
-        // `run` on top.
-        StartEngine("serve");
-        if (!IsFirstRun) StartEngine("run");
+            // The setup wizard needs the API, but not the scheduler.
+            StartEngine("serve");
+            StartAgent();
 
-        if (_webProcess == null || _webProcess.HasExited) StartWeb();
+            if (_webProcess == null || _webProcess.HasExited) StartWeb();
+        }
     }
 
     /// <summary>Starts the autonomous engine process (post-setup, idempotent).</summary>
     public void StartAgent()
     {
-        if (IsFirstRun) return; // wizard not finished; never start trading
-        if (IsAgentAlive()) return;
-        CreateJobObject();
-        StartEngine("run");
+        lock (_processGate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (IsFirstRun) return; // wizard not finished; never start trading
+            // Python can take tens of seconds to import before worker.json exists.
+            // Its live process owns the startup even without a heartbeat yet.
+            if (_agentProcess != null && !_agentProcess.HasExited) return;
+            if (IsAgentAlive()) return;
+            CreateJobObject();
+            StartEngine("run");
+        }
     }
 
     private void Log(string message)
@@ -196,6 +214,9 @@ internal sealed class ProcessManager : IDisposable
 
     private void StartEngine(string command)
     {
+        var previous = command == "serve" ? _apiProcess : _agentProcess;
+        if (previous != null && !previous.HasExited) return;
+        previous?.Dispose();
         if (_enginePort == 0) _enginePort = PickFreePort();
         var info = new ProcessStartInfo
         {
@@ -211,7 +232,9 @@ internal sealed class ProcessManager : IDisposable
         foreach (var pair in BaseEngineEnv()) info.Environment[pair.Key] = pair.Value;
         try
         {
-            var process = Process.Start(info);
+            var process = _startProcess(info);
+            if (command == "serve") _apiProcess = process;
+            else _agentProcess = process;
             Log($"started engine {command}: pid={process?.Id} (api={EngineUrl})");
             if (process != null) AssignToJob(process.Handle);
         }
@@ -261,7 +284,7 @@ internal sealed class ProcessManager : IDisposable
             info.Environment["PATH"] = nodeDir + ";" + (Environment.GetEnvironmentVariable("PATH") ?? "");
         try
         {
-            var process = Process.Start(info);
+            var process = _startProcess(info);
             _webProcess = process;
             Log($"started web: pid={process?.Id} (port={_webPort})");
             if (process != null)
@@ -303,7 +326,10 @@ internal sealed class ProcessManager : IDisposable
             Log("web: output observer failed: " + ex.Message);
         }
         try { await errorTask.WaitAsync(TimeSpan.FromSeconds(5)); } catch { }
-        Log("web: process exited rc=" + (process.HasExited ? process.ExitCode : -1));
+        // StopAll may already have disposed the owned process while its
+        // redirected streams finish draining on this background task.
+        try { Log("web: process exited rc=" + (process.HasExited ? process.ExitCode : -1)); }
+        catch (InvalidOperationException) { Log("web: process closed during shutdown"); }
     }
 
     private void PublishReady(int port, int pid)
@@ -351,8 +377,22 @@ internal sealed class ProcessManager : IDisposable
             client.Timeout = TimeSpan.FromSeconds(2);
             using var request = new HttpRequestMessage(HttpMethod.Get, ready.Url + "/");
             var response = await client.SendAsync(request, cancellationToken);
-            return (int)response.StatusCode is >= 200 and < 500;
+            return response.IsSuccessStatusCode;
         }
+        catch { return false; }
+    }
+
+    private async Task<bool> IsEngineHealthyAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+            using var request = new HttpRequestMessage(HttpMethod.Get, EngineUrl + "/api/status");
+            request.Headers.Add("X-ATA-Token", _token);
+            using var response = await client.SendAsync(request, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch { return false; }
     }
 
@@ -421,11 +461,18 @@ internal sealed class ProcessManager : IDisposable
 
     public void StopAll()
     {
-        if (_jobHandle != IntPtr.Zero)
+        lock (_processGate)
         {
-            TerminateJobObject(_jobHandle, 1);
-            CloseHandle(_jobHandle);
-            _jobHandle = IntPtr.Zero;
+            if (_jobHandle != IntPtr.Zero)
+            {
+                TerminateJobObject(_jobHandle, 1);
+                CloseHandle(_jobHandle);
+                _jobHandle = IntPtr.Zero;
+            }
+            _apiProcess?.Dispose();
+            _agentProcess?.Dispose();
+            _webProcess?.Dispose();
+            _apiProcess = _agentProcess = _webProcess = null;
         }
     }
 
@@ -459,9 +506,12 @@ internal sealed class ProcessManager : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-        StopAll();
+        lock (_processGate)
+        {
+            if (_disposed) return;
+            _disposed = true;
+            StopAll();
+        }
     }
 
     // P/Invoke

@@ -12,9 +12,11 @@ test("real SDK enforces coordinator guard without restricting child research", a
   const ctx = new Context(); ctx.provide("systemPrompt", { tools() {}, section() {} });
   try {
     await ctx.plugin(ToolRuntime); await ctx.plugin(AgentRegistry);
-    let writes = 0;
+    let writes = 0, rounds = 0;
     ctx.tools.register(defineTool({ name: "edit", description: "write", parameters: {},
       output: { schema: { type: "object", additionalProperties: true }, render: () => [] }, execute() { writes++; return {}; } }));
+    ctx.tools.register(defineTool({ name: "investment_analysis_workflow", description: "start round", parameters: {},
+      output: { schema: { type: "object", additionalProperties: true }, render: () => [] }, execute() { rounds++; return {}; } }));
     installCoordinatorGuard(ctx);
     const create = (id, owner) => {
       const agent = { id, session: { id, events: [], surface: { nodes: [] } } };
@@ -24,6 +26,9 @@ test("real SDK enforces coordinator guard without restricting child research", a
     const execute = agent => ctx.tools.execute({ callId: agent.id, agent, name: "edit", arguments: {}, signal: new AbortController().signal });
     assert.equal((await execute(parent)).isError, true); assert.equal(writes, 0);
     assert.equal((await execute(child)).isError, false); assert.equal(writes, 1);
+    const launch = agent => ctx.tools.execute({ callId: "round-"+agent.id, agent, name: "investment_analysis_workflow", arguments: {}, signal: new AbortController().signal });
+    assert.equal((await launch(child)).isError, true); assert.equal(rounds, 0);
+    assert.equal((await launch(parent)).isError, false); assert.equal(rounds, 1);
   } finally { await ctx.fiber.dispose(); if (previous === undefined) delete process.env.ATA_AUTONOMOUS_ROUND; else process.env.ATA_AUTONOMOUS_ROUND = previous; }
 });
 
@@ -39,7 +44,30 @@ test("headless coordinator cannot repair code but child research tools still wor
     assert.equal(guard({ name: "investment_analysis_workflow", agent: { id: "parent" } }), undefined);
     assert.equal(guard({ name: "pwsh", agent: { id: "child" } }), undefined);
     assert.equal(guard({ name: "web_search", agent: { id: "child" } }), undefined);
+    let childGuard, persona;
+    created({ agent: { id:"child", ctx:{get(name){return name==='tools'?{guard(callback){childGuard=callback;}}:{section(value){persona=value;}};}} } });
+    assert.match(childGuard({ name:"investment_analysis_workflow", agent:{id:"child"} }), /子角色/);
+    assert.match(childGuard({ name:"investment_submit_decisions", agent:{id:"child"} }), /子角色/);
+    assert.equal(childGuard({name:"web_search",agent:{id:"child"}}), undefined);
+    assert.equal(persona.name, "deployment:persona");
   } finally { if (previous === undefined) delete process.env.ATA_AUTONOMOUS_ROUND; else process.env.ATA_AUTONOMOUS_ROUND = previous; }
+});
+
+test("recursive child call cannot join the pending parent attempt", async () => {
+  const previous = process.env.ATA_AUTONOMOUS_ROUND;
+  process.env.ATA_AUTONOMOUS_ROUND = "1";
+  let release, executions = 0;
+  try {
+    const blocked = new Promise(resolve => { release=resolve; });
+    const run = singleRoundAttempt(async () => { executions++; await blocked; return "done"; });
+    const parent = {agent:{id:"parent"}}, child={agent:{id:"child"}};
+    const result = run({}, parent);
+    await Promise.resolve();
+    assert.throws(() => run({}, child), /子角色不得/);
+    assert.equal(run({}, parent), result);
+    assert.equal(executions, 1);
+    release(); assert.equal(await result, "done");
+  } finally { release?.(); if (previous === undefined) delete process.env.ATA_AUTONOMOUS_ROUND; else process.env.ATA_AUTONOMOUS_ROUND = previous; }
 });
 
 test("checkpoint validation failure is not retried", async () => {

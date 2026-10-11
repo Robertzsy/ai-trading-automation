@@ -1385,7 +1385,7 @@ window.__ModuleLoader__.load({
 		        dbH('div',{className:'ia-db-activity-grid'},dbH('div',null,dbH('b',null,'风控'+riskLabel),dbH('p',{className:'ia-db-muted'},'策略：'+(status.mandate?.display_name ?? status.mandate?.profile ?? '—'))),
 		          dbH('div',null,dbH('b',null,marketName[market]+' 下一轮'),dbH('p',{className:'ia-db-muted'},String(status.markets?.[market]?.next_cycle ?? '尚未安排').replace('T',' ').slice(0,16))),
 		          dbH('div',null,dbH('b',null,'最近轮次报告'),reports.length?dbH('ul',null,reports.slice(0,3).map(report=>dbH('li',{key:report.file},report.file))):dbH('p',{className:'ia-db-muted'},'暂无轮次报告'))),
-		        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+(summary.analysis.completed_agents ?? 0)+'/'+(summary.analysis.expected_agents ?? 0)):null,
+		        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+analysisTaskCounts(summary.analysis).completed+'/'+(summary.analysis.expected_agents ?? 0)):null,
 		        onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:onOpenAnalysis},'打开分析流程与报告'):null),
 		      typeof summary.macro?.content==='string' && summary.macro.content?dbH('section',{className:'ia-card ia-news',style:{marginTop:14}},panelHead('市场早报','每交易日 08:00 采集'),dbH('div',{className:'ia-news-body'},renderMarkdown(summary.macro.content))):null));
 		}
@@ -1518,7 +1518,7 @@ window.__ModuleLoader__.load({
 						children: [
 							react_jsx_runtime.jsx("div", { className: "ia-context-label", children: "分析流程" }),
 							react_jsx_runtime.jsx("span", { className: "ia-context-chip", children: analysis ? "当前：" + analysisStageLabel(analysis.current_stage) : "当前：尚无轮次" }),
-							react_jsx_runtime.jsx("p", { className: "ia-context-note", children: analysis ? "多角色 Agent " + (analysis.completed_agents ?? 0) + "/" + (analysis.expected_agents ?? 0) + "，证据 " + (analysis.evidence_count ?? 0) + " 条。" : "完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。" }),
+							react_jsx_runtime.jsx("p", { className: "ia-context-note", children: analysis ? "多角色 Agent " + analysisTaskCounts(analysis).completed + "/" + (analysis.expected_agents ?? 0) + "，证据 " + (analysis.evidence_count ?? 0) + " 条。" : "完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。" }),
 							react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-context-link", type: "button", onClick: onOpenWorkflow, children: "查看完整分析流程" })
 						]
 					}),
@@ -1631,6 +1631,11 @@ window.__ModuleLoader__.load({
 			if (size < 1024) return size + " B";
 			if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
 			return (size / (1024 * 1024)).toFixed(1) + " MB";
+		}
+		function analysisTaskCounts(run) {
+			const tasks = Object.values(run?.agents ?? {}).filter(value => value && typeof value === "object");
+			return tasks.length ? { total: tasks.length, completed: tasks.filter(task => task.status === "completed").length, failed: tasks.filter(task => task.status === "failed").length }
+				: { total: Number(run?.started_agents ?? 0), completed: Number(run?.completed_agents ?? 0), failed: Number(run?.failed_agents ?? 0) };
 		}
 		function stageMetaText(row) {
 			// Only the fields the record actually carries are shown: a v1 record,
@@ -1814,19 +1819,39 @@ window.__ModuleLoader__.load({
 		function AnalysisPipelineView({ run, loading, error, cycleId }) {
 			const [logsOpen, setLogsOpen] = react.useState(false);
 			const stages = run && run.stages && typeof run.stages === "object" ? run.stages : {};
-			const stageRows = Object.keys(stages).map((stage) => Object.assign({ stage }, stages[stage] ?? {}));
+			const stateMarkers = ["ready_for_execution", "completed", "failed", "cancelled"];
+			const stageRows = Object.keys(stages).filter(stage => !stateMarkers.includes(stage)).map((stage) => Object.assign({ stage }, stages[stage] ?? {}));
 			stageRows.sort((a, b) => {
 				const left = analysisStageOrder.indexOf(a.stage);
 				const right = analysisStageOrder.indexOf(b.stage);
 				return (left < 0 ? 99 : left) - (right < 0 ? 99 : right);
 			});
 			const currentStage = String(run?.current_stage ?? "");
-			if (currentStage && !stageRows.some((row) => row.stage === currentStage)) {
+			if (currentStage && !stateMarkers.includes(currentStage) && !stageRows.some((row) => row.stage === currentStage)) {
 				// v1 records (and the instant right after start) may not carry a
 				// stages entry yet: show the run's own status for that stage.
 				stageRows.push({ stage: currentStage, status: run?.status ?? "" });
 			}
 			const agents = run && run.agents && typeof run.agents === "object" ? Object.values(run.agents).filter((value) => value && typeof value === "object") : [];
+			const progress = analysisTaskCounts(run);
+			for (const row of stageRows) {
+				const tasks = agents.filter(task => task.stage === row.stage);
+				if (!tasks.length) continue;
+				const retried = Number(row.agents_total ?? 0) > tasks.length;
+				row.agents_total = tasks.length;
+				row.agents_done = tasks.filter(task => task.status === "completed").length;
+				row.agents_failed = tasks.filter(task => task.status === "failed").length;
+				// Preserve engine history; show the latest attempt separately from
+				// its previous timeout and the time awaiting manual continuation.
+				if (retried && tasks.every(task => task.status !== "running")) {
+					const starts = tasks.map(task => Date.parse(task.started_at));
+					const ends = tasks.map(task => Date.parse(task.finished_at));
+					if ([...starts, ...ends].every(Number.isFinite)) {
+						row.duration_ms = Math.max(0, Math.max(...ends) - Math.min(...starts));
+						row.latest_attempt = true;
+					}
+				}
+			}
 			agents.sort((a, b) => Number(a.seq ?? 0) - Number(b.seq ?? 0) || String(a.started_at ?? "").localeCompare(String(b.started_at ?? "")));
 			const logs = Array.isArray(run?.logs) ? run.logs.filter((entry) => entry && typeof entry === "object") : [];
 			const visibleLogs = logs.slice(-200);
@@ -1856,7 +1881,7 @@ window.__ModuleLoader__.load({
 								children: [
 									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "轮次状态" }), react_jsx_runtime.jsx("b", { children: run ? analysisStatusLabel(run.status) : "-" })] }),
 									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "当前阶段" }), react_jsx_runtime.jsx("b", { children: run ? analysisStageLabel(run.current_stage) : "-" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "子任务 完成/预期" }), react_jsx_runtime.jsx("b", { children: (run?.completed_agents ?? 0) + "/" + (run?.expected_agents ?? 0) + (run?.failed_agents ? " · 失败 " + run.failed_agents : "") })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "子任务 完成/预期" }), react_jsx_runtime.jsx("b", { children: progress.completed + "/" + (run?.expected_agents ?? 0) + (progress.failed ? " · 失败 " + progress.failed : "") })] }),
 									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "证据条数" }), react_jsx_runtime.jsx("b", { children: run?.evidence_count ?? 0 })] })
 								]
 							}),
@@ -1865,6 +1890,7 @@ window.__ModuleLoader__.load({
 								children: run ? "轮次 " + String(run.cycle_id ?? cycleId ?? "-") + " · " + (marketName[run.market] ?? run.market ?? "-") + " · 标签 " + String(run.label ?? "-") + " · 标的 " + (Array.isArray(run.symbols) ? run.symbols.length : 0) + " 个" : (cycleId ? "轮次 " + cycleId + "：引擎尚未返回记录" : "尚未启动分析轮次")
 							}),
 							react_jsx_runtime.jsx(RoundProgress, { stages: stageRows })
+							, run && Number(run.started_agents ?? 0) > progress.total ? react_jsx_runtime.jsx("div", { className: "ia-an-note", children: "历史启动 " + run.started_agents + " 次（含重试），当前进度按角色去重；原始轮次时间和失败记录保留。" }) : null
 						]
 					}),
 					stageRows.length > 0 ? react_jsx_runtime.jsx("div", { children: stageRows.map((row) => react_jsx_runtime.jsxs("div", {
@@ -1879,7 +1905,7 @@ window.__ModuleLoader__.load({
 									children: stageMetaText(row)
 								})
 							]}),
-							react_jsx_runtime.jsx("div", { className: "ia-an-stage-time", children: durationOf(row) })
+							react_jsx_runtime.jsx("div", { className: "ia-an-stage-time", children: (row.latest_attempt ? "本次 " : "") + durationOf(row) })
 						]
 					}, row.stage)) }) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: loading ? "正在读取阶段…" : cycleId ? "该轮次尚未写入阶段记录" : "尚未启动分析轮次" }),
 					agents.length > 0 ? react_jsx_runtime.jsx("div", {

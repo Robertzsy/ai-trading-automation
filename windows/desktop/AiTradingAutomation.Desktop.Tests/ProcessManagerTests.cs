@@ -1,4 +1,6 @@
 using System.IO;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using AiTradingAutomation.Desktop.Services;
 using Xunit;
 
@@ -82,6 +84,60 @@ public class ProcessManagerTests
         using var pm = new ProcessManager(app, data);
 
         Assert.False(pm.IsFirstRun);
+    }
+
+    [Fact]
+    public void ConcurrentStarts_BeforeAnyHeartbeat_OwnOnlyOneProcessPerService()
+    {
+        using var root = new TempDir();
+        var app = root.Dir("app");
+        var data = root.Dir("data");
+        Directory.CreateDirectory(Path.Combine(app, "python"));
+        File.WriteAllText(Path.Combine(app, "python", "pythonw.exe"), "");
+        Directory.CreateDirectory(Path.Combine(app, "node"));
+        File.WriteAllText(Path.Combine(app, "node", "node.exe"), "");
+        var bin = Path.Combine(app, "app", "node_modules", "@deepseek-ai", "dsh", "lib");
+        Directory.CreateDirectory(bin);
+        File.WriteAllText(Path.Combine(bin, "bin.js"), "");
+        Directory.CreateDirectory(Path.Combine(data, "runtime"));
+        File.WriteAllText(Path.Combine(data, "runtime", "setup.complete"), "1");
+        var starts = new ConcurrentDictionary<string, int>();
+        var children = new List<Process>();
+        using var pm = new ProcessManager(app, data, info =>
+        {
+            var service = info.Arguments.Contains("engine.main serve") ? "api"
+                : info.Arguments.Contains("engine.main run") ? "agent" : "web";
+            starts.AddOrUpdate(service, 1, (_, count) => count + 1);
+            // Real live children with no worker heartbeat. No Python imports,
+            // model, scheduler, or network calls are involved in this fixture.
+            info.FileName = Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+            info.Arguments = "-NoProfile -NonInteractive -Command \"Start-Sleep -Seconds 30\"";
+            var child = Process.Start(info)!;
+            children.Add(child);
+            return child;
+        });
+        try
+        {
+            Parallel.For(0, 24, i => { if (i % 2 == 0) pm.StartPublicServices(); else pm.StartAgent(); });
+            Assert.Equal(1, starts["api"]);
+            Assert.Equal(1, starts["agent"]);
+            Assert.Equal(1, starts["web"]);
+            Assert.False(File.Exists(Path.Combine(data, "runtime", "investment", "bus", "worker.json")));
+            pm.StopAll();
+            pm.StartPublicServices();
+            Assert.Equal(2, starts["api"]);
+            Assert.Equal(2, starts["agent"]);
+            Assert.Equal(2, starts["web"]);
+        }
+        finally
+        {
+            pm.StopAll();
+            foreach (var child in children)
+            {
+                try { if (!child.HasExited) child.Kill(entireProcessTree: true); } catch { }
+                child.Dispose();
+            }
+        }
     }
 
     [Fact]

@@ -7,7 +7,7 @@ import { Context } from "@deepseek-ai/cordis";
 import { AgentRegistry } from "@deepseek-ai/dsh-agent";
 import { ToolRuntime, defineTool } from "@deepseek-ai/dsh-tools";
 import { createScope } from "@deepseek-ai/dsh-scope";
-import { installRepairProtocol } from "../lib/repair-protocol.js";
+import * as investmentTools from "../lib/index.js";
 
 async function fixture(body, {decision="确认此方案", custom, exitCode=0, duringReview}={}) {
   const root=mkdtempSync(join(tmpdir(),"ata-repair-")), env=process.env.AI_TRADING_AUTOMATION_ROOT;
@@ -22,7 +22,9 @@ async function fixture(body, {decision="确认此方案", custom, exitCode=0, du
     register(ctx,"write","write",{file_path:{type:"string",required:true},content:{type:"string",required:true}},args=>{writes++;writeFileSync(args.file_path,args.content);return {};});
     register(ctx,"pwsh","shell",{command:{type:"string",required:true}},()=>({exitCode,timedOut:false,aborted:false}));
     register(ctx,"subagent","delegate",{},()=>{throw new Error("must not delegate");});
-    installRepairProtocol(ctx,register);
+    // Mount the real plugin scope: direct installation on the root Context
+    // bypasses Cordis dependency checks and hid the desktop's missing inject.
+    await ctx.plugin(investmentTools);
     const create=id=>{const agent={id,session:{id,events:[],surface:{nodes:[]}}};agent.ctx=createScope(ctx,agent).ctx;ctx.agents.enter(agent);ctx.agents.announce(agent);return agent;};
     const agent=create("owner"), other=create("other");
     const call=(name,args={},owner=agent)=>ctx.tools.execute({callId:String(++n),name,arguments:name==="pwsh"?{workdir:root,...args}:args,agent:owner,signal:new AbortController().signal});

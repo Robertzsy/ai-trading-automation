@@ -28,7 +28,7 @@ import { installAnalysisMeter } from "./analysis-meter.js";
 import { installRepairProtocol } from "./repair-protocol.js";
 
 export const name = "@ai-trading-automation/dsh-investment-tools";
-export const inject = ["tools"];
+export const inject = ["tools", "agents", "userQuestions"];
 
 /** Permissive object result schema for free-form engine payloads. */
 const FREE_OBJECT = {

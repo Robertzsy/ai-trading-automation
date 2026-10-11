@@ -131,7 +131,22 @@ def _read(path: Path) -> Optional[Dict[str, Any]]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
-    return payload if isinstance(payload, dict) else None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("status") in _TERMINAL_OR_CANCELLED:
+        # Legacy failure records may retain live child rows. Correct the read
+        # projection without rewriting user history or inventing outcomes.
+        _close_interrupted_agents(payload, payload.get("completed_at") or payload.get("updated_at"))
+    return payload
+
+
+def _close_interrupted_agents(run: Dict[str, Any], at: Optional[str]) -> None:
+    for agent in (run.get("agents") or {}).values():
+        if isinstance(agent, dict) and agent.get("status") == "running":
+            agent["status"] = "cancelled"
+            agent["finished_at"] = at
+            agent["duration_ms"] = analysis_events.ms_between(agent.get("started_at"), at) if at else None
+            agent["error"] = str(run.get("error") or "轮次已结束，未收到子任务完成结果")[:2000]
 
 
 def _write(path: Path, payload: Mapping[str, Any]) -> None:
@@ -154,6 +169,9 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
     """
     cycle_id = _cycle_id(payload.get("cycle_id"))
     market = _market(payload.get("market"))
+    expected_agents = payload.get("expected_agents", 0)
+    if not isinstance(expected_agents, int) or isinstance(expected_agents, bool) or expected_agents < 0:
+        raise ValueError("expected_agents 必须是非负整数")
     with _lock:
         path = _path(cycle_id)
         existing = _read(path)
@@ -174,6 +192,12 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
                 _write(path, existing)
             if existing.get("status") == "running":
                 existing = _restore_checkpoints(existing)
+                # The UI orchestrator creates the run before the workflow can
+                # calculate its role count. Fill this initially unknown value
+                # once; replayed starts must not change an established plan.
+                if not existing.get("expected_agents") and expected_agents:
+                    existing["expected_agents"] = expected_agents
+                    _write(path, existing)
             return copy.deepcopy(existing)
         symbols = []
         for item in payload.get("symbols", []) if isinstance(payload.get("symbols"), list) else []:
@@ -185,9 +209,6 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             # Legacy records and older callers had no source; infer it from
             # the presence of explicit symbols so stored runs stay truthful.
             symbols_source = "user" if symbols else "autonomous"
-        expected_agents = payload.get("expected_agents", 0)
-        if not isinstance(expected_agents, int) or isinstance(expected_agents, bool) or expected_agents < 0:
-            raise ValueError("expected_agents 必须是非负整数")
         now = _now()
         run = {
             "version": RUN_VERSION,
@@ -424,11 +445,7 @@ def cancel(cycle_id: str, *, reason: str = "") -> Dict[str, Any]:
                 _end_stage(stage_state, "cancelled", now)
         # Late child-end events are ignored for cancelled rounds, so close the
         # live rows here rather than leaving the timeline showing running work.
-        for agent in (run.get("agents") or {}).values():
-            if isinstance(agent, dict) and agent.get("status") == "running":
-                agent["status"] = "cancelled"
-                agent["finished_at"] = now
-                agent["duration_ms"] = analysis_events.ms_between(agent.get("started_at"), now)
+        _close_interrupted_agents(run, now)
         analysis_events.append_log(
             run, message=str(reason or "用户手动停止分析"), level="warn", at=now,
         )
@@ -504,6 +521,7 @@ def finish(payload: Mapping[str, Any], *, failed: bool = False) -> Dict[str, Any
                 )
         run["updated_at"] = now
         run["completed_at"] = now
+        _close_interrupted_agents(run, now)
         _write(path, run)
         return copy.deepcopy(run)
 
