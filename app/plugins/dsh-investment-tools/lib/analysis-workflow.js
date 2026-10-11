@@ -6,6 +6,7 @@ import { installAnalysisMeter } from "./analysis-meter.js";
 import { ResearchGateway, installResearchPolicy, evidenceIndex } from "./research-policy.js";
 import { analysisSummary, uniformScript, validateStage } from "./research-contract.js";
 import { BRIEF_FORMAT, briefWorkflowScripts, briefSchema, briefContext } from "./research-briefs.js";
+import { THINKING_POLICY, installResearchThinking } from "./research-thinking.js";
 
 const MARKETS = new Set(["cn", "hk", "us", "etf"]);
 const STAGES = ["base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"];
@@ -359,12 +360,13 @@ function stageLabels(stage, args) {
   return ["portfolio-manager"];
 }
 
-async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents, policyRun, briefRun) {
+async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, script, args, maxAgents, policyRun, briefRun, thinking) {
   checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"stage_start"}));
   const controller = new AbortController();
   const signal = exec.signal ? AbortSignal.any([exec.signal, controller.signal]) : controller.signal;
   const scope = policyRun?.policy.begin(exec.agent, policyRun.gateway, stage, stageLabels(stage, args), signal,
     stage === "base_research" ? 12 : Math.min(32, 10 + Math.ceil(policyRun.symbols.length / 4)), policyRun.registry);
+  const thinkingScope = thinking?.begin(exec.agent, stage, stageLabels(stage, args), signal);
   let run;
   try {
     run = ctx.workflowEngine.start({
@@ -375,8 +377,8 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
       signal,
       maxTotalAgents:Math.max(1, maxAgents),
     });
-  } catch (error) { scope?.close(); throw error; }
-  activeRuns.set(String(run.id), {cycleId,stage,scope});
+  } catch (error) { scope?.close(); thinkingScope?.close(); throw error; }
+  activeRuns.set(String(run.id), {cycleId,stage,scope,thinkingScope});
   // Stop both pending and running child agents through DSH's abort fanout.
   let polling = false;
   const timer = setInterval(async () => {
@@ -424,21 +426,25 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
     const result = compact(value);
     checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result),
       ...(briefRun ? { research_format: BRIEF_FORMAT } : {}),
+      ...(thinking ? { research_thinking: THINKING_POLICY } : {}),
       ...(policyRun ? { evidence_registry: policyRun.registry(), tool_policy: policyRun.gateway.summary() } : {})}));
     return briefRun ? value : result;
   } finally {
     clearInterval(timer);
     activeRuns.delete(String(run.id));
     scope?.close();
+    thinkingScope?.close();
     await run.dispose();
   }
 }
 
 /** Register the deterministic multi-stage analysis tool. */
-export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true, researchRoles = false, deduplicateResearch = false, researchBriefs = false } = {}) {
+export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true, researchRoles = false, deduplicateResearch = false, researchBriefs = false, selectiveFastThinking = false } = {}) {
   if (!["off", "observe", "enforce"].includes(researchPolicy)) throw new Error("researchPolicy must be off, observe or enforce");
   if (researchBriefs && (researchRoles || deduplicateResearch || uniformOutput || researchPolicy !== "off")) throw new Error("researchBriefs 试验需关闭其他角色、去重、输出与工具策略试验");
   if (researchBriefs) assertObjectJsonSchema(briefSchema(WORKFLOW_AGENT_SCHEMAS.baseResearch));
+  if (selectiveFastThinking && (researchBriefs || researchRoles || deduplicateResearch || uniformOutput || researchPolicy !== "off")) throw new Error("selectiveFastThinking 试验需关闭其他角色、去重、输出与工具策略试验");
+  const thinking = selectiveFastThinking ? installResearchThinking(ctx) : null;
   const policy = researchPolicy !== "off" || researchRoles || deduplicateResearch ? installResearchPolicy(ctx, { schemas: WORKFLOW_AGENT_SCHEMAS, strictEvidence, uniformOutput, researchRoles }) : null;
   const collectShared = sharedResearch || cacheOptimization || Boolean(policy) || researchBriefs;
   const cachedScripts = researchBriefs ? briefWorkflowScripts(WORKFLOW_AGENT_SCHEMAS) : collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS, { researchRoles }) : null;
@@ -458,6 +464,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
       const active = activeRuns.get(String(info.id));
       if (!active) return;
       active.scope?.bind(agent?.childId, agent?.label);
+      active.thinkingScope?.bind(agent?.childId, agent?.label);
       meter.bind(active.cycleId, active.stage, agent?.childId, agent?.label);
       void client.post("/api/analysis/runs/events", {
         cycle_id:active.cycleId,
@@ -619,6 +626,8 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         for (const stage of savedStages) {
           const previousBrief = checkpoints[stage].research_format === BRIEF_FORMAT;
           if (previousBrief !== researchBriefs) throw new Error("不能在同一轮次中切换简洁论据契约；请使用新的 cycle_id");
+          const previousThinking = checkpoints[stage].research_thinking === THINKING_POLICY;
+          if (previousThinking !== selectiveFastThinking) throw new Error("不能在同一轮次中切换研究思考档位策略；请使用新的 cycle_id");
         }
         const context = researchBriefs ? briefContext({ portfolio, mandate, targets, researchRounds, riskRounds }) : null;
         const restoredBriefs = researchBriefs && savedStages.length ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=research_briefs"))?.evidence : null;
@@ -655,7 +664,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
             return restored;
           }
           return executeStage(ctx, client, exec, activeRuns, cycleId, stage,
-            uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun, briefRun);
+            uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun, briefRun, thinking);
         };
         const packets = collectShared && checkpoints.base_research?.result && (researchRoles || researchBriefs)
           ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=shared_research").catch(() => null))?.evidence
@@ -692,7 +701,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         // the engine canonicalizes the decisions, computes the decision
         // fingerprint and stores both. A later submission bound to this
         // cycle_id must carry exactly this content.
-        const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,warnings,result:compact(finalResult),...(researchBriefs ? {research_format:BRIEF_FORMAT} : {})});
+        const readyPayload = await client.post("/api/analysis/runs/update",{cycle_id:cycleId,stage:"final_decision",event:"execution_ready",decisions,warnings,result:compact(finalResult),...(researchBriefs ? {research_format:BRIEF_FORMAT} : {}),...(thinking ? {research_thinking:THINKING_POLICY} : {})});
         checkCancellation(readyPayload);
         const readyRun = readyPayload?.analysis ?? {};
         let execution = {status:"not_submitted",reason:"本次仅生成研究方案，未进入模拟撮合"};

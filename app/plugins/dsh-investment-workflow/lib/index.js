@@ -38,5 +38,6 @@ export function apply(ctx, config) {
     researchRoles: process.env.IA_RESEARCH_ROLES !== undefined ? process.env.IA_RESEARCH_ROLES === "1" : config?.researchRoles === true,
     deduplicateResearch: process.env.IA_DEDUPLICATE_RESEARCH !== undefined ? process.env.IA_DEDUPLICATE_RESEARCH === "1" : config?.deduplicateResearch === true,
     researchBriefs: process.env.IA_RESEARCH_BRIEFS !== undefined ? process.env.IA_RESEARCH_BRIEFS === "1" : config?.researchBriefs === true,
+    selectiveFastThinking: process.env.IA_SELECTIVE_FAST_THINKING !== undefined ? process.env.IA_SELECTIVE_FAST_THINKING === "1" : config?.selectiveFastThinking === true,
   });
 }

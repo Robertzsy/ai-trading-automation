@@ -101,3 +101,9 @@ AKShare 的接口与字段说明见[官方股票数据文档](https://akshare.ak
 SEC 可选 `IA_SEC_USER_AGENT` 仅用于声明应用身份，不是 API Key。默认使用项目名称及项目 URL；部署方可按 SEC 的访问说明提供自己的应用联系信息。港股当前缺少独立备用源，上游不可用时需要明确披露资料不足。
 
 AKShare 使用 MIT 代码许可，BaoStock 发布元数据标注 BSD；库的代码许可与上游数据的使用、展示及再分发条件需要分别遵守。[AKShare 项目](https://github.com/akfamily/akshare)、[BaoStock 发布信息](https://pypi.org/project/baostock/)
+
+## 按角色思考档位试验
+
+`selectiveFastThinking` / `IA_SELECTIVE_FAST_THINKING=1` 默认关闭。开启后仅基础研究的 `technical_analyst`、`news_analyst` 使用 `reasoningEffort=off`；基本面、情绪、辩论、交易员、组合和风险经理沿用原有档位。使用 SDK 的 `agent/request` 配置接口，先等待工作流发布可信子角色身份，再发送首个请求，不从提示词识别角色。模型、输出上限、工具定义及研究资料保持原样。此为关闭思考的试验：当前 SDK 不支持官方新增的 low 档位，不能将 off 宣称为 low；应以实际请求参数和 usage 验证，不能只看配置。
+
+该试验拒绝与简洁论据、专用角色、去重、统一输出或工具策略同时启用。Checkpoint 记录 `research_thinking=fast-news-technical-v1`，续跑不能更换策略，须新建 cycle。未知身份、绑定超时或取消不发送请求。计量继续记录所有请求的实际思考档位与费用所需 usage；低档位不自动证明低成本或质量等价，验收前不扩大默认配置。
