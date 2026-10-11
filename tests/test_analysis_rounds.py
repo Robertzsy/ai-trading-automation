@@ -96,7 +96,7 @@ def test_ready_for_execution_run_is_replayed_not_restarted(isolate):
 def test_failed_run_retries_with_same_cycle_id(isolate):
     analysis_rounds.start(_payload())
     analysis_runs.finish({"cycle_id": "20260822-cn-user-0000001", "error": "research failed"}, failed=True)
-    result = analysis_rounds.start(_payload())
+    result = analysis_rounds.start(_payload(retry=True))
     assert result["started"] is True
     assert result["resumed"] is True
     # Checkpoints survive: the reopened run is running with its history intact.
@@ -110,7 +110,7 @@ def test_failed_retry_preserves_error_when_previous_owner_holds_lease(isolate):
     claim = AtomicClaim(analysis_rounds._lease_path("20260822-cn-user-0000001"), stale_seconds=60)
     assert claim.acquire() is True
     try:
-        result = analysis_rounds.start(_payload())
+        result = analysis_rounds.start(_payload(retry=True))
         assert result["started"] is False
         assert result["retry_deferred"] is True
         run = analysis_runs.get("20260822-cn-user-0000001")
@@ -121,7 +121,7 @@ def test_failed_retry_preserves_error_when_previous_owner_holds_lease(isolate):
         claim.release()
 
 
-def test_startup_recovery_resumes_orphaned_running_rounds(isolate):
+def test_startup_recovery_preserves_orphaned_work_without_paid_restart(isolate):
     # Simulate a crashed worker: create a running run, backdate it, and make
     # sure no live worker is registered (fresh process).
     analysis_runs.start_or_resume({
@@ -137,8 +137,20 @@ def test_startup_recovery_resumes_orphaned_running_rounds(isolate):
         analysis_rounds._active.clear()
 
     analysis_rounds.recover_on_startup()
+    assert not isolate["spawned"]
+    assert analysis_runs.get("orphan-1")["status"] == "failed"
+    analysis_rounds.start(_payload(cycle_id="orphan-1", retry=True))
     assert len(isolate["spawned"]) == 1
-    assert isolate["spawned"][0][0] == "orphan-1"
+
+
+def test_failure_requires_explicit_retry_instead_of_relaunch_loop(isolate):
+    analysis_rounds.start(_payload())
+    analysis_runs.finish({"cycle_id": _payload()["cycle_id"], "error": "checkpoint save failed"}, failed=True)
+    for _ in range(4):
+        result = analysis_rounds.start(_payload())
+        assert result["retry_required"] is True
+        assert result["analysis"]["error"] == "checkpoint save failed"
+    assert len(isolate["spawned"]) == 1
 
 
 def test_startup_recovery_skips_terminal_and_fresh_runs(isolate):

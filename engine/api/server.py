@@ -55,6 +55,10 @@ def _read_json(handler: BaseHTTPRequestHandler, limit: int = 1_000_000) -> Optio
     except ValueError:
         length = 0
     if length <= 0 or length > limit:
+        # Reject only after consuming a bounded body, otherwise Windows can
+        # reset the connection before the client receives the JSON error.
+        _drain_body(handler, limit=32_000_000)
+        handler.close_connection = True
         return None
     try:
         payload = json.loads(handler.rfile.read(length).decode("utf-8"))
@@ -487,7 +491,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if path.startswith("/api/analysis/runs/"):
             # Raw research archives may exceed the compact checkpoint limit.
-            limit = 32_000_000 if path == "/api/analysis/runs/archive" else 1_000_000
+            limit = 32_000_000 if path in {"/api/analysis/runs/archive", "/api/analysis/runs/checkpoint", "/api/analysis/runs/update"} else 1_000_000
             payload = _read_json(self, limit=limit)
             if payload is None:
                 self._send(400, {"ok": False, "error": "invalid JSON body"})
@@ -499,6 +503,8 @@ class _Handler(BaseHTTPRequestHandler):
                     result = analysis_runs.start_or_resume(payload)
                 elif path == "/api/analysis/runs/update":
                     result = analysis_runs.update(payload)
+                elif path == "/api/analysis/runs/checkpoint":
+                    result = analysis_runs.commit_checkpoint(payload)
                 elif path == "/api/analysis/runs/events":
                     # Fine-grained timeline events (subagent identity, logs,
                     # stage boundaries). Separate from /update because /update

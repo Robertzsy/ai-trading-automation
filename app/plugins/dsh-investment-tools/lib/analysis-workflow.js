@@ -7,6 +7,7 @@ import { ResearchGateway, installResearchPolicy, evidenceIndex } from "./researc
 import { analysisSummary, uniformScript, validateStage } from "./research-contract.js";
 import { BRIEF_FORMAT, briefWorkflowScripts, briefSchema, briefContext } from "./research-briefs.js";
 import { THINKING_POLICY, installResearchThinking } from "./research-thinking.js";
+import { singleRoundAttempt, installCoordinatorGuard, saveCheckpoint } from "./round-recovery.js";
 
 const MARKETS = new Set(["cn", "hk", "us", "etf"]);
 const STAGES = ["base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"];
@@ -412,19 +413,14 @@ async function executeStage(ctx, client, exec, activeRuns, cycleId, stage, scrip
       }
       // The report/resume depends on these full arguments. Unlike auxiliary
       // archives, a missing brief archive must stop this experimental path.
-      const archive = await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:value,research_briefs:briefRun.bundle}}, {timeoutMs:120000});
-      if (!archive.archive_dir) throw new Error("简洁论据归档失败，不能继续或无损续跑");
       if (briefRun.bundle.errors[stage].length) throw new Error("简洁论据绑定失败：" + briefRun.bundle.errors[stage].map(row => row.label + " " + row.error).join("；"));
     }
     // Archive the raw value immediately. Later stages and durable checkpoints
     // retain the compact form, but failure/resume cannot discard this evidence.
-    try {
-      if (!briefRun) await client.post("/api/analysis/runs/archive", {cycle_id:cycleId,stages:{[stage]:value}}, {timeoutMs:120000});
-    } catch { /* auxiliary: never fail research over the archive */ }
     policyRun?.validate(stage, value, args);
     if (policyRun) policyRun.gateway.stageResults[stage] = structuredClone(value);
     const result = compact(value);
-    checkCancellation(await client.post("/api/analysis/runs/update", {cycle_id:cycleId,stage,event:"checkpoint",result,agents_started:settled.agentsStarted,evidence_count:evidenceCount(result),
+    checkCancellation(await saveCheckpoint(client, {cycle_id:cycleId,stage,result,archives:{[stage]:value,...(briefRun ? {research_briefs:briefRun.bundle} : {})},agents_started:settled.agentsStarted,evidence_count:evidenceCount(result),
       ...(briefRun ? { research_format: BRIEF_FORMAT } : {}),
       ...(thinking ? { research_thinking: THINKING_POLICY } : {}),
       ...(policyRun ? { evidence_registry: policyRun.registry(), tool_policy: policyRun.gateway.summary() } : {})}));
@@ -450,6 +446,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
   const cachedScripts = researchBriefs ? briefWorkflowScripts(WORKFLOW_AGENT_SCHEMAS) : collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS, { researchRoles }) : null;
   const summarize = lightweightResults ? analysisSummary : value => value;
   const activeRuns = new Map();
+  installCoordinatorGuard(ctx);
   const meter = ctx.get?.("analysisMeter") ?? installAnalysisMeter(ctx, client);
   if (typeof ctx.on === "function") {
     // The DSH workflow engine publishes BOTH arguments:
@@ -513,8 +510,9 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
       submit:{type:"boolean",description:"是否提交最终决策；手动会话必须为 false",default:false},
       label:{type:"string",description:"轮次标签"},
       cycle_id:{type:"string",description:"可选稳定幂等键；同一键只启动一个轮次，超时重试不会重复启动"},
+      retry:{type:"boolean",description:"用户明确要求恢复失败轮次时才设为 true；普通启动、轮询或自动修复不得开启",default:false},
     },
-    async ({market,symbols:requestedSymbols,symbols_source:requestedSource,submit=false,label="analysis",cycle_id:requestedCycleId}, exec) => {
+    singleRoundAttempt(async ({market,symbols:requestedSymbols,symbols_source:requestedSource,submit=false,label="analysis",cycle_id:requestedCycleId,retry=false}, exec) => {
       const normalizedMarket = String(market ?? "").trim().toLowerCase();
       if (!MARKETS.has(normalizedMarket)) throw new Error("market 必须是 cn、hk、us 或 etf");
       const autonomous = process.env.ATA_AUTONOMOUS_ROUND === "1";
@@ -553,6 +551,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           symbols,
           symbols_source: symbolsSource,
           label: safeLabel,
+          retry: Boolean(retry),
           // Only used by the engine's short-TTL retry fallback when the
           // launcher lacked session context (identity-less ids).
           dedupe_fingerprint: identity ? undefined : contentFingerprint(normalizedMarket, safeLabel, symbols),
@@ -572,6 +571,13 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
       }
 
       if (!exec?.agent) throw new Error("全流程分析需要从一个有效的 DSH 会话调用");
+      const deadline = Number(process.env.ATA_ROUND_DEADLINE_MS);
+      if (Number.isFinite(deadline) && deadline > 0) {
+        if (deadline <= Date.now()) throw new Error("后台轮次已超时，检查点保留；禁止重新启动研究");
+        const remaining = Math.max(1, deadline - Date.now());
+        exec = {...exec, signal: exec.signal ? AbortSignal.any([exec.signal, AbortSignal.timeout(remaining)]) : AbortSignal.timeout(remaining)};
+        exec.signal.throwIfAborted();
+      }
       let started = false;
       let gateway;
       try {
@@ -614,7 +620,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         started = true;
         meter.begin(cycleId, exec.agent);
         const runState = startPayload.analysis ?? {};
-        if (runState.status === "completed" || runState.status === "cancelled") return {...summarize(runState),resumed:true,done:true};
+        if (["completed", "cancelled", "failed"].includes(runState.status)) return {...summarize(runState),resumed:true,done:true};
         const checkpoints = runState.checkpoints ?? {};
         const mandate = mandatePayload?.mandate ?? {};
         const memory = (previousPayload?.runs ?? []).filter((row) => row.cycle_id !== cycleId).slice(0, Number(workflowConfig.memory_entries_per_role ?? 6)).map((row) => ({decisions:row.decisions??[],warnings:row.warnings??[],completed_at:row.completed_at}));
@@ -657,11 +663,12 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           if (briefRun) args.brief_facts = briefRun.bundle.facts;
           const saved = checkpoints[stage]?.result;
           if (saved !== undefined) {
-            const restored = researchRoles || researchBriefs ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=" + stage).catch(() => null))?.evidence : saved;
-            if ((researchRoles || researchBriefs) && restored == null) throw new Error("本轮完整研究归档缺失，不能无损续跑；请使用新的 cycle_id");
-            policyRun?.validate(stage, restored, args);
-            if (gateway) gateway.stageResults[stage] = restored;
-            return restored;
+            const restored = (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=" + stage).catch(() => null))?.evidence ?? ((researchRoles || researchBriefs) ? null : saved);
+            if (restored == null) throw new Error("本轮完整研究归档缺失，不能无损续跑；请在用户对话中处理");
+            const value = researchBriefs ? restored : compact(restored);
+            policyRun?.validate(stage, value, args);
+            if (gateway) gateway.stageResults[stage] = value;
+            return value;
           }
           return executeStage(ctx, client, exec, activeRuns, cycleId, stage,
             uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun, briefRun, thinking);
@@ -732,7 +739,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           await client.post("/api/analysis/runs/archive", { cycle_id: cycleId, stages: { ...(gateway.packets ? { shared_research: gateway.packets } : {}), tool_policy: { ...gateway.summary(), evidence: gateway.archive } } }).catch(() => {});
         }
       }
-    },
+    }),
     {timeoutMs:1800000},
   );
 
@@ -763,7 +770,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
       } else if (run.status === "running") {
         hint = "轮次仍在运行（" + String(run.current_stage ?? "preparing") + "）。稍后再次调用本工具查询，不要重复启动轮次。";
       } else if (run.status === "failed") {
-        hint = "轮次失败：" + String(run.error ?? "未知错误") + "。可用同一 cycle_id 重新调用 investment_analysis_workflow 安全重试（从已有检查点继续）。";
+        hint = "轮次失败：" + String(run.error ?? "未知错误") + "。已保存的检查点保留；先报告错误，只有用户明确要求时才用同一 cycle_id 和 retry=true 续跑。后台不得自行修复或重跑。";
       } else if (run.status === "cancelled") {
         hint = "轮次已停止。需要重新分析时请发起新轮次。";
       } else {

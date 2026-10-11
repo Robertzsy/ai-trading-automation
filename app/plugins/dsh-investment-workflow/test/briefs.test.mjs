@@ -124,6 +124,7 @@ test("real controller archives full arguments and refuses a missing archive or a
     async post(url,body){
       if(url.endsWith("/start"))return {analysis:{status:"running",checkpoints:structuredClone(checkpoints)}};
       if(url.endsWith("/archive")){Object.assign(archives,structuredClone(body.stages));return {archive_dir:"mock/archive"};}
+      if(url.endsWith("/checkpoint")){Object.assign(archives,structuredClone(body.archives));checkpoints[body.stage]=structuredClone(body);}
       if(body.event==="checkpoint")checkpoints[body.stage]=structuredClone(body);
       return {analysis:{status:"running",checkpoints:structuredClone(checkpoints)}};
     },
@@ -152,9 +153,11 @@ test("real controller archives full arguments and refuses a missing archive or a
     assert.equal(archives.research_briefs.stages.base_research.length,4);
     const saved=archives.research_briefs;delete archives.research_briefs;
     const before=stageCalls;
+    registerAnalysisWorkflow(ctx,client,register,{researchBriefs:true,sharedResearch:true,strictEvidence:false});
     await assert.rejects(()=>executors.get("investment_analysis_workflow")(args,exec),/归档缺失/);
     assert.equal(stageCalls,before);
     archives.research_briefs=saved;version=2;
+    registerAnalysisWorkflow(ctx,client,register,{researchBriefs:true,sharedResearch:true,strictEvidence:false});
     await assert.rejects(()=>executors.get("investment_analysis_workflow")(args,exec),/授权书已变化/);
     version=1;
     registerAnalysisWorkflow(ctx,client,register,{sharedResearch:true,strictEvidence:false});

@@ -4,7 +4,7 @@ import { registerAnalysisWorkflow } from "../../dsh-investment-tools/lib/analysi
 
 // Exercise the real executor without model calls, keeping both the raw archive
 // and compact checkpoint payloads visible at the engine boundary.
-function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheckpoint } = {}) {
+function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheckpoint, loseCheckpointReply } = {}) {
   const tools = new Map(), archives = {}, calls = [], started = [], disposed = [];
   const state = { cycle_id: "execution-test", status: initialStatus, checkpoints: {} };
   const longText = "研究证据".repeat(1000);
@@ -33,12 +33,15 @@ function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheck
       if (path === "/api/config") return { config: {} };
       if (path === "/api/mandate") return { mandate: {} };
       if (path.startsWith("/api/analysis/run?")) return { ok: true, analysis: structuredClone(state) };
+      if (path.startsWith("/api/analysis/evidence?")) return { ok: true, evidence: archives[new URLSearchParams(path.split("?")[1]).get("stage")] ?? null };
       return {};
     },
     async post(path, body) {
       calls.push({ path, body: structuredClone(body) });
       if (path.endsWith("/archive")) Object.assign(archives, structuredClone(body.stages));
-      if (path.endsWith("/update") && state.status !== "cancelled") {
+      if (path.endsWith("/checkpoint")) Object.assign(archives, structuredClone(body.archives));
+      if ((path.endsWith("/update") || path.endsWith("/checkpoint")) && state.status !== "cancelled") {
+        if (path.endsWith("/checkpoint")) body.event = "checkpoint";
         if (body.event === "checkpoint") {
           state.checkpoints[body.stage] = { result: body.result };
           if (body.stage === cancelAfterCheckpoint) state.status = "cancelled";
@@ -46,6 +49,10 @@ function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheck
         if (body.event === "execution_ready") state.status = "ready_for_execution";
       }
       if (path.endsWith("/fail") && state.status !== "cancelled") state.status = "failed";
+      if (path.endsWith("/checkpoint") && loseCheckpointReply) {
+        loseCheckpointReply = false;
+        throw new Error("fetch failed after durable save");
+      }
       return { ok: true, analysis: structuredClone(state) };
     },
   };
@@ -83,6 +90,27 @@ test("completed research remains archived when a later stage fails", () => headl
   assert.equal(run.state.status, "failed");
   assert.equal(run.archives.base_research[0].analyses[0].summary, run.longText);
   assert.deepEqual(Object.keys(run.archives), ["base_research", "research_debate", "portfolio_draft"]);
+}));
+
+test("lost checkpoint reply retries persistence without rerunning completed research", () => headless(async () => {
+  const run = pipeline({ loseCheckpointReply: true });
+  assert.equal((await run.execute()).status, "ready_for_execution");
+  assert.equal(run.started.length, 5);
+  assert.equal(run.calls.filter(call => call.path.endsWith("/checkpoint") && call.body.stage === "base_research").length, 2);
+  assert.equal(run.archives.base_research[0].analyses[0].summary, run.longText);
+}));
+
+test("repeated calls in a failed background session never restart the stage", () => headless(async () => {
+  const run = pipeline({ failAt: "base_research" });
+  await assert.rejects(run.execute(), /synthetic stage failure/);
+  await assert.rejects(run.execute(), /synthetic stage failure/);
+  assert.equal(run.started.length, 1);
+}));
+
+test("a persisted failed round is replayed without redoing paid work", () => headless(async () => {
+  const run = pipeline({ initialStatus: "failed" });
+  assert.equal((await run.execute()).status, "failed");
+  assert.equal(run.started.length, 0);
 }));
 
 test("stopping an active stage aborts its children and admits no later stages", { timeout: 5000 }, () => headless(async () => {

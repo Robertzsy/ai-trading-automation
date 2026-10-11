@@ -30,6 +30,68 @@ _TERMINAL_OR_CANCELLED = {"completed", "failed", "cancelled"}
 #: Record schema version. v1 had counters only; v2 adds the stage timeline,
 #: per-subagent identity and a bounded log ring. Readers must accept both.
 RUN_VERSION = 2
+_STAGES = ("base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision")
+
+
+def _restore_checkpoints(run: Dict[str, Any]) -> Dict[str, Any]:
+    """Repair the run projection from authoritative, atomically saved stages.
+
+    The stage file is committed before the progress file. A lost HTTP response
+    or progress-file write must not cause completed model work to run again.
+    Legacy raw archives have no commit marker and are never guessed complete.
+    """
+    directory = _directory() / "archive" / _cycle_id(run["cycle_id"])
+    for stage in _STAGES:
+        target = directory / f"{stage}.checkpoint.json"
+        if not target.exists():
+            continue
+        record = _read(target)
+        if record is None:
+            raise ValueError(f"已保存的阶段检查点损坏：{stage}；禁止自动重算")
+        if record.get("identity") != [run["cycle_id"], run["market"], run["started_at"]]:
+            raise ValueError(f"阶段检查点不属于本轮：{stage}")
+        if stage not in run.get("checkpoints", {}):
+            run = update(record["checkpoint"])
+    return run
+
+
+def commit_checkpoint(payload: Mapping[str, Any]) -> Dict[str, Any]:
+    """Atomically persist full evidence and checkpoint before acknowledging it."""
+    cycle_id = _cycle_id(payload.get("cycle_id"))
+    stage = str(payload.get("stage") or "")
+    if stage not in _STAGES:
+        raise ValueError("unknown checkpoint stage")
+    archives = payload.get("archives")
+    if not isinstance(archives, dict) or stage not in archives:
+        raise ValueError("checkpoint requires full stage evidence")
+    with _lock:
+        run = _read(_path(cycle_id))
+        if run is None:
+            raise KeyError(f"analysis run not found: {cycle_id}")
+        if run.get("status") in _TERMINAL_OR_CANCELLED:
+            return copy.deepcopy(run)
+        checkpoint = {key: copy.deepcopy(value) for key, value in payload.items() if key != "archives"}
+        checkpoint["event"] = "checkpoint"
+        registry = checkpoint.get("evidence_registry")
+        if registry is not None and (not isinstance(registry, list) or len(registry) > 5000
+                or any(not isinstance(row, dict) or not isinstance(row.get("id"), str) for row in registry)):
+            raise ValueError("evidence_registry 必须是最多 5000 条带 id 的证据记录")
+        int(checkpoint.get("agents_started", 0) or 0)
+        target = _directory() / "archive" / cycle_id / f"{stage}.checkpoint.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        record = {"identity": [cycle_id, run["market"], run["started_at"]], "checkpoint": checkpoint, "archives": archives}
+        if target.exists():
+            if _read(target) != record:
+                raise ValueError("已完成阶段不可被不同结果覆盖")
+            if run.get("checkpoints", {}).get(stage, {}).get("status") == "completed":
+                return copy.deepcopy(run)
+        else:
+            # This single atomic file is the authoritative commit. Never swallow
+            # its failure. The old archive layout is just a report projection.
+            _write(target, record)
+        from engine import analysis_reports
+        analysis_reports.archive_stage_results(cycle_id, archives)
+        return update(checkpoint)
 
 
 def _directory() -> Path:
@@ -108,6 +170,8 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
                 existing["completed_at"] = None
                 existing["updated_at"] = _now()
                 _write(path, existing)
+            if existing.get("status") == "running":
+                existing = _restore_checkpoints(existing)
             return copy.deepcopy(existing)
         symbols = []
         for item in payload.get("symbols", []) if isinstance(payload.get("symbols"), list) else []:
@@ -400,7 +464,7 @@ def finish(payload: Mapping[str, Any], *, failed: bool = False) -> Dict[str, Any
         run = _read(path)
         if run is None:
             raise KeyError(f"analysis run not found: {cycle_id}")
-        if str(run.get("status")) == "cancelled":
+        if str(run.get("status")) in {"cancelled", "completed"}:
             # A cancelled round is already terminal; a late worker must not
             # resurrect it into completed/failed.
             return copy.deepcopy(run)

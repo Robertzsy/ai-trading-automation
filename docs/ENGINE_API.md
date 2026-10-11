@@ -20,9 +20,10 @@
 | GET | `/api/analysis/run` | 按 `cycle_id` 读取一轮完整状态 |
 | POST | `/api/analysis/runs/start` | 创建或恢复同一 cycle id 的工作流 |
 | POST | `/api/analysis/runs/update` | 更新阶段、Agent 事件或原子检查点 |
+| POST | `/api/analysis/runs/checkpoint` | 原子保存完整阶段证据和检查点；重复保存同内容幂等，上限 32MB |
 | POST | `/api/analysis/runs/complete` | 保存最终决策与引擎执行真值 |
 | POST | `/api/analysis/runs/fail` | 保存失败原因，保留已有检查点供续跑 |
-| POST | `/api/analysis/rounds/start` | **Web 启动固定分析轮次（异步、幂等）**：`{cycle_id, market, symbols?, symbols_source?, label}`；同一 cycle_id 最多一个轮次（运行中返回现状、终态返回结果、孤儿轮次从检查点续跑）；引擎强制 `submit=false`（分析只生成方案，成交必须等用户随后批准的 `submit_decisions`） |
+| POST | `/api/analysis/rounds/start` | **Web 启动固定分析轮次（异步、幂等）**：`{cycle_id, market, symbols?, symbols_source?, label, retry?}`；同一 cycle_id 最多一个活跃轮次；failed 仅在明确传 `retry=true` 时从检查点续跑；引擎强制 `submit=false`（分析只生成方案，成交必须等用户随后批准的 `submit_decisions`） |
 | GET | `/api/analysis/rounds/active` | 当前活跃的异步轮次列表 |
 | POST | `/api/commands/issue` | 派发投资命令（见 `engine/investment/contracts.py`） |
 
@@ -78,8 +79,15 @@ fail-safe 语义不变：订单只有在引擎的硬风控 + 纸面经纪路径�
   `execution_ready` 事件持久化最终决策与引擎计算的决策指纹；自主轮次在
   `ready_for_execution + submit=true` 时提交，手动轮次等待用户批准后以
   `investment_submit_decisions`（同 cycle_id）提交；执行结束后引擎把绑定
-  轮次置为 completed。failed 允许同键安全重试；serve 进程在 API 监听后
-  扫描并续跑被重启孤儿的 running 轮次。
+  轮次置为 completed。failed 仅在用户明确要求并传 `retry=true` 时同键续跑；
+  普通重复启动返回 `retry_required=true`。serve 重启时保留孤立轮次的检查点并
+  标记中断，不自动启动付费研究。后台协调代理只执行固定流程，失败时停止，
+  不执行代码修复或替代工作流；桌面对话仍可进行产品维护。
+- **阶段保存**：`POST /api/analysis/runs/checkpoint` 接收 `cycle_id`、`stage`、
+  紧凑 `result`、完整 `archives`（含该阶段）及原有检查点元数据，上限 32MB。
+  引擎先原子保存完整阶段提交文件，再更新进度；断连只重试保存，同内容幂等，
+  不同结果禁止覆盖。恢复时修复进度投影并复用已完成阶段。旧原始归档没有
+  完成标记，不自动推断为完成。运行超时保留检查点并明确失败，不跨启动循环重跑。
 - **提交幂等（账户文件为唯一事实）**：`submit_decisions` 强制
   `idempotency_key`（分析轮次用其 cycle_id）。引擎先对归一化决策计算
   内容指纹并在认领中记录（同键不同内容一律拒绝）；`execute_orders` 把

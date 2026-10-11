@@ -85,6 +85,30 @@ def test_raw_research_archive_accepts_more_than_a_compact_checkpoint(api, monkey
         assert error.value.code == 400
 
 
+def test_large_multistock_checkpoint_commits_and_survives_http_replay(api, monkeypatch, tmp_path):
+    from engine import analysis_runs, analysis_reports
+    monkeypatch.setattr(analysis_runs, "runtime_dir", lambda: tmp_path / "runtime")
+    monkeypatch.setattr(analysis_reports, "_analysis_dir", lambda: tmp_path / "runtime/analysis_runs")
+    symbols = [f"{600000 + i}" for i in range(20)]
+    _post(api, "/api/analysis/runs/start", {"cycle_id": "20-stock", "market": "cn", "symbols": symbols})
+    evidence = [{"symbol": symbol, "analyses": [{"summary": "verified evidence " * 1500} for _ in range(4)]} for symbol in symbols]
+    compact = [{"symbol": row["symbol"], "analyses": [{"summary": item["summary"][:1600]} for item in row["analyses"]]} for row in evidence]
+    body = {"cycle_id": "20-stock", "stage": "base_research", "result": compact, "archives": {"base_research": evidence}, "agents_started": 80}
+    assert len(json.dumps(body).encode()) > 1_000_000
+    code, first = _post(api, "/api/analysis/runs/checkpoint", body)
+    assert code == 200 and len(first["analysis"]["checkpoints"]["base_research"]["result"]) == 20
+    assert _post(api, "/api/analysis/runs/checkpoint", body)[1]["analysis"]["checkpoints"] == first["analysis"]["checkpoints"]
+    restored = _get(api, "/api/analysis/evidence?cycle_id=20-stock&stage=base_research")["evidence"]
+    assert restored == evidence
+
+
+def test_rejected_bounded_body_is_drained_for_a_readable_error(api):
+    # /start keeps the small control-message cap. It must return JSON rather
+    # than aborting the socket while a Windows client is uploading the body.
+    code, result = _post(api, "/api/analysis/runs/start", {"padding": "x" * 1_070_000})
+    assert code == 400 and result["error"] == "invalid JSON body"
+
+
 def test_status_endpoint_reports_engine_state(api):
     payload = _get(api, "/api/status")
     assert payload["ok"] is True

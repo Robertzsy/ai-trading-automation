@@ -346,12 +346,14 @@ class DshBridgeRunner:
 
         env = dict(os.environ)
         env["DSH_TELEMETRY_DISABLED"] = "1"
-        # IA is a self-maintaining product agent. Headless repair paths cannot
-        # answer an interactive approval channel, so they receive the same
-        # explicit full-access DSH policy as the desktop conversation.
+        # Research children can use their tools without interactive prompts.
+        # The coordinator guard forbids background coding/self-repair.
         env["DSH_PERMISSION_MODE"] = "danger-full-access"
         env["ATA_AUTONOMOUS_ROUND"] = "1"
         env["INVESTMENT_CYCLE_ID"] = cycle_id
+        # Give workflow cancellation/disposal time to finish before Python's
+        # hard process timeout. Identical 30-minute deadlines used to race.
+        env["ATA_ROUND_DEADLINE_MS"] = str(int((time.time() + max(1, self.timeout_seconds - 30)) * 1000))
         # Point the round's investment tools at the engine API. The shell
         # passes INVESTMENT_ENGINE_URL to the web process only; the engine
         # process knows its own API port (INVESTMENT_API_PORT) instead.
@@ -400,6 +402,7 @@ class DshBridgeRunner:
             )
         except subprocess.TimeoutExpired as exc:
             logger.exception("[DSH-BRIDGE:%s] headless round timed out", market)
+            self._fail_running(cycle_id, f"DSH 轮次超时（>{self.timeout_seconds}s），检查点保留")
             return {
                 "status": "error",
                 "error": f"DSH 轮次超时（>{self.timeout_seconds}s）",
@@ -407,12 +410,14 @@ class DshBridgeRunner:
             }
         except OSError as exc:
             logger.exception("[DSH-BRIDGE:%s] headless spawn failed", market)
+            self._fail_running(cycle_id, f"无法启动 DSH 进程: {exc}")
             return {"status": "error", "error": f"无法启动 DSH 进程: {exc}"}
 
         stdout = decode_subprocess_output(completed.stdout).strip()
         stderr = decode_subprocess_output(completed.stderr).strip()
         report_text = stdout[:_MAX_REPORT_CHARS]
         if completed.returncode != 0:
+            self._fail_running(cycle_id, f"DSH 轮次进程失败（rc={completed.returncode}）")
             logger.error("[DSH-BRIDGE:%s] headless round failed rc=%s: %s", market, completed.returncode, stderr[-800:])
             return {
                 "status": "error",
@@ -427,6 +432,13 @@ class DshBridgeRunner:
             "elapsed_seconds": round(time.monotonic() - start_monotonic, 1),
             "_start_wall": start_wall,
         }
+
+    @staticmethod
+    def _fail_running(cycle_id: str, error: str) -> None:
+        from engine import analysis_runs
+        run = analysis_runs.get(cycle_id)
+        if run is not None and run.get("status") == "running":
+            analysis_runs.finish({"cycle_id": cycle_id, "error": error}, failed=True)
 
     def __call__(self, market: str, cycle_type: str, context: Mapping[str, Any]) -> Dict[str, Any]:
         label = str(context.get("label", "auto"))[:40]

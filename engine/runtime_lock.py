@@ -1,10 +1,40 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, IO, Optional
+
+
+def _pid_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        # os.kill(pid, 0) is not a safe liveness probe on Windows.
+        import ctypes
+        from ctypes import wintypes
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel.OpenProcess.restype = wintypes.HANDLE
+        kernel.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        handle = kernel.OpenProcess(0x1000, False, pid)
+        if not handle:
+            return ctypes.get_last_error() == 5  # access denied: assume alive
+        try:
+            code = wintypes.DWORD()
+            return not kernel.GetExitCodeProcess(handle, ctypes.byref(code)) or code.value == 259
+        finally:
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
 
 
 class AtomicClaim:
@@ -16,10 +46,11 @@ class AtomicClaim:
     release responsibility to the worker thread.
     """
 
-    def __init__(self, lock_path: Path, *, stale_seconds: int = 7200) -> None:
+    def __init__(self, lock_path: Path, *, stale_seconds: int = 7200, check_owner: bool = False) -> None:
         self.lock_path = lock_path
         self.stale_seconds = stale_seconds
         self.descriptor: Optional[int] = None
+        self.check_owner = check_owner
 
     def acquire(self) -> bool:
         if self.descriptor is not None:
@@ -33,6 +64,13 @@ class AtomicClaim:
                 return True
             except FileExistsError:
                 try:
+                    if self.check_owner:
+                        owner = re.search(r"pid=(\d+)", self.lock_path.read_text(encoding="ascii"))
+                        if owner:
+                            if _pid_alive(int(owner[1])):
+                                return False  # a slow live worker is never stolen
+                            self.lock_path.unlink()
+                            continue
                     if time.time() - self.lock_path.stat().st_mtime > self.stale_seconds:
                         self.lock_path.unlink()
                         continue

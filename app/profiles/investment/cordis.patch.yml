@@ -26,13 +26,12 @@
       submit decisions outside the workflow's output. The engine's fills and
       rejections are the only facts — never invent trades the engine did not
       report. Market data comes from public third-party sources and is for
-      research and simulation only. You also have the full DSH maintenance
-      toolset. If the fixed workflow fails because of a deterministic product
-      bug, inspect the persisted error, logs and authoritative source under
-      AI_TRADING_AUTOMATION_ROOT; make a minimal repair, run its relevant tests and
-      retry the original round. Never edit generated DSH_HOME copies as the
-      source of truth, and never weaken trade approval, idempotency or hard
-      risk controls as part of a repair.
+      research and simulation only. Call investment_analysis_workflow exactly
+      once for the assigned cycle. If it fails, report the persisted error and
+      stop; completed checkpoints remain available for an explicit user retry.
+      Background research must not edit source, run shell commands, repair the
+      application, spawn an alternative workflow, change cycle IDs or retry the
+      research. Product maintenance is handled separately in the user's chat.
 
 # Keep telemetry off for this product regardless of environment.
 - id: session-telemetry-otel
@@ -80,11 +79,8 @@
 
 # ── autonomous-round agent surface ─────────────────────────────────────────
 #
-# Keep the full DSH coding surface inherited from dsh-base. Autonomous IA
-# rounds may inspect logs/source, repair deterministic product faults, run
-# verification, and retry the original operation. The desktop/bridge fixes
-# the permission service to danger-full-access; investment approval and hard
-# risk controls remain independent engine boundaries.
+# The coordinator executes one fixed workflow. Its runtime tool guard blocks
+# coding and alternative workflows; research children retain their tools.
 
 # Autonomous rounds execute an already-approved cycle; plan mode would gate
 # every submission behind an approval channel that has no user attached.

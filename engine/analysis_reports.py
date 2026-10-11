@@ -139,6 +139,17 @@ def read_archived_stage(cycle_id: str, stage: str) -> Any:
         raise ValueError("unknown research archive stage")
     target = _analysis_dir() / "archive" / _slug(cycle_id) / f"{stage}.json"
     try:
+        directory = target.parent
+        # Prefer the atomic stage commit, including after a crash before the
+        # legacy report archive/progress projection was written.
+        commits = [directory / f"{stage}.checkpoint.json"]
+        if stage == "research_briefs":
+            commits = sorted(directory.glob("*.checkpoint.json"), key=lambda path: path.stat().st_mtime, reverse=True)
+        for commit in commits:
+            if commit.exists():
+                record = json.loads(commit.read_text(encoding="utf-8"))
+                if stage in record.get("archives", {}):
+                    return record["archives"][stage]
         return json.loads(target.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None

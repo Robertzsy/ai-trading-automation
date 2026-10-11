@@ -49,4 +49,4 @@ investment_submit_decisions(market=..., decisions=<流程最终决策原样>, id
 ```
 - 引擎校验提交内容与该轮记录的决策指纹完全一致，不一致直接拒绝（不得自行改动任何字段）。
 - 同一 cycle_id 只成交一次；超时重试返回原结果，不得更换幂等键重试绕过。
-- 失败（failed）轮次可用同一 cycle_id 重新调用 investment_analysis_workflow 安全重试，从已有检查点继续。
+- 失败（failed）轮次先报告原始错误；只有用户明确要求重试时，使用同一 cycle_id 和 retry=true 从已保存检查点继续。后台不得自行改代码、换 id 或重跑。

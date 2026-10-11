@@ -23,7 +23,7 @@ whenToUse: 用户要求执行完整投资轮次（选股/研究+可能的交易�
 investment_analysis_workflow(market=..., symbols=[...], symbols_source=..., submit=false)
 ```
 记住返回的 cycle_id。持仓信息只作为上下文，不得擅自扩大目标列表。
-3. `investment_analysis_status(cycle_id=...)` 轮询直到 **ready_for_execution**（分析完成）或 failed；不要重复启动轮次。failed 时可用同一 cycle_id 重试。
+3. `investment_analysis_status(cycle_id=...)` 轮询直到 **ready_for_execution**（分析完成）或 failed；不要重复启动轮次。failed 时先报告原始错误，只有用户明确要求重试时才传同一 cycle_id 和 retry=true；后台不得自行改代码或重跑。
 4. 向用户总结最终决策、故障安全处理与风险提示。
 
 ## 执行（仅用户明确批准后）

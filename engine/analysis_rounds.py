@@ -106,7 +106,7 @@ def _worker(
     """One round attempt. The filesystem lease is the cross-process guard:
     exactly one engine process may run a given cycle at a time; a second
     claimant exits immediately and leaves the run to its owner."""
-    owned_claim = claim or AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS)
+    owned_claim = claim or AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS, check_owner=True)
     if claim is None and not owned_claim.acquire():
         logger.warning("[ANALYSIS-ROUND:%s] lease held elsewhere; skipping duplicate worker", cycle_id)
         with _lock:
@@ -192,7 +192,7 @@ def _start_claimed_worker(
 
 
 def _spawn(cycle_id: str, market: str, symbols: list[str], symbols_source: str, label: str) -> bool:
-    claim = AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS)
+    claim = AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS, check_owner=True)
     if not claim.acquire():
         logger.warning("[ANALYSIS-ROUND:%s] lease held elsewhere; skipping duplicate worker", cycle_id)
         return False
@@ -204,7 +204,7 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
     """Idempotently start (or report) one fixed analysis round.
 
     The same ``cycle_id`` never starts a second round: a completed or
-    execution-ready run is replayed, a failed run is retried safely (trading
+    execution-ready run is replayed, a failed run requires explicit retry (trading
     is independently idempotent), an active run returns its live state, and
     an orphaned running run (stale + no live worker) is resumed.
     """
@@ -236,11 +236,13 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
             if status in {"completed", "ready_for_execution", "cancelled"}:
                 return {"ok": True, "started": False, "duplicate": True, "analysis": run}
             if status == "failed":
+                if payload.get("retry") is not True:
+                    return {"ok": True, "started": False, "duplicate": True, "retry_required": True, "analysis": run}
                 # Acquire the cross-process lease BEFORE reopening durable
                 # state. If the original owner is still exiting, preserve its
                 # concrete failure instead of changing failed -> running and
                 # leaving no worker behind.
-                claim = AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS)
+                claim = AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS, check_owner=True)
                 if not claim.acquire():
                     logger.info("[ANALYSIS-ROUND:%s] retry deferred; cycle lease is still owned", cycle_id)
                     return {
@@ -300,21 +302,19 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def recover_on_startup() -> None:
-    """Re-arm rounds orphaned by a process restart (serve-process only).
+    """Close orphaned rounds while preserving evidence (serve-process only).
 
     Called after the API server is already listening, so the resumed headless
     sessions can post their checkpoints back. Running runs older than the
-    short startup threshold have no surviving worker (the previous process
-    died) and are resumed from their durable checkpoints; failed runs stay
-    failed until an explicit retry, and execution-ready/completed runs are
-    left alone.
+    short startup threshold are marked failed under their cycle lease. No
+    paid research is automatically restarted. A user retry restores durable
+    checkpoints; execution-ready/completed runs are left alone.
     """
     try:
         rows = analysis_runs.list_runs(limit=100)
     except Exception as exc:  # noqa: BLE001
         logger.warning("[ANALYSIS-ROUNDS] startup recovery scan failed: %s", exc)
         return
-    resumed = 0
     for run in rows:
         if run.get("status") != "running":
             continue
@@ -327,17 +327,16 @@ def recover_on_startup() -> None:
             active_thread = _active.get(cycle_id)
         if active_thread is not None and active_thread.is_alive():
             continue
-        logger.info("[ANALYSIS-ROUNDS] startup recovery: resuming %s", cycle_id)
-        _spawn(
-            cycle_id,
-            str(run.get("market", "cn")),
-            list(run.get("symbols") or []),
-            str(run.get("symbols_source") or "autonomous"),
-            str(run.get("label") or "analysis"),
-        )
-        resumed += 1
-    if resumed:
-        logger.info("[ANALYSIS-ROUNDS] startup recovery resumed %d round(s)", resumed)
+        logger.info("[ANALYSIS-ROUNDS] startup recovery: preserving interrupted %s", cycle_id)
+        # A restart is not authorization to relaunch old paid research. Claim
+        # first so another live engine's cycle is never marked failed here.
+        claim = AtomicClaim(_lease_path(cycle_id), stale_seconds=LEASE_STALE_SECONDS, check_owner=True)
+        if not claim.acquire():
+            continue
+        try:
+            analysis_runs.finish({"cycle_id": cycle_id, "error": "后台进程中断；已保留检查点，请明确重试后续跑"}, failed=True)
+        finally:
+            claim.release()
 
 
 def status(cycle_id: str) -> Optional[Dict[str, Any]]:

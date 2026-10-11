@@ -30,6 +30,7 @@ def isolate(monkeypatch, tmp_path):
     untouched so tests of the real configuration still work.
     """
     monkeypatch.setattr(dsh_bridge, "AUDIT_DIR", tmp_path / "audit")
+    monkeypatch.setattr("engine.analysis_runs.runtime_dir", lambda: tmp_path / "runtime")
     (tmp_path / "audit").mkdir()
     monkeypatch.setenv("DSH_HOME", str(tmp_path / "home"))
     # No settings.yaml in these sandboxes, so neither can be mistaken for ours,
