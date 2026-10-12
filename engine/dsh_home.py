@@ -71,7 +71,15 @@ def seed_dsh_home(app_dir: str | Path, dsh_home: str | Path, *, force: bool = Fa
     _copy_tree(app / "presets", home / ".agent-presets", force=force)
     _copy_tree(app / "skills", home / "skills", force=force)
     _install_plugins(app / "plugins", home / "profiles", force=force)
-    result["seeded"] = sorted(str(path.relative_to(home)) for path in home.rglob("*") if path.is_dir() and path.name == "investment")
+    # Summarise shipped directories only. A home also contains user history,
+    # backups and linked SDK trees; walking it can exceed desktop readiness.
+    result["seeded"] = sorted(
+        str((home / target / entry.name).relative_to(home))
+        for source, target in (("profiles", "profiles"), ("presets", ".agent-presets"), ("skills", "skills"))
+        if (app / source).is_dir()
+        for entry in (app / source).iterdir()
+        if entry.is_dir() and (home / target / entry.name).is_dir()
+    )
     logger.info("DSH home seeded: %s", home)
     return result
 

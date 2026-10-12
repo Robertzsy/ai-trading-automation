@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from engine import dsh_home
 
@@ -83,3 +84,27 @@ def test_seed_from_env_ignores_missing_app(monkeypatch, tmp_path):
     monkeypatch.setenv("AI_TRADING_AUTOMATION_APP_DIR", str(tmp_path / "nope"))
     monkeypatch.setenv("DSH_HOME", str(tmp_path / "home"))
     assert dsh_home.seed_from_env() is False
+
+
+def test_seed_does_not_inspect_unrelated_user_history(monkeypatch, tmp_path):
+    app = _make_app(tmp_path)
+    home = tmp_path / "home"
+    history = home / "runtime" / "archive" / "investment"
+    history.mkdir(parents=True)
+    (history / "keep.txt").write_text("user data", encoding="utf-8")
+    original = Path.is_dir
+
+    def guarded_is_dir(path):
+        if path.is_relative_to(home / "runtime"):
+            raise PermissionError("User-history traversal is forbidden during product seeding")
+        return original(path)
+
+    monkeypatch.setattr(Path, "is_dir", guarded_is_dir)
+    result = dsh_home.seed_dsh_home(app, home, force=True)
+
+    assert set(result["seeded"]) == {
+        str(Path("profiles/investment-web")),
+        str(Path(".agent-presets/investment")),
+        str(Path("skills/security-analysis")),
+    }
+    assert (history / "keep.txt").read_text(encoding="utf-8") == "user data"

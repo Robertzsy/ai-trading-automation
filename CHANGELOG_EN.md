@@ -8,7 +8,7 @@ See the [README](README_EN.md) for installation and usage, and [GitHub Releases]
 
 - Added an Investment Research workspace for history, reports, progress and stage evidence, keeping all three one-click actions.
 - Added local stock lookup by name, code and approximate name, with confirmation before adding a candidate.
-- Fixed analysis stalls, repeated starts after failure and duplicate desktop service starts, reducing unintended calls.
+- Fixed startup timeouts, analysis stalls, repeated starts after failure and duplicate desktop service starts, reducing unintended calls.
 - Preserve completed stages after interruption for manual resume; code repairs require a proposed plan and user confirmation.
 - Restored complete shared material and active news investigation.
 - Unified the application name as AI Trading Automation and improved data-source disclosures and upgrade compatibility.
