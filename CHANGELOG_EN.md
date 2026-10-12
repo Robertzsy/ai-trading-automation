@@ -2,124 +2,61 @@
 
 [简体中文](CHANGELOG.md) | [English](CHANGELOG_EN.md)
 
-This English changelog covers the complete Investment Auto 2.x line. For installation and usage, see [README_EN.md](README_EN.md). The bilingual release notes are available in [docs/RELEASE_NOTES_2.2.0.md](docs/RELEASE_NOTES_2.2.0.md).
+See the [README](README_EN.md) for installation and usage, and [GitHub Releases](https://github.com/Robertzsy/ai-trading-automation/releases) for published builds.
 
-## 2.2.0 — Naming Unification and Shared Research Data (2026-10-09)
+## Unreleased — 2.2.0 Investment Research and Stability
 
-> This release bundles two independent changes as two separate commits so either can be reverted and attributed on its own.
+These changes are on the development branch. The installer has not been released; the current stable installer is 2.1.5.
 
-### ① Shared research data and leaner model input
+- Added an Investment Research workspace for history, reports, progress and stage evidence, keeping all three one-click actions.
+- Added local stock lookup by name, code and approximate name, with confirmation before adding a candidate.
+- Fixed analysis stalls, repeated starts after failure and duplicate desktop service starts, reducing unintended calls.
+- Preserve completed stages after interruption for manual resume; code repairs require a proposed plan and user confirmation.
+- Restored complete shared material and active news investigation.
+- Unified the application name as AI Trading Automation and improved data-source disclosures and upgrade compatibility.
 
-- Fundamental and news research data is shared between window sessions and autonomous cycles, so the same material is no longer fetched and fed to the model repeatedly.
-- Added a research-data contract and policy layer: source switching, unit and date conventions, configuration switches and usage limits live in one place.
-- Evidence is persisted as checkpoints; downstream roles receive only a compressed summary, cutting duplicate model input.
-- Added the AKShare and BaoStock dependencies, with import checks in `scripts/bundle-runtime.ps1` so release archives carry them.
+See the [2.2.0 draft notes](docs/RELEASE_NOTES_2.2.0.md) for a preview.
 
-### ② Naming unification (internal identifiers and display name)
+## 2.1.5 — Holdings and Stock History (2026-10-09)
 
-- Technical identifiers unified on `ai-trading-automation`: the Python package and CLI, the npm scope (`@ai-trading-automation/dsh-*`, five plugins), the C# assembly and namespaces (`AiTradingAutomation.Desktop`), the installer script and artefacts (`AiTradingAutomation.iss`, `AiTradingAutomation-Setup-x64.exe`), the icon and the single-instance identifiers.
-- Environment variables unified on `AI_TRADING_AUTOMATION_*`, `ATA_ACCESS_TOKEN` and the `X-ATA-Token` header. The engine and desktop shell **still accept the pre-rename names** (`INVESTMENT_AUTO_*`, `IA_ACCESS_TOKEN`, `X-IA-Token`), and the shell exports both sets to child processes, so existing shortcuts and local scripts keep working.
-- Brand display name unified as `AI Trading Automation`; the official full names (Chinese/English) serve as document titles with the technical identifier as the subtitle.
-- **Deliberately unchanged**: the local checkout folder `D:\investment-auto` (renaming it would invalidate both agents' working directory and the session keys derived from it), the install directory `%LocalAppData%\Programs\InvestmentAuto` and the data directory `%LocalAppData%\InvestmentAuto` (zero data migration), the DSH profile/preset names (`investment`/`investment-web`), domain integration variables (`INVESTMENT_API_PORT`, `INVESTMENT_ENGINE_URL`, `INVESTMENT_CYCLE_ID`), the `investment_*` tool names and the MongoDB database name `investment_auto` (renaming a data identifier would orphan existing data).
-- All 17 version declarations moved to 2.2.0 through `scripts/bump-version.ps1`.
+- Select a holding to view its history, with date ranges, candlesticks, cost basis, volume and simulated fill dates.
+- Show accounts and allocations by market and currency, with data sources and dates.
+- Added charts and a workflow view to the README example.
 
-### Validation
+## 2.1.4 — Interface and Analysis Improvements (2026-10-09)
 
-- 398 Python tests passed with six online checks skipped (identical to the 2.1.5 baseline, no regression); 76 plugin tests passed; the skill check confirmed eight Skills against 19 registered tools; five plugins composed under the new scope; the version gate passed.
+- Unified the light interface, icons and type sizes for better readability.
+- Made analysis actions, progress and reports easier to view, with a stop action.
+- Improved the Dashboard holdings table and market brief.
+- Fixed startup failures, stalled progress displays and incorrect status after stopping.
 
-## 2.1.5 — Holdings-Linked Stock Visualisation (2026-10-09)
+## 2.1.3 — Diagnostics and Reliability (2026-08-24)
 
-- Linked the holdings list and allocations to each stock's daily history, with independent market selection.
-- Added one-month, three-month and one-year ranges; line/candlestick views, cost basis, volume, MA20 and simulated fill dates; pointer, touch and keyboard date inspection.
-- Kept equity, unrealised P/L, capital use and allocation in each market's native currency. Missing prices do not fall back to invented cost-based valuations.
-- Added a read-only history proxy with symbol validation, coalesced requests, caching and retry; charts disclose source, adjustment, fallback use and final trading date.
-- Added timestamps for account valuation prices and distinguished these from historical closes. Runtime status, round reports and market news remain available.
-- Fixed the version writer and gate omitting the lockfile's two product version fields. All 17 declarations now agree on 2.1.5 without changing third-party dependency versions.
-- Updated browser acceptance for the new Dashboard and fixed the empty Chrome profile argument that prevented isolated smoke runs.
-- Validation: 381 Python tests passed, six online checks skipped; 38 plugin tests, 20 desktop tests and installed-product browser acceptance passed. The preceding local Dashboard upgrade preserved all 78,691 user-data files.
-- Added bilingual case-study figures for metrics, stage timings and stock decisions, plus expandable Mermaid flows, the original record and detailed evidence. Both figures share one source and a generation gate.
-- Published the matching v2.1.5 installer with a SHA-256 file; v2.1.4 remains intact. See the [repository audit](docs/REPOSITORY_AUDIT_2026-10-09.md) for remaining dependency and portable-ZIP findings.
+- Added log diagnostics and application maintenance tools.
+- Fixed analysis retry and Windows file-save issues.
+- Improved installer and upgrade data protection.
 
-## 2.1.4 — Design-Tokenised UI and a Reliable Analysis Pipeline (2026-10-09, branch `dsch/2.0`)
+## 2.1.2 — Paper Trading and Recovery Protection (2026-08-23)
 
-- **Rebuilt the interface on a design-token layer.** Colour, type scale, spacing, radius, elevation and motion are all tokens now rather than scattered literals, with a new gate that catches self-referential variables (`--ia-x: var(--ia-x)`, which browsers silently drop).
-- **Pinned to a single light theme** (`color-scheme: light`), removing the dark branches so colour and contrast no longer depend on the system theme.
-- **Full contrast compliance.** The audit that started this work found 124 failing text elements; the interface now scans around 490 with zero violations, and text over gradients is checked stop by stop.
-- **Raised the smallest type from 11px to 12px** (`--ia-fs-micro` carried 30 rules) and set the dashboard's key figures larger still. Added 14 built-in SVG icons in place of character placeholders, four elevation levels, and one interaction state machine.
-- **Reworked the Analysis Centre.** The three one-click entries moved to the top at one uniform size (604x42), with the primary action in gradient and the other two outlined. The "Start analysis" button was deleted as a duplicate of "Analyse these symbols" — the same action rendered twice. Pre-flight collapsed to one line that expands by itself when a condition is unmet. Progress is graphical, and round reports render as Markdown.
-- **Reworked the Dashboard.** Market cards went from two wide cards to four vertical ones (318x180); a holdings table was added with eight columns generated from the same definition as its data rows; and trend colour follows each market's own convention — red-for-up in mainland China and Hong Kong, green-for-up in the US — expressed on a separate `data-trend` axis rather than by reusing severity semantics.
-- **Macro Daily is now Market Brief**, subtitled "collected 08:00 each trading day" and rendered as Markdown; the source is GFM, so the old panel printed `##` and `>` literally.
-- **Merged the Analysis Workflow tab into the Analysis Centre**, taking the left navigation from five entries to four, and bound the pipeline diagram to the engine's stages and `agent.phase` so it reports real completion ratios and timings.
-- **Fixed analysis rounds failing at startup.** The engine bridge loaded the DPAPI credential patch only when `IA_ACCESS_TOKEN` was non-empty, and skipping it is the worst outcome rather than a safe default: the default `.credentials.yaml` provider stays enabled and the DPAPI provider is never inserted, so no credentials service exists at all and the round dies before any subagent starts. The UI showed "0/0 agents, 0 evidence", which looked like data loss. The bridge now writes a round-local patch carrying that session's real engine URL and token, and always applies it.
-- **Fixed workflow status that never advanced.** The check read a stage the engine has never emitted, so the row stayed "pending" even on a finished round.
-- **Fixed the holdings table columns not matching the data** — the header had one cell more than the body because the market name had been rendered as a `th`; it is now a `caption`, with header and body generated from one column list.
-- **A round can now be stopped.** The workflow polls run state between stages and aborts the workflow engine on cancel, which fans the stop out to pending and running child agents through DSH's own abort path; cancellation is terminal, and the engine closes the running agent rows.
-- **Other fixes:** KPI cards using only their left half, a stopped round still showing "running", recurring Windows atomic-write share violations (`WinError 5/32/33`), slow startup when the optional MongoDB is unconfigured, and rounds that could run in an inherited foreign DSH home.
-- **Regression baseline:** 376 Python tests, 28 Node plugin tests, 20 Windows desktop tests; the browser smoke gate passes, now asserting nav entry count, entry sizing, absence of the duplicate button, pre-flight consistency and holdings column alignment; plugin composition validates and both generators are current.
+- Strengthened duplicate-fill protection and analysis-result checks.
+- Improved interrupted-run recovery and handling of user-specified stocks.
+- Kept internal research tasks out of the user conversation list.
 
-Installer: `InvestmentAuto-Setup-x64.exe` (183,429,298 bytes)
-SHA-256: `9E447B2219926EEC07EE7D99CE2E9B13BACB9FF6D36C05503265E468A5D199B9`
+## 2.1.1 — Analysis Workflow Improvements (2026-08-22)
 
-## 2.1.3 — Full IA Self-Maintenance and Reliability Closure (2026-08-24, branch `dsch/2.0`)
+- Separated screening from analysis of user-specified stocks.
+- Improved progress feedback for long analyses and reduced timeouts and duplicate starts.
 
-- Restored the complete DSH coding surface for the desktop investment preset and headless profile: PowerShell/shell, filesystem, search, background jobs, subagents, and Ralph. Desktop, development, and headless processes now use `danger-full-access` and receive the authoritative `INVESTMENT_AUTO_ROOT`.
-- Added the `self-maintenance` Skill. IA can diagnose real logs and persisted state, edit authoritative source, run tests and builds, replay the failed task, and improve prompts, Skills, or fixed workflows. It must use recoverable backups before replacing an installed version and must not treat a seeded DSH Home as source.
-- Rewrote every workflow `agent()` schema to the supported root-level `required` format, extracted shared schema constants, and added startup preflight validation through DSH's public schema validator.
-- Fixed the failed-cycle retry race. Only the orchestrator that owns the cross-process cycle lease may reopen a failed run; internal repeated starts no longer erase the original error, and generic headless failures no longer mask a specific workflow exception.
-- Fixed recurring Windows `WinError 5` failures in command-bus atomic writes by using unique temporary files and bounded exponential retries.
-- Excluded `app/dev-home` from the installer and added upgrade cleanup for the development sessions, credentials, and duplicate dependencies accidentally shipped by older builds. The real user-data directory remains untouched.
-- Kept system authority separate from trading authority. Paper-only execution, user approval, decision fingerprints, idempotency, and deterministic Python risk controls remain mandatory.
-- Replayed the original failed AAPL cycle on the installed 2.1.3 build with the same cycle ID. It completed `base_research`, `research_debate`, `portfolio_draft`, `risk_review`, and `final_decision`, reaching `ready_for_execution`. The validation used `submit=false` and placed no trade.
-- Regression baseline: 184 Python tests, 22 Node plugin tests, and 20 Windows desktop tests, plus Skills/plugin composition, real-profile validation, and in-place upgrade checks. All 76,167 user-data files were preserved with zero missing, changed, or added files.
+## 2.1.0 — Standalone Desktop Interface (2026-08-22)
 
-Installer: `InvestmentAuto-Setup-x64.exe` (161,497,160 bytes)
+- Added the Dashboard, Investment Assistant, Analysis Workflow and Settings pages.
+- Preserved streaming conversations, reasoning and tool displays while simplifying everyday navigation.
+- Added model, strategy, market and autonomous-run settings.
 
-SHA-256: `00522AA80EAEF39BB9B59F1B50B458A2177F909AD807914DDB34367A85B49560`
+## 2.0.0 — Desktop Application Rebuild (2026-08-22)
 
-## 2.1.2 — Execution Safety and Durable Cycle Recovery (2026-08-23, branch `dsch/2.0`)
+- Rebuilt conversations and multi-agent analysis with unified research and paper-trading workflows.
+- Added a Windows installer, credential storage and legacy-data import.
+- Added autonomous cycles and saved stage progress.
 
-- Made the paper account the source of truth for execution idempotency. Fills and bounded execution receipts are committed together under the account lock; a retry after “fill completed, external bookkeeping missing” replays the receipt instead of filling again.
-- Made `idempotency_key` mandatory and bound it to a normalized decision fingerprint containing market, symbols, actions, weights, and confidence. Reusing a key with different content is rejected.
-- Added the explicit `ready_for_execution` state. Final decisions and their fingerprint are persisted before manual approval or autonomous submission; both paths execute through the same binding check.
-- Bound user-specified securities to a completed analysis cycle. A cycle may expand the execution allow-list only when its terminal decision exactly matches the submitted fingerprint.
-- Derived cycle identity from the platform session and direct user-message identity. Retries reuse the same cycle; a new user request creates a new cycle even when the text is identical.
-- Added cross-process cycle leases and startup recovery. The serving engine resumes orphaned running cycles from checkpoints without double-running or double-submitting.
-- Moved headless cycles to an isolated internal DSH Home. The product session list filters subagent sessions, correctly maps search results, and conservatively archives previously leaked internal sessions after backup.
-- Enforced the screening/analysis boundary in code: manual analysis rejects an empty symbol list, while autonomous scheduling retains its internal screening entry point. Headless symbol arrays now use strict JSON encoding.
-- Regression baseline: 182 Python tests, 21 Node tests, Skills/plugin contracts, 29 headless-browser assertions, and a real wire conversation.
-
-## 2.1.1 — Analysis Routing and Execution Repair (2026-08-22, branch `dsch/2.0`)
-
-- Split the product intent into two explicit paths. A user-named security skips screening and enters `investment_analysis_workflow`; a screening request first produces a normalized candidate list and then enters the same workflow.
-- Registered the fixed workflow on the headless host plane so web conversations and autonomous cycles execute the same staged implementation instead of asking a generic Agent to reconstruct the process from prose.
-- Retired the old model-visible `investment_run_cycle` entry point and updated the persona, preset, and core Skills so full security analysis has one trusted route.
-- Added asynchronous analysis starts and the `investment_analysis_status` polling tool. Long-running analysis no longer holds a browser request open for five minutes or triggers duplicate cycles after a fetch timeout.
-- Added initial cycle-level submission idempotency and a background round orchestrator with checkpoint replay.
-- Regression baseline: 160 Python tests, 17 Node plugin tests, profile/skill/plugin checks, 27 browser assertions, and real wire validation.
-
-## 2.1.0 — Standalone Investment Auto Product Shell (2026-08-22, branch `dsch/2.0`)
-
-- Removed user-visible DSH branding, workspace selection, permission/mode selection, preset selection, and generic platform settings while retaining DSH as the internal runtime.
-- Added the `@investment-auto/dsh-product-shell` client: product navigation, flat session list, Dashboard, Investment Assistant, live Analysis Workflow, Settings, and a collapsible investment context panel. The unnecessary Account navigation item was removed.
-- Preserved the native DSH conversation core. Messages, reasoning, streaming output, tools, Skills, subagents, goals, plans, and trajectory bundles were not changed; the product shell only hosts the existing conversation slot.
-- Added a real Dashboard and workflow telemetry backed by engine data rather than synthetic UI state.
-- Added product settings for models and DPAPI credentials, strategy and risk, autonomous scheduling, markets and screening, notifications, and application behavior. Browser JavaScript never receives the engine URL or token.
-- Restored the complete fixed multi-role workflow: four parallel research roles, bull/bear debate, research manager, per-symbol trader, portfolio draft, three-way risk debate, risk manager, and final portfolio manager.
-- Added atomic stage checkpoints and `/api/analysis/*` endpoints. Python owns state and hard controls while all LLM work stays in DSH.
-- Hardened the self-contained Windows publish and forced product-tree reseeding during upgrades without overwriting user sessions, credentials, configuration, or overrides.
-- Regression baseline: 147 Python tests, 12 Node plugin tests, 20 desktop tests, profile validation, browser acceptance, and a real wire conversation.
-
-## 2.0.0 — DSH Runtime Rebuild (2026-08-22, branch `dsch/2.0`)
-
-Investment Auto 2.0 rebuilt the application on DeepSeek Harness. Conversations, sessions, model access, tools, Skills, plans, goals, subagents, and workflows moved to DSH. The 1.x investment business logic was reduced to a standalone Python engine connected through a token-protected loopback HTTP tools bridge.
-
-- **P0 — Foundation:** reorganized investment business logic under `engine/`, removed the old Agent/manager/UI/LLM layers from the 2.x runtime, pinned the complete DSH `0.1.0-rc.6` dependency tree, and created investment web/headless profiles plus the investment preset.
-- **P1 — Conversation and tools bridge:** exposed engine status, market data, screening, portfolios, reports, macro data, and mandates through native `investment_*` tools and an investment persona.
-- **P2 — Investment Skills and paper execution:** added seven product Skills and the guarded `submit_decisions` chain: engine price resolution, mandate checks, deterministic order construction, paper execution, audit, report, and reflection.
-- **P3 — Autonomous cycles:** the Python scheduler spawns DSH headless sessions using the same tools and Skills as the desktop assistant; the engine remains the source of truth for decisions, execution, and recovery.
-- **P4 — Windows distribution:** added the WPF/WebView2 desktop process model, dynamic ports, per-launch access tokens, DPAPI credentials, first-run migration/setup, automatic DSH Home seeding, bundled Node/Python runtimes, and the Inno Setup installer.
-- **P5 — Product verification:** added investment tool cards, release gates across Python/C#/Node/Skills/plugins, a live autonomous model cycle through paper execution, real 1.x data migration, and automated web-conversation verification.
-- On-machine acceptance covered silent install, first-run setup, DPAPI keys, engine startup, installed conversation, and byte-for-byte user-data preservation during upgrade.
-- Regression baseline: 121 Python tests, 20 desktop tests, 6 Node plugin tests, and Skills/plugin contracts.
-
-The 1.x line is archived at tag `legacy-1x` as history and a fallback. Its original changelog is retained in [CHANGELOG.md](CHANGELOG.md).
+See the [historical changelog](https://github.com/Robertzsy/ai-trading-automation/blob/308f6c2/CHANGELOG.md) for earlier versions.

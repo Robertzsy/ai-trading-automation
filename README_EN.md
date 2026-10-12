@@ -4,13 +4,13 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.2.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.0)
+[![Release](https://img.shields.io/badge/release-v2.1.5-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
 AI Trading Automation is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
 
-The current source and latest installer are both **2.2.0**, including naming unification, shared research data, and the holdings-linked Dashboard.
+The latest published installer is **2.1.5**. The **2.2.0 development branch** adds Investment Research, local stock suggestions and analysis stability fixes; it has not yet been released as an installer.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -36,20 +36,20 @@ The current source and latest installer are both **2.2.0**, including naming uni
 - **Risk controls the AI cannot bypass**: three-tier strategy mandate, position capping, drawdown circuit breaker, and built-in stop-loss/take-profit; every AI decision must pass the deterministic Python risk layer and paper broker.
 - **Productized desktop app**: Dashboard, Investment Assistant, Analysis Centre, and Settings; one-click install, single instance, tray icon, autostart, and in-place upgrades that preserve data.
 - **Holdings-linked Dashboard**: account metrics and allocations remain in each market's native currency; select a holding to inspect its daily history, line/candlestick views, time ranges, cost basis, volume, MA20 and fill dates, with source and data dates shown.
-- **Conversational AI assistant**: retains DSH-native reasoning, streaming, tools, Skills, plans, and subagents; IA can also inspect logs, edit source, and run tests to maintain itself.
+- **Conversational AI assistant**: retains DSH-native reasoning, streaming, tools, Skills, plans, and subagents; the development branch supports log diagnostics and code repairs with a proposed plan and user confirmation.
 
 ## Installation
 
-- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.2.0 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.0)
+- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.2.0/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
 ```powershell
-Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
 ```
 
-The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials, and sessions. The 2.2.0 on-machine upgrade check preserved all 78,911 user-data files with zero missing, changed, or added files, all DPAPI secrets still decrypt, and the upgrade removes pre-rename executables, shortcuts, and autostart entries.
+The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials and sessions.
 
 ## Run from Source
 
@@ -148,17 +148,18 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 
 ## Version History
 
-| Version | Core changes |
+| Version | Highlights |
 |---|---|
-| 2.0.0 | Replaced the 1.x custom Agent/window split with DSH-native conversations, tools, Skills, subagents, and workflows. Investment business logic moved into an independent Python engine, with a Windows desktop release, DPAPI credentials, and 1.x data migration. |
-| 2.1.0 | Turned “DSH plus an investment preset” into the standalone AI Trading Automation product. The UI gained a Dashboard, live Analysis Workflow, and Settings while removing workspace/mode selection and runtime branding. Native DSH conversation, reasoning, streaming, and tool rendering remained unchanged. |
-| 2.1.1 | Separated stock screening from security analysis. User-specified symbols now enter the fixed full workflow directly. Added asynchronous cycles, status polling, and first-generation execution idempotency to eliminate ad-hoc window analysis, long-request timeouts, and duplicate starts. |
-| 2.1.2 | Added durable broker receipts, decision fingerprints, cross-process leases, restart recovery, and strong binding between user-requested symbols and completed analysis. Internal headless and role sessions moved to an isolated DSH Home and no longer pollute the user session list. |
-| 2.1.3 | Enabled IA filesystem, PowerShell, search, background-job, and Ralph self-maintenance capabilities. Added the self-maintenance Skill and fixed workflow-schema compatibility, failed-cycle retry races, Windows atomic writes, and accidental packaging of development data. |
-| 2.1.4 | Rebuilt the interface on a design-token layer: a pinned light theme, full WCAG AA contrast, one icon set and four elevation levels, with the smallest type raised from 11px to 12px. Reworked the Analysis Centre (entries moved to the top, pre-flight collapsed, graphical progress, rounds can be stopped) and the Dashboard (four vertical market cards plus a holdings table, with trend colour following each market's convention). Merged the Analysis Workflow tab into the Analysis Centre. Fixed rounds failing at startup, workflow status that never advanced, and holdings columns offset from their data. |
-| 2.1.5 | Linked holdings to individual stock history; added per-currency metrics, allocation, candlesticks, cost basis, volume and simulated fill dates; extended the version gate to npm lockfile metadata and updated browser acceptance; added case-study figures and expandable flows to the README. |
+| 2.2.0 (unreleased) | Investment Research workspace, local stock suggestions, failure recovery and repair confirmation. |
+| 2.1.5 | Holdings-linked stock history and visual examples. |
+| 2.1.4 | Clearer interface, analysis progress and reports. |
+| 2.1.3 | Log diagnostics and reliability improvements. |
+| 2.1.2 | Stronger paper-trading and interrupted-run protection. |
+| 2.1.1 | Separate screening and specified-stock analysis actions. |
+| 2.1.0 | Standalone desktop interface and product settings. |
+| 2.0.0 | Rebuilt desktop application and multi-agent workflow. |
 
-See the [Chinese changelog](CHANGELOG.md), [English changelog](CHANGELOG_EN.md), and [bilingual v2.1.5 release notes](docs/RELEASE_NOTES_2.1.5.md) for the complete record.
+See the [changelog](CHANGELOG_EN.md) and [v2.1.5 release notes](docs/RELEASE_NOTES_2.1.5.md).
 
 ## Safety Boundaries
 
