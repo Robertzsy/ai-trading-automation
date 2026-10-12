@@ -1,6 +1,6 @@
 {
   "name": "@ai-trading-automation/dsh-investment-tools",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "AI Trading Automation 2.0 engine bridge and checkpointed multi-role analysis workflow",
   "type": "module",
   "main": "lib/index.js",

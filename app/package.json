@@ -1,7 +1,7 @@
 {
   "name": "ai-trading-automation-app",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "AI Trading Automation 2.0 — DeepSeek Harness application shell (custom profiles, investment agent preset, skills)",
   "type": "module",
   "engines": {

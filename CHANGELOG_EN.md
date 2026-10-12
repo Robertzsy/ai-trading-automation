@@ -4,9 +4,7 @@
 
 See the [README](README_EN.md) for installation and usage, and [GitHub Releases](https://github.com/Robertzsy/ai-trading-automation/releases) for published builds.
 
-## Unreleased — 2.2.0 Investment Research and Stability
-
-These changes are on the development branch. The installer has not been released; the current stable installer is 2.1.5.
+## 2.2.1 — Investment Research and Stability (2026-10-12)
 
 - Added an Investment Research workspace for history, reports, progress and stage evidence, keeping all three one-click actions.
 - Added local stock lookup by name, code and approximate name, with confirmation before adding a candidate.
@@ -15,7 +13,7 @@ These changes are on the development branch. The installer has not been released
 - Restored complete shared material and active news investigation.
 - Unified the application name as AI Trading Automation and improved data-source disclosures and upgrade compatibility.
 
-See the [2.2.0 draft notes](docs/RELEASE_NOTES_2.2.0.md) for a preview.
+See the [2.2.1 release notes](docs/RELEASE_NOTES_2.2.1.md) for installation and upgrades.
 
 ## 2.1.5 — Holdings and Stock History (2026-10-09)
 

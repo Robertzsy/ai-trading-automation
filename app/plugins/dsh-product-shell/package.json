@@ -1,6 +1,6 @@
 {
   "name": "@ai-trading-automation/dsh-product-shell",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "AI Trading Automation product shell: product navigation, fixed workspace, flat session list, settings shell, dashboard and investment settings pages over the DSH conversation kernel",
   "type": "module",
   "main": "lib/index.js",

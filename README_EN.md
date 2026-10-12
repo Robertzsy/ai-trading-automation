@@ -4,13 +4,13 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.1.5-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
+[![Release](https://img.shields.io/badge/release-v2.2.1-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.1)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
 AI Trading Automation is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
 
-The latest published installer is **2.1.5**. The **2.2.0 development branch** adds Investment Research, local stock suggestions and analysis stability fixes; it has not yet been released as an installer.
+The latest version, **2.2.1**, adds an Investment Research workspace and local stock suggestions, and fixes repeated starts after analysis failures.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -36,17 +36,17 @@ The latest published installer is **2.1.5**. The **2.2.0 development branch** ad
 - **Risk controls the AI cannot bypass**: three-tier strategy mandate, position capping, drawdown circuit breaker, and built-in stop-loss/take-profit; every AI decision must pass the deterministic Python risk layer and paper broker.
 - **Productized desktop app**: Dashboard, Investment Assistant, Analysis Centre, and Settings; one-click install, single instance, tray icon, autostart, and in-place upgrades that preserve data.
 - **Holdings-linked Dashboard**: account metrics and allocations remain in each market's native currency; select a holding to inspect its daily history, line/candlestick views, time ranges, cost basis, volume, MA20 and fill dates, with source and data dates shown.
-- **Conversational AI assistant**: retains DSH-native reasoning, streaming, tools, Skills, plans, and subagents; the development branch supports log diagnostics and code repairs with a proposed plan and user confirmation.
+- **Conversational AI assistant**: retains DSH-native reasoning, streaming, tools, Skills, plans, and subagents; supports log diagnostics and code repairs with a proposed plan and user confirmation.
 
 ## Installation
 
-- Download `InvestmentAuto-Setup-x64.exe` from the [v2.1.5 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.1.5)
+- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.2.1 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.1)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.1.5/InvestmentAuto-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.2.1/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
 ```powershell
-Get-FileHash .\InvestmentAuto-Setup-x64.exe -Algorithm SHA256
+Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
 ```
 
 The program is installed under `%LocalAppData%\Programs\InvestmentAuto`, while user data lives under `%LocalAppData%\InvestmentAuto`. In-place upgrades preserve accounts, holdings, reports, configuration, credentials and sessions.
@@ -150,7 +150,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 
 | Version | Highlights |
 |---|---|
-| 2.2.0 (unreleased) | Investment Research workspace, local stock suggestions, failure recovery and repair confirmation. |
+| 2.2.1 | Investment Research workspace, local stock suggestions, failure recovery and repair confirmation. |
 | 2.1.5 | Holdings-linked stock history and visual examples. |
 | 2.1.4 | Clearer interface, analysis progress and reports. |
 | 2.1.3 | Log diagnostics and reliability improvements. |
@@ -159,7 +159,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 | 2.1.0 | Standalone desktop interface and product settings. |
 | 2.0.0 | Rebuilt desktop application and multi-agent workflow. |
 
-See the [changelog](CHANGELOG_EN.md) and [v2.1.5 release notes](docs/RELEASE_NOTES_2.1.5.md).
+See the [changelog](CHANGELOG_EN.md) and [v2.2.1 release notes](docs/RELEASE_NOTES_2.2.1.md).
 
 ## Safety Boundaries
 
@@ -174,17 +174,7 @@ IA runs with the DSH `danger-full-access` preset. Within the current Windows use
 
 ## Tests and Release Gate
 
-The 2.1.5 source passed:
-
-- 381 Python tests; six online market-data checks skipped.
-- 38 Node plugin tests.
-- 20 Windows desktop tests.
-- Browser acceptance for navigation, market and holding selection, the Analysis Centre, settings and contrast; real holding history and 1280px / 360px layouts verified.
-- Skills/plugin composition, three generated-source gates and all 17 version declarations; the preceding desktop upgrade preserved all 78,691 user-data files.
-
-See the [repository audit](docs/REPOSITORY_AUDIT_2026-10-09.md) for GitHub, version and dependency findings.
-
-Run the complete release gate with:
+Release checks cover Python, plugin and desktop tests, generated files, version consistency, bundled runtimes and user-data preservation during upgrades. Developers can run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\release-check.ps1
