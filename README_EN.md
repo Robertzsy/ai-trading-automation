@@ -14,7 +14,7 @@ AI Trading Automation combines **multi-factor quantitative screening, portfolio 
 
 Version 2.x is built on DeepSeek Harness (DSH) and provides four workspaces: Overview, Investment Assistant, Investment Research, and Settings.
 
-The latest version, **2.3.0**, improves screening relevance and research actionability while significantly reducing analysis cost. It adds conditional watch, cash-deployment rules and a dashboard refresh.
+The latest version, **2.3.0**, improves screening relevance and research actionability while reducing repeated research work. It adds conditional watch, cash-deployment rules and a dashboard refresh.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -35,7 +35,7 @@ The latest version, **2.3.0**, improves screening relevance and research actiona
 ## Features
 
 - **Four markets in one app**: unified market data, screening, analysis, and paper accounts for A-shares, Hong Kong stocks, U.S. equities, and ETFs; T+1/T+0, lot sizes, price limits, commission, stamp tax, and slippage rules are built in per market.
-- **Multi-factor quantitative screening**: hard filters plus momentum / trend / liquidity / valuation / volume / low-volatility scores; outputs include rankings, factor scores, and screening reasons, with configurable weights and thresholds.
+- **Multi-factor quantitative screening**: hard filters plus momentum / relative strength / trend / volume breakout / acceleration / risk-adjusted momentum / liquidity / valuation / low-volatility scores; outputs include rankings, factor scores, and screening reasons, with configurable weights and thresholds.
 - **Quantitative portfolio optimization**: compares mean–variance, Black–Litterman, risk-parity, and cost-adjusted allocations, with target weights, cash allocation, historical risk metrics, and rebalancing cost estimates.
 - **Multi-agent AI research**: four base-research tracks → bull-bear debate → research adjudication and per-stock proposals → portfolio draft → three-way risk debate → final decision; views, disagreements, evidence, and checkpoints are stored as structured records.
 - **Risk controls the AI cannot bypass**: three-tier strategy mandate, position capping, drawdown circuit breaker, and built-in stop-loss/take-profit; every AI decision must pass the deterministic Python risk layer and paper broker.
@@ -76,80 +76,49 @@ Open `http://127.0.0.1:4567`, then configure the model and API key in Settings.
 
 ## Core Investment Logic
 
-The system separates investment research into quantitative screening and allocation, evidence-based AI analysis, and constrained paper execution.
+Quantitative methods identify candidates. AI tests investment theses. Allocation rules shape portfolio proposals. Code-based risk checks constrain final paper execution.
+
+![Workflow from quantitative screening and AI research through cash allocation, risk checks and paper execution](docs/assets/quant-ai-workflow.en.png)
+
+### Nine-factor quantitative ranking
+
+The base score includes momentum, relative strength, trend, volume breakout, acceleration, risk-adjusted momentum, liquidity, valuation and low volatility. The potential score emphasizes trend opportunities and price/volume changes; together they set research priority.
+
+![Nine base-factor weights and the 55% potential / 45% base-score blend](docs/assets/quant-ai-factors.en.png)
 
 ```text
-Quotes and history → Hard filters → Multi-factor candidate ranking
-                                                ↓
-Financial, news, and sentiment evidence → Multi-agent research and debate
-                                                ↓
-                              BUY / SELL / HOLD + target weights
-                                                ↓
-                              Mandate and risk checks → Paper fills → Reports and receipts
-
-Portfolio optimizer: independently supplies allocation, risk, and cost comparisons
-for the assistant to retrieve and interpret.
+Final ranking score = 55% × potential score + 45% × base score
 ```
 
-| Layer | Implemented methods | Output and purpose |
-|---|---|---|
-| Quantitative screening | Price, turnover, market-cap, valuation, and name filters; multi-factor weighted scoring | Narrows the research universe and records factor scores, reasons, and rejection counts |
-| Portfolio allocation | Sample-based mean–variance maximum Sharpe, Black–Litterman, risk parity, and cost adjustment | Compares weights, cash, historical return and volatility estimates, VaR / tail losses, and rebalancing costs |
-| AI research | Technical, fundamental, news, and sentiment research; bull-bear debate and portfolio risk adjudication | Relates numeric signals to events and proposes actions, target weights, reasons, and evidence citations |
-| Risk and paper execution | Position, cash, turnover, confidence, protective exits, drawdown, and market-rule checks | Checks AI proposals, limits or rejects orders, and records paper fills and rejections |
+| Screening and research parameter | Current default configuration |
+|---|---:|
+| Market-discovery count parameter / snapshot prefetch cap | 500 / 60 symbols |
+| Shortlist / configured autonomous universe cap | 8 / 30 symbols |
+| Screening refresh interval | 30 minutes |
+| Base-research perspectives / symbol success-ratio gate | 4 / 80% |
+| Research debate / risk debate | 1 round each |
 
-**How they work together**: a high quantitative score gives a candidate research priority. AI examines whether fundamentals and events support the signal, considers counterevidence, and proposes a portfolio decision. A BUY still has to pass execution checks; insufficient evidence can result in HOLD. Optimizer allocations are independent reference results; the fixed research workflow does not automatically adopt their weights.
+Scores use configurable rules; they are not price-increase probabilities. The portfolio optimizer independently provides mean–variance, Black–Litterman, risk-parity and cost-adjusted references, with a default 120-day lookback parameter, a 3,000-sample search parameter and at most 12 symbols. The fixed research workflow does not automatically adopt its recommended weights.
 
-The multi-factor weights are configurable rules. AI confidence expresses a research judgment, not a statistically calibrated probability of a price increase. Optimizer metrics are estimates from historical samples; the project does not yet provide out-of-sample performance evidence for the complete screening–AI–execution strategy.
+### Recorded cases
 
-See [Investment Logic](docs/INVESTMENT_LOGIC_EN.md) for factor calculations, optimizer assumptions, role responsibilities, and execution boundaries.
+![Recorded HOLD, Quectel WATCH and Mindray cash-rule-adjusted BUY proposals](docs/assets/quant-ai-cases.en.png)
 
-### A real worked example
+- **Completed Hong Kong research (2026-10-05)**: 38 role tasks, 185 evidence items and 0 failures. All four stocks remained HOLD; recorded stages totaled 401 seconds, excluding startup and other overhead.
+- **603236 Quectel (2026-10-23, development validation)**: WATCH, CNY 76.11 trigger, 10-day validity, target weight 0%, and 20-day/60-day scenario returns of −2.60%/−1.40%.
+- **300760 Mindray (2026-10-23, development validation)**: trader WATCH 0% → risk-manager BUY 5% → archived BUY 12% after cash rules, with final confidence 0.60 and a rule-adjustment flag.
 
-The complete record of one Hong Kong round on 2026-10-05 (cycle `hk-manual-20261005-1458`), with symbols taken from deterministic screening:
+All three rounds reached `ready_for_execution` with `submit=false`; no order was submitted. Prices, returns and weights are historical research outputs. A BUY proposal is not a filled position, and WATCH currently does not trigger orders automatically. These historical and development cases are not a same-version return comparison.
 
-[![Hong Kong case: 4 stocks, 38 subagents, 185 evidence items and 0 failures; recorded stages total 401 seconds, with all stocks HOLD and no trades submitted](docs/assets/hk-case-study.en.svg)](docs/assets/hk-case-study.en.svg)
+See [Investment Logic](docs/INVESTMENT_LOGIC_EN.md) for cycles, case fields, strategy parameters and execution boundaries, and the [minimal case summary](docs/assets/quant-ai-cases.json) for numeric values.
 
-Click the figure to enlarge it. Timings sum the recorded stages and exclude startup and other overhead; the figure shows the research process and decisions.
+### An internal sample of calls and estimated cost
 
-<details>
-<summary>Expand the five-stage flow and original round record</summary>
+![Two-symbol internal development sample: requests, search requests, estimated cost and evidence items](docs/assets/quant-ai-efficiency.en.png)
 
-```mermaid
-flowchart TD
-    A["Deterministic screening · 4 HK stocks"] --> B["Base research · 118 s"]
-    B --> C["Research debate · 190 s"]
-    C --> D["Portfolio draft · 16 s"]
-    D --> E["Risk debate · 52 s"]
-    E --> F["Final decision · 25 s"]
-    F --> G["All 4 stocks HOLD"]
-    G --> H["ready_for_execution"]
-    H --> I["Awaiting user approval · submit=false · No trades"]
-```
+In the 00700/01810 sample, requests fell from 231 to 131. Recalculated on one historical price basis, estimated cost changed from CNY 7.358 to CNY 4.434, while base-research evidence items changed from 174 to 166. Dates, prompts and cache states differ; costs are not reconciled bills and evidence counts do not establish equivalent quality. The comparison scope and raw-token aggregates are documented in [Investment Logic](docs/INVESTMENT_LOGIC_EN.md#internal-efficiency-sample-ledger-counts-and-cost-estimates) and the case summary.
 
-| | Measured |
-|---|---|
-| Input | 4 Hong Kong stocks from screening: `01888`, `00700`, `09988`, `01299` |
-| Process | 5 stages · 38 subagents · **0 failures** · 185 cited evidence items |
-| Stage timings | base research 118s → research debate 190s → portfolio draft 16s → risk debate 52s → final decision 25s |
-| Outcome | **all four HOLD**, no new positions opened |
-| Terminal state | `ready_for_execution` (awaiting user approval; `submit=false`, so no trade was placed) |
-
-</details>
-
-<details>
-<summary>Expand the evidence behind each stock decision</summary>
-
-Each symbol came back with a specific, checkable reason rather than a vague "wait and see":
-
-- **`00700`** — the research manager's weak consensus of 0.62 fell below the confidence a long entry requires; the bearish causal chain lined up in time (results release → next-day high-volume breakdown → broker downgrade); the bullish fundamentals lacked support (Q2 adjusted net profit +9% against revenue +11%, H1 capex +82% year on year); the only positive facts (buybacks, a broker target price) were qualified by free cash flow turning negative.
-- **`09988`** — the research manager was bearish at 0.66, above the 0.55 entry threshold, but that threshold only gates long entries and a bearish call is not an entry reason; MA60 and MA250 sit far above the price, and the extreme oversold reading is short-horizon only (RSI6 18.92) while the medium horizon is neutral (RSI14 49.03), so a bounce has no cross-horizon evidence.
-- **`01299`** — the bearish case rests on first-party engine data and is internally consistent (below every moving average, a 120-day closing low, expanding negative MACD, falling on volume); the bullish load-bearing claims rest on non-engine interfaces and derived values, so they were down-weighted.
-- **`01888`** — the entry price sat at the 97.9th percentile of its 30-day range with unconfirmed volume (49.82M against a 62.37M volume MA10); the structural stop implied −12.4% for a reward-to-risk of only 0.44; the "8–10× forward PE" claim was a derived value and could not be verified.
-
-</details>
-
-> The round kept all four stocks HOLD when the evidence was insufficient. After 38 subagents and 185 evidence items, it opened no new positions and retained the approval-pending state. Evidence requirements and hard risk controls govern every trade submission.
+The Python execution layer independently checks mandates, positions, cash, turnover, confidence and market settings. Model opinions and cash rules can change research proposals; final fills remain subject to execution checks.
 
 ## Architecture
 

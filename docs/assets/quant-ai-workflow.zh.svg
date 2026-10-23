@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="921.6pt" height="576pt" viewBox="0 0 921.6 576" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-24T00:43:54.979387</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.8.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 576
+L 921.6 576
+L 921.6 0
+L 0 0
+z
+" style="fill: #f5f7fb"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 45.36 221.76
+L 280.08 221.76
+Q 290.88 221.76 290.88 210.96
+L 290.88 124.56
+Q 290.88 113.76 280.08 113.76
+L 45.36 113.76
+Q 34.56 113.76 34.56 124.56
+L 34.56 210.96
+Q 34.56 221.76 45.36 221.76
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 343.44 221.76
+L 578.16 221.76
+Q 588.96 221.76 588.96 210.96
+L 588.96 124.56
+Q 588.96 113.76 578.16 113.76
+L 343.44 113.76
+Q 332.64 113.76 332.64 124.56
+L 332.64 210.96
+Q 332.64 221.76 343.44 221.76
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 641.52 221.76
+L 876.24 221.76
+Q 887.04 221.76 887.04 210.96
+L 887.04 124.56
+Q 887.04 113.76 876.24 113.76
+L 641.52 113.76
+Q 630.72 113.76 630.72 124.56
+L 630.72 210.96
+Q 630.72 221.76 641.52 221.76
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 641.52 372.96
+L 876.24 372.96
+Q 887.04 372.96 887.04 362.16
+L 887.04 275.76
+Q 887.04 264.96 876.24 264.96
+L 641.52 264.96
+Q 630.72 264.96 630.72 275.76
+L 630.72 362.16
+Q 630.72 372.96 641.52 372.96
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 343.44 372.96
+L 578.16 372.96
+Q 588.96 372.96 588.96 362.16
+L 588.96 275.76
+Q 588.96 264.96 578.16 264.96
+L 343.44 264.96
+Q 332.64 264.96 332.64 275.76
+L 332.64 362.16
+Q 332.64 372.96 343.44 372.96
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 45.36 372.96
+L 280.08 372.96
+Q 290.88 372.96 290.88 362.16
+L 290.88 275.76
+Q 290.88 264.96 280.08 264.96
+L 45.36 264.96
+Q 34.56 264.96 34.56 275.76
+L 34.56 362.16
+Q 34.56 372.96 45.36 372.96
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 292.876436 167.76
+Q 310.679832 167.76 326.806178 167.76
+" clip-path="url(#pa1cc111ea0)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 320.806178 164.76
+L 326.806178 167.76
+L 320.806178 170.76
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 590.956436 167.76
+Q 608.759832 167.76 624.886178 167.76
+" clip-path="url(#pa1cc111ea0)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 618.886178 164.76
+L 624.886178 167.76
+L 618.886178 170.76
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 758.88 225.918105
+Q 758.88 243.357317 758.88 259.119477
+" clip-path="url(#pa1cc111ea0)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 761.88 253.119477
+L 758.88 259.119477
+L 755.88 253.119477
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 626.562773 318.96
+Q 609.842974 318.96 594.800225 318.96
+" clip-path="url(#pa1cc111ea0)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 600.800225 321.96
+L 594.800225 318.96
+L 600.800225 315.96
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 328.482773 318.96
+Q 311.762974 318.96 296.720225 318.96
+" clip-path="url(#pa1cc111ea0)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 302.720225 321.96
+L 296.720225 318.96
+L 302.720225 315.96
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 45.36 504
+L 876.24 504
+Q 887.04 504 887.04 493.2
+L 887.04 431.28
+Q 887.04 420.48 876.24 420.48
+L 45.36 420.48
+Q 34.56 420.48 34.56 431.28
+L 34.56 493.2
+Q 34.56 504 45.36 504
+z
+" clip-path="url(#pa1cc111ea0)" style="fill: #eaf1ff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #172b46; font: 700 22px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="56.46625" transform="rotate(-0 34.56 56.46625)">量化与 AI：从候选到受约束的模拟执行</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #586b83; font: 11.5px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="82.632812" transform="rotate(-0 34.56 82.632812)">方法示意 · 按当前源码整理 · 实际运行案例见后文</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #2563eb; font: 700 14.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="142.630938" transform="rotate(-0 50.4 142.630938)">01  量化候选</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(50.4 167.9925)">进攻潜力分 55% + 基础分 45%</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(50.4 188.242125)">9 因子共同形成基础评分</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(50.4 208.49175)">默认 8 只候选，保留因子依据</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #2563eb; font: 700 14.5px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="142.630938" transform="rotate(-0 348.48 142.630938)">02  AI 个股研究</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(348.48 167.9925)">技术 / 基本面 / 新闻 / 情绪</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(348.48 188.242125)">多空辩论与研究裁决</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(348.48 208.49175)">输出动作、证据与情景假设</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #2563eb; font: 700 14.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="142.630938" transform="rotate(-0 646.56 142.630938)">03  组合与现金配置</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(646.56 167.9925)">组合草案 + 三方风险辩论</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(646.56 188.242125)">现金规则对建议进行后处理</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(646.56 208.49175)">BUY / SELL / HOLD / WATCH</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #2563eb; font: 700 14.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="294.268203" transform="rotate(-0 646.56 294.268203)">04  Python 硬风控</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(646.56 319.1925)">策略授权书 + 市场规则</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(646.56 339.442125)">检查仓位、现金、置信度等</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(646.56 359.69175)">限制或拒绝拟执行订单</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #2563eb; font: 700 14.5px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="293.830938" transform="rotate(-0 348.48 293.830938)">05  模拟撮合</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(348.48 319.1925)">引擎获取参考行情</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(348.48 339.442125)">计入佣金、税费与滑点</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(348.48 359.69175)">手动研究需批准后提交</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #2563eb; font: 700 14.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="293.830938" transform="rotate(-0 50.4 293.830938)">06  报告与执行记录</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(50.4 319.1925)">阶段证据、缺口与决策归档</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(50.4 339.442125)">记录模拟成交及拒绝原因</text>
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'" transform="translate(50.4 359.69175)">支持后续复查与评估</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #2563eb; font: 700 14px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="447.51125" transform="rotate(-0 50.4 447.51125)">独立配置参考：均值—方差 / Black–Litterman / 风险平价 / 成本调整</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #172b46; font: 11.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="476.472813" transform="rotate(-0 50.4 476.472813)">优化器提供权重、历史风险与调仓成本对照，由助手读取解读；固定研究流程不会自动采用其权重。</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #586b83; font: 11.5px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="541.272812" transform="rotate(-0 34.56 541.272812)">WATCH 当前为研究状态，不会触价自动下单。BUY 建议也不等于已成交仓位。</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="pa1cc111ea0">
+   <rect x="0" y="0" width="921.6" height="576"/>
+  </clipPath>
+ </defs>
+</svg>

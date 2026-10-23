@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="921.6pt" height="576pt" viewBox="0 0 921.6 576" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-24T00:43:55.908787</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.8.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 576
+L 921.6 576
+L 921.6 0
+L 0 0
+z
+" style="fill: #f5f7fb"/>
+  </g>
+  <g id="axes_1">
+   <g id="text_1">
+    <text style="fill: #172b46; font: 700 22px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="56.744687" transform="rotate(-0 34.56 56.744687)">Nine-factor base score and offensive potential score</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #586b83; font: 11.5px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="82.767578" transform="rotate(-0 34.56 82.767578)">Default parameters · Factor scores: 0–100 · Ranking scores are not probabilities</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #2563eb; font: 700 14px 'Microsoft YaHei'; text-anchor: start" x="653.76" y="138.63125" transform="rotate(-0 653.76 138.63125)">Potential score</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #172b46; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="653.76" y="171.113438" transform="rotate(-0 653.76 171.113438)">Momentum  32%</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #172b46; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="653.76" y="209.273438" transform="rotate(-0 653.76 209.273438)">Relative strength  26%</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #172b46; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="653.76" y="247.433438" transform="rotate(-0 653.76 247.433438)">Volume breakout  16%</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #172b46; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="653.76" y="285.593437" transform="rotate(-0 653.76 285.593437)">Acceleration  12%</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #172b46; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="653.76" y="323.753438" transform="rotate(-0 653.76 323.753438)">Risk-adjusted momentum  14%</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #586b83; font: 10.8px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="548.759812" transform="rotate(-0 34.56 548.759812)">Rule-configured weights. Strength and liquidity use the current candidate sample; valuation uses current PE/PB bands.</text>
+   </g>
+  </g>
+  <g id="axes_2">
+   <g id="patch_2">
+    <path d="M 193.536 437.76
+L 599.04 437.76
+L 599.04 115.2
+L 193.536 115.2
+z
+" style="fill: #f5f7fb"/>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1">
+     <g id="line2d_1">
+      <path d="M 193.536 437.76
+L 193.536 115.2
+" clip-path="url(#p4332830204)" style="fill: none; stroke: #dbe4ef; stroke-width: 0.6; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_2"/>
+     <g id="text_10">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: middle" x="193.536" y="454.313312" transform="rotate(-0 193.536 454.313312)">0</text>
+     </g>
+    </g>
+    <g id="xtick_2">
+     <g id="line2d_3">
+      <path d="M 328.704 437.76
+L 328.704 115.2
+" clip-path="url(#p4332830204)" style="fill: none; stroke: #dbe4ef; stroke-width: 0.6; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_4"/>
+     <g id="text_11">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: middle" x="328.704" y="454.313312" transform="rotate(-0 328.704 454.313312)">10</text>
+     </g>
+    </g>
+    <g id="xtick_3">
+     <g id="line2d_5">
+      <path d="M 463.872 437.76
+L 463.872 115.2
+" clip-path="url(#p4332830204)" style="fill: none; stroke: #dbe4ef; stroke-width: 0.6; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_6"/>
+     <g id="text_12">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: middle" x="463.872" y="454.313312" transform="rotate(-0 463.872 454.313312)">20</text>
+     </g>
+    </g>
+    <g id="xtick_4">
+     <g id="line2d_7">
+      <path d="M 599.04 437.76
+L 599.04 115.2
+" clip-path="url(#p4332830204)" style="fill: none; stroke: #dbe4ef; stroke-width: 0.6; stroke-linecap: square"/>
+     </g>
+     <g id="line2d_8"/>
+     <g id="text_13">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: middle" x="599.04" y="454.313312" transform="rotate(-0 599.04 454.313312)">30</text>
+     </g>
+    </g>
+    <g id="text_14">
+     <text style="fill: #586b83; font: 12px 'Microsoft YaHei'; text-anchor: middle" x="396.288" y="478.706391" transform="rotate(-0 396.288 478.706391)">Default base-score weight (%)</text>
+    </g>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1">
+     <g id="line2d_9"/>
+     <g id="text_15">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="144.049727" transform="rotate(-0 185.536 144.049727)">Momentum</text>
+     </g>
+    </g>
+    <g id="ytick_2">
+     <g id="line2d_10"/>
+     <g id="text_16">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="178.226459" transform="rotate(-0 185.536 178.226459)">Relative strength</text>
+     </g>
+    </g>
+    <g id="ytick_3">
+     <g id="line2d_11"/>
+     <g id="text_17">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="212.403192" transform="rotate(-0 185.536 212.403192)">Trend</text>
+     </g>
+    </g>
+    <g id="ytick_4">
+     <g id="line2d_12"/>
+     <g id="text_18">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="246.579924" transform="rotate(-0 185.536 246.579924)">Volume breakout</text>
+     </g>
+    </g>
+    <g id="ytick_5">
+     <g id="line2d_13"/>
+     <g id="text_19">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="280.756656" transform="rotate(-0 185.536 280.756656)">Acceleration</text>
+     </g>
+    </g>
+    <g id="ytick_6">
+     <g id="line2d_14"/>
+     <g id="text_20">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="314.933389" transform="rotate(-0 185.536 314.933389)">Risk-adjusted momentum</text>
+     </g>
+    </g>
+    <g id="ytick_7">
+     <g id="line2d_15"/>
+     <g id="text_21">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="349.110121" transform="rotate(-0 185.536 349.110121)">Liquidity</text>
+     </g>
+    </g>
+    <g id="ytick_8">
+     <g id="line2d_16"/>
+     <g id="text_22">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="383.286853" transform="rotate(-0 185.536 383.286853)">Valuation</text>
+     </g>
+    </g>
+    <g id="ytick_9">
+     <g id="line2d_17"/>
+     <g id="text_23">
+      <text style="fill: #172b46; font: 10.7px 'Microsoft YaHei'; text-anchor: end" x="185.536" y="417.463586" transform="rotate(-0 185.536 417.463586)">Low volatility</text>
+     </g>
+    </g>
+   </g>
+   <g id="patch_3">
+    <path d="M 193.536 129.861818
+L 531.456 129.861818
+L 531.456 149.684323
+L 193.536 149.684323
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 193.536 164.038551
+L 463.872 164.038551
+L 463.872 183.861055
+L 193.536 183.861055
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 193.536 198.215283
+L 355.7376 198.215283
+L 355.7376 218.037788
+L 193.536 218.037788
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 193.536 232.392015
+L 355.7376 232.392015
+L 355.7376 252.21452
+L 193.536 252.21452
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 193.536 266.568748
+L 301.6704 266.568748
+L 301.6704 286.391252
+L 193.536 286.391252
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 193.536 300.74548
+L 301.6704 300.74548
+L 301.6704 320.567985
+L 193.536 320.567985
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 193.536 334.922212
+L 288.1536 334.922212
+L 288.1536 354.744717
+L 193.536 354.744717
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 193.536 369.098945
+L 247.6032 369.098945
+L 247.6032 388.921449
+L 193.536 388.921449
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 193.536 403.275677
+L 247.6032 403.275677
+L 247.6032 423.098182
+L 193.536 423.098182
+z
+" clip-path="url(#p4332830204)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 193.536 437.76
+L 599.04 437.76
+" style="fill: none; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="text_24">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="539.56608" y="143.077758" transform="rotate(-0 539.56608 143.077758)">25%</text>
+   </g>
+   <g id="text_25">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="471.98208" y="177.25449" transform="rotate(-0 471.98208 177.25449)">20%</text>
+   </g>
+   <g id="text_26">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="363.84768" y="211.431223" transform="rotate(-0 363.84768 211.431223)">12%</text>
+   </g>
+   <g id="text_27">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="363.84768" y="245.607955" transform="rotate(-0 363.84768 245.607955)">12%</text>
+   </g>
+   <g id="text_28">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="309.78048" y="279.784688" transform="rotate(-0 309.78048 279.784688)">8%</text>
+   </g>
+   <g id="text_29">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="309.78048" y="313.96142" transform="rotate(-0 309.78048 313.96142)">8%</text>
+   </g>
+   <g id="text_30">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="296.26368" y="348.138152" transform="rotate(-0 296.26368 348.138152)">7%</text>
+   </g>
+   <g id="text_31">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="255.71328" y="382.314885" transform="rotate(-0 255.71328 382.314885)">4%</text>
+   </g>
+   <g id="text_32">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: start" x="255.71328" y="416.491617" transform="rotate(-0 255.71328 416.491617)">4%</text>
+   </g>
+  </g>
+  <g id="axes_3">
+   <g id="patch_13">
+    <path d="M 193.536 508.450909
+L 558.4896 508.450909
+L 558.4896 482.269091
+L 193.536 482.269091
+z
+" clip-path="url(#p2a324a0bec)" style="fill: #2563eb"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 558.4896 508.450909
+L 857.088 508.450909
+L 857.088 482.269091
+L 558.4896 482.269091
+z
+" clip-path="url(#p2a324a0bec)" style="fill: #b6caec"/>
+   </g>
+   <g id="text_33">
+    <text style="fill: #ffffff; font: 12px 'Microsoft YaHei'; text-anchor: middle" x="376.0128" y="498.664688" transform="rotate(-0 376.0128 498.664688)">55% potential score</text>
+   </g>
+   <g id="text_34">
+    <text style="fill: #172b46; font: 12px 'Microsoft YaHei'; text-anchor: middle" x="707.7888" y="498.664688" transform="rotate(-0 707.7888 498.664688)">45% base score</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p4332830204">
+   <rect x="193.536" y="115.2" width="405.504" height="322.56"/>
+  </clipPath>
+  <clipPath id="p2a324a0bec">
+   <rect x="193.536" y="480.96" width="663.552" height="28.8"/>
+  </clipPath>
+ </defs>
+</svg>

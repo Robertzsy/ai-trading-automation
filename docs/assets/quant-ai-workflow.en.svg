@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="921.6pt" height="576pt" viewBox="0 0 921.6 576" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-24T00:43:55.728489</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.8.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 576
+L 921.6 576
+L 921.6 0
+L 0 0
+z
+" style="fill: #f5f7fb"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 45.36 221.76
+L 280.08 221.76
+Q 290.88 221.76 290.88 210.96
+L 290.88 124.56
+Q 290.88 113.76 280.08 113.76
+L 45.36 113.76
+Q 34.56 113.76 34.56 124.56
+L 34.56 210.96
+Q 34.56 221.76 45.36 221.76
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 343.44 221.76
+L 578.16 221.76
+Q 588.96 221.76 588.96 210.96
+L 588.96 124.56
+Q 588.96 113.76 578.16 113.76
+L 343.44 113.76
+Q 332.64 113.76 332.64 124.56
+L 332.64 210.96
+Q 332.64 221.76 343.44 221.76
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 641.52 221.76
+L 876.24 221.76
+Q 887.04 221.76 887.04 210.96
+L 887.04 124.56
+Q 887.04 113.76 876.24 113.76
+L 641.52 113.76
+Q 630.72 113.76 630.72 124.56
+L 630.72 210.96
+Q 630.72 221.76 641.52 221.76
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 641.52 372.96
+L 876.24 372.96
+Q 887.04 372.96 887.04 362.16
+L 887.04 275.76
+Q 887.04 264.96 876.24 264.96
+L 641.52 264.96
+Q 630.72 264.96 630.72 275.76
+L 630.72 362.16
+Q 630.72 372.96 641.52 372.96
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 343.44 372.96
+L 578.16 372.96
+Q 588.96 372.96 588.96 362.16
+L 588.96 275.76
+Q 588.96 264.96 578.16 264.96
+L 343.44 264.96
+Q 332.64 264.96 332.64 275.76
+L 332.64 362.16
+Q 332.64 372.96 343.44 372.96
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 45.36 372.96
+L 280.08 372.96
+Q 290.88 372.96 290.88 362.16
+L 290.88 275.76
+Q 290.88 264.96 280.08 264.96
+L 45.36 264.96
+Q 34.56 264.96 34.56 275.76
+L 34.56 362.16
+Q 34.56 372.96 45.36 372.96
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 292.876436 167.76
+Q 310.679832 167.76 326.806178 167.76
+" clip-path="url(#p0eb26bd90f)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 320.806178 164.76
+L 326.806178 167.76
+L 320.806178 170.76
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 590.956436 167.76
+Q 608.759832 167.76 624.886178 167.76
+" clip-path="url(#p0eb26bd90f)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 618.886178 164.76
+L 624.886178 167.76
+L 618.886178 170.76
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 758.88 225.918105
+Q 758.88 243.357317 758.88 259.119477
+" clip-path="url(#p0eb26bd90f)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 761.88 253.119477
+L 758.88 259.119477
+L 755.88 253.119477
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 626.562773 318.96
+Q 609.842974 318.96 594.800225 318.96
+" clip-path="url(#p0eb26bd90f)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 600.800225 321.96
+L 594.800225 318.96
+L 600.800225 315.96
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 328.482773 318.96
+Q 311.762974 318.96 296.720225 318.96
+" clip-path="url(#p0eb26bd90f)" style="fill: none; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+    <path d="M 302.720225 321.96
+L 296.720225 318.96
+L 302.720225 315.96
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #9aabc2; stroke: #9aabc2; stroke-width: 1.5; stroke-linecap: round"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 45.36 504
+L 876.24 504
+Q 887.04 504 887.04 493.2
+L 887.04 431.28
+Q 887.04 420.48 876.24 420.48
+L 45.36 420.48
+Q 34.56 420.48 34.56 431.28
+L 34.56 493.2
+Q 34.56 504 45.36 504
+z
+" clip-path="url(#p0eb26bd90f)" style="fill: #eaf1ff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #172b46; font: 700 22px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="56.744687" transform="rotate(-0 34.56 56.744687)">Quant + AI: from candidates to constrained paper execution</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #586b83; font: 11.5px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="82.632812" transform="rotate(-0 34.56 82.632812)">Method diagram · Based on the current implementation · Recorded cases shown separately</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #2563eb; font: 700 13.5px 'Microsoft YaHei'; text-anchor: start" x="48.96" y="141.785156" transform="rotate(-0 48.96 141.785156)">01  Quantitative screening</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(48.96 166.873375)">55% potential + 45% base score</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(48.96 185.607881)">9 factors in the base score</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(48.96 204.342388)">Default shortlist: 8 candidates</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #2563eb; font: 700 13.5px 'Microsoft YaHei'; text-anchor: start" x="347.04" y="141.831563" transform="rotate(-0 347.04 141.831563)">02  AI stock research</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(347.04 166.873375)">Technical / financial / news / sentiment</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(347.04 185.607881)">Bull–bear debate and adjudication</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(347.04 204.403669)">Actions, evidence and scenario assumptions</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #2563eb; font: 700 13.5px 'Microsoft YaHei'; text-anchor: start" x="645.12" y="141.831563" transform="rotate(-0 645.12 141.831563)">03  Portfolio and cash rules</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(645.12 166.873375)">Portfolio draft and risk debate</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(645.12 185.607881)">Cash rules post-process proposals</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(645.12 204.342388)">BUY / SELL / HOLD / WATCH</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #2563eb; font: 700 13.5px 'Microsoft YaHei'; text-anchor: start" x="645.12" y="293.031563" transform="rotate(-0 645.12 293.031563)">04  Python risk checks</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(645.12 318.073375)">Strategy mandate and market settings</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(645.12 336.869163)">Position, cash and confidence limits</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(645.12 355.603669)">Constrain or reject proposed orders</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #2563eb; font: 700 13.5px 'Microsoft YaHei'; text-anchor: start" x="347.04" y="293.031563" transform="rotate(-0 347.04 293.031563)">05  Paper broker</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(347.04 318.197594)">Reference quotes fetched by the engine</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(347.04 336.993381)">Commission, taxes and slippage</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(347.04 355.789169)">Manual submissions require approval</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #2563eb; font: 700 13.5px 'Microsoft YaHei'; text-anchor: start" x="48.96" y="293.031563" transform="rotate(-0 48.96 293.031563)">06  Reports and receipts</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(48.96 318.073375)">Archived evidence, gaps and decisions</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(48.96 337.105178)">Paper fills and rejection reasons</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(48.96 355.900966)">Records for review and evaluation</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #2563eb; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="446.876406" transform="rotate(-0 50.4 446.876406)">Independent allocation reference: mean–variance / Black–Litterman / risk parity / cost adjustment</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #172b46; font: 11px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="476.202031" transform="rotate(-0 50.4 476.202031)">The assistant retrieves weights, historical risk and cost comparisons. The fixed workflow does not automatically adopt them.</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #586b83; font: 11px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="541.002031" transform="rotate(-0 34.56 541.002031)">WATCH is a research state, without automatic price-triggered orders. A BUY proposal is not a filled position.</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p0eb26bd90f">
+   <rect x="0" y="0" width="921.6" height="576"/>
+  </clipPath>
+ </defs>
+</svg>

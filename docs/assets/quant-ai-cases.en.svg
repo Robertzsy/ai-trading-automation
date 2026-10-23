@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="921.6pt" height="662.4pt" viewBox="0 0 921.6 662.4" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-10-24T00:43:56.048793</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.8.0, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 662.4
+L 921.6 662.4
+L 921.6 0
+L 0 0
+z
+" style="fill: #f5f7fb"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 45.36 568.8
+L 280.08 568.8
+Q 290.88 568.8 290.88 558
+L 290.88 129.6
+Q 290.88 118.8 280.08 118.8
+L 45.36 118.8
+Q 34.56 118.8 34.56 129.6
+L 34.56 558
+Q 34.56 568.8 45.36 568.8
+z
+" clip-path="url(#p55f9303d4d)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 343.44 568.8
+L 578.16 568.8
+Q 588.96 568.8 588.96 558
+L 588.96 129.6
+Q 588.96 118.8 578.16 118.8
+L 343.44 118.8
+Q 332.64 118.8 332.64 129.6
+L 332.64 558
+Q 332.64 568.8 343.44 568.8
+z
+" clip-path="url(#p55f9303d4d)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 641.52 568.8
+L 876.24 568.8
+Q 887.04 568.8 887.04 558
+L 887.04 129.6
+Q 887.04 118.8 876.24 118.8
+L 641.52 118.8
+Q 630.72 118.8 630.72 129.6
+L 630.72 558
+Q 630.72 568.8 641.52 568.8
+z
+" clip-path="url(#p55f9303d4d)" style="fill: #ffffff; stroke: #dbe4ef; stroke-width: 0.8; stroke-linejoin: miter"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #172b46; font: 700 22px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="56.46625" transform="rotate(-0 34.56 56.46625)">Recorded outcomes: HOLD, WATCH and a rule-adjusted BUY proposal</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #586b83; font: 11.5px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="82.767578" transform="rotate(-0 34.56 82.767578)">Real record summaries · Dates and cycle IDs retained · All three cases have submit=false; no orders submitted</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="144.473437" transform="rotate(-0 50.4 144.473437)">Historical research · 2026-10-05</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #2563eb; font: 700 16px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="175.51" transform="rotate(-0 50.4 175.51)">4 HK stocks · all HOLD</text>
+   </g>
+   <g id="text_5">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="213.593437" transform="rotate(-0 50.4 213.593437)">Role tasks</text>
+   </g>
+   <g id="text_6">
+    <text style="fill: #172b46; font: 700 14px 'Microsoft YaHei'; text-anchor: start" x="201.6" y="216.39125" transform="rotate(-0 201.6 216.39125)">38</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="258.953437" transform="rotate(-0 50.4 258.953437)">Evidence items</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #172b46; font: 700 14px 'Microsoft YaHei'; text-anchor: start" x="201.6" y="261.75125" transform="rotate(-0 201.6 261.75125)">185</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="304.313437" transform="rotate(-0 50.4 304.313437)">Failed tasks</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #172b46; font: 700 14px 'Microsoft YaHei'; text-anchor: start" x="201.6" y="307.11125" transform="rotate(-0 201.6 307.11125)">0</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="349.673437" transform="rotate(-0 50.4 349.673437)">Stage-time total</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #172b46; font: 700 14px 'Microsoft YaHei'; text-anchor: start" x="201.6" y="352.47125" transform="rotate(-0 201.6 352.47125)">401 s</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(50.4 408.073375)">Research completed without new entries.</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(50.4 427.655219)">This case illustrates the process</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(50.4 447.237062)">and evidence, not investment returns.</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #2563eb; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="517.556484" transform="rotate(-0 50.4 517.556484)">ready_for_execution</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #586b83; font: 9.2px 'Microsoft YaHei'; text-anchor: start" x="50.4" y="543.03425" transform="rotate(-0 50.4 543.03425)">Cycle: hk-manual-20261005-1458</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="144.473437" transform="rotate(-0 348.48 144.473437)">Development validation · 2026-10-23</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #2563eb; font: 700 15px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="174.710625" transform="rotate(-0 348.48 174.710625)">603236 Quectel · WATCH</text>
+   </g>
+   <g id="text_18">
+    <text style="fill: #586b83; font: 10.2px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="213.353625" transform="rotate(-0 348.48 213.353625)">Watch trigger</text>
+   </g>
+   <g id="text_19">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="506.16" y="215.591875" transform="rotate(-0 506.16 215.591875)">CNY 76.11</text>
+   </g>
+   <g id="text_20">
+    <text style="fill: #586b83; font: 10.2px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="258.713625" transform="rotate(-0 348.48 258.713625)">Watch validity</text>
+   </g>
+   <g id="text_21">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="506.16" y="260.951875" transform="rotate(-0 506.16 260.951875)">10 days</text>
+   </g>
+   <g id="text_22">
+    <text style="fill: #586b83; font: 10.2px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="304.073625" transform="rotate(-0 348.48 304.073625)">20-day scenario return</text>
+   </g>
+   <g id="text_23">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="506.16" y="306.311875" transform="rotate(-0 506.16 306.311875)">−2.60%</text>
+   </g>
+   <g id="text_24">
+    <text style="fill: #586b83; font: 10.2px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="349.433625" transform="rotate(-0 348.48 349.433625)">60-day scenario return</text>
+   </g>
+   <g id="text_25">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="506.16" y="351.671875" transform="rotate(-0 506.16 351.671875)">−1.40%</text>
+   </g>
+   <g id="text_26">
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(348.48 408.197594)">Target weight 0; confidence 0.55.</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(348.48 427.840719)">A conditional research plan,</text>
+    <text style="fill: #172b46; font: 10.6px 'Microsoft YaHei'" transform="translate(348.48 447.422562)">without automatic order execution.</text>
+   </g>
+   <g id="text_27">
+    <text style="fill: #2563eb; font: 9.4px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="516.664281" transform="rotate(-0 348.48 516.664281)">ready_for_execution · 84 evidence items</text>
+   </g>
+   <g id="text_28">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="348.48" y="544.196484" transform="rotate(-0 348.48 544.196484)">Cycle suffix: dd365500</text>
+   </g>
+   <g id="text_29">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="144.473437" transform="rotate(-0 646.56 144.473437)">Development validation · 2026-10-23</text>
+   </g>
+   <g id="text_30">
+    <text style="fill: #ad650c; font: 700 14px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="173.91125" transform="rotate(-0 646.56 173.91125)">300760 Mindray · BUY proposal</text>
+   </g>
+   <g id="text_31">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="213.593437" transform="rotate(-0 646.56 213.593437)">Trader proposal</text>
+   </g>
+   <g id="text_32">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="233.591875" transform="rotate(-0 646.56 233.591875)">WATCH · 0%</text>
+   </g>
+   <g id="text_33">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="258.953437" transform="rotate(-0 646.56 258.953437)">Risk-manager proposal</text>
+   </g>
+   <g id="text_34">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="278.951875" transform="rotate(-0 646.56 278.951875)">BUY · 5%</text>
+   </g>
+   <g id="text_35">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="304.313437" transform="rotate(-0 646.56 304.313437)">After cash rules</text>
+   </g>
+   <g id="text_36">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="324.311875" transform="rotate(-0 646.56 324.311875)">BUY · 12%</text>
+   </g>
+   <g id="text_37">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="349.796484" transform="rotate(-0 646.56 349.796484)">Rule flag</text>
+   </g>
+   <g id="text_38">
+    <text style="fill: #172b46; font: 700 13px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="369.836406" transform="rotate(-0 646.56 369.836406)">forced_deployment</text>
+   </g>
+   <g id="text_39">
+    <text style="fill: #172b46; font: 10.4px 'Microsoft YaHei'" transform="translate(646.56 407.9135)">Final confidence 0.60; 85 evidence items.</text>
+    <text style="fill: #172b46; font: 10.4px 'Microsoft YaHei'" transform="translate(646.56 427.125875)">12% is a proposed weight.</text>
+    <text style="fill: #172b46; font: 10.4px 'Microsoft YaHei'" transform="translate(646.56 446.642125)">No filled position came from this round.</text>
+   </g>
+   <g id="text_40">
+    <text style="fill: #ad650c; font: 9.4px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="516.664281" transform="rotate(-0 646.56 516.664281)">ready_for_execution · awaiting approval</text>
+   </g>
+   <g id="text_41">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="646.56" y="544.196484" transform="rotate(-0 646.56 544.196484)">Cycle suffix: 50108623</text>
+   </g>
+   <g id="text_42">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="607.556484" transform="rotate(-0 34.56 607.556484)">The October 23 runs are development records. Prompts and rules can differ across runs; this is not a same-version return comparison.</text>
+   </g>
+   <g id="text_43">
+    <text style="fill: #586b83; font: 10.5px 'Microsoft YaHei'; text-anchor: start" x="34.56" y="634.793437" transform="rotate(-0 34.56 634.793437)">Prices, returns and weights shown are historical research outputs, not current quotes, realized returns or current recommendations.</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p55f9303d4d">
+   <rect x="0" y="0" width="921.6" height="662.4"/>
+  </clipPath>
+ </defs>
+</svg>

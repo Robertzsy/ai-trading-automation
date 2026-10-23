@@ -1,0 +1,149 @@
+{
+  "prepared_on": "2026-10-24",
+  "source_commit_for_method": "5c1d395",
+  "scope": "Minimal historical research and development-validation records; not a performance backtest or complete release acceptance.",
+  "cases": [
+    {
+      "date": "2026-10-05",
+      "cycle_id": "hk-manual-20261005-1458",
+      "kind": "historical_research",
+      "status": "ready_for_execution",
+      "submit": false,
+      "stocks": [
+        "00700",
+        "09988",
+        "01299",
+        "01888"
+      ],
+      "actions": [
+        "HOLD",
+        "HOLD",
+        "HOLD",
+        "HOLD"
+      ],
+      "roles": 38,
+      "evidence_items": 185,
+      "failures": 0,
+      "stages": [
+        {
+          "zh": "基础研究",
+          "en": "Base research",
+          "seconds": 118
+        },
+        {
+          "zh": "研究辩论",
+          "en": "Research debate",
+          "seconds": 190
+        },
+        {
+          "zh": "组合草案",
+          "en": "Portfolio draft",
+          "seconds": 16
+        },
+        {
+          "zh": "风险辩论",
+          "en": "Risk debate",
+          "seconds": 52
+        },
+        {
+          "zh": "最终决策",
+          "en": "Final decision",
+          "seconds": 25
+        }
+      ]
+    },
+    {
+      "date": "2026-10-23",
+      "cycle_id": "20261023-cn-manual-dd365500",
+      "kind": "development_validation",
+      "status": "ready_for_execution",
+      "submit": false,
+      "evidence_items": 84,
+      "decision": {
+        "symbol": "603236",
+        "action": "WATCH",
+        "target_weight": 0,
+        "confidence": 0.55,
+        "expected_return_20d": -0.026,
+        "expected_return_60d": -0.014,
+        "watch_trigger": 76.11,
+        "watch_expiry_days": 10,
+        "upside_target": 85,
+        "downside_stop": 73.02
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "cycle_id": "20261023-cn-manual-50108623",
+      "kind": "development_validation",
+      "status": "ready_for_execution",
+      "submit": false,
+      "evidence_items": 85,
+      "trader": {
+        "symbol": "300760",
+        "action": "WATCH",
+        "target_weight": 0,
+        "confidence": 0.6,
+        "expected_return_20d": 0.0015,
+        "expected_return_60d": 0.0406,
+        "watch_trigger": 171.15,
+        "watch_expiry_days": 10,
+        "upside_target": 186,
+        "downside_stop": 163.2,
+        "forced_deployment": false
+      },
+      "risk_manager": {
+        "symbol": "300760",
+        "action": "BUY",
+        "target_weight": 0.05,
+        "confidence": 0.6
+      },
+      "final": {
+        "symbol": "300760",
+        "action": "BUY",
+        "target_weight": 0.12,
+        "confidence": 0.6,
+        "expected_return_20d": 0.0015,
+        "expected_return_60d": 0.0406,
+        "watch_trigger": 171.15,
+        "watch_expiry_days": 10,
+        "upside_target": 186,
+        "downside_stop": 163.2,
+        "forced_deployment": true
+      }
+    }
+  ],
+  "efficiency": {
+    "symbols": [
+      "00700",
+      "01810"
+    ],
+    "baseline": {
+      "cycle_id": "20261018-hk-manual-d6321b31",
+      "requests": 231,
+      "search_requests_proxy": 110,
+      "evidence_items": 174,
+      "cost_estimate_cny": 7.3580372,
+      "tokens": {
+        "cache_read_tokens": 4382080,
+        "uncached_input_tokens": 1505497,
+        "output_tokens": 521470
+      }
+    },
+    "updated": {
+      "cycle_id": "20261019-hk-manual-78931730",
+      "requests": 131,
+      "search_requests_proxy": 65,
+      "evidence_items": 166,
+      "cost_estimate_cny": 4.43426424,
+      "tokens": {
+        "cache_read_tokens": 2089856,
+        "uncached_input_tokens": 1081963,
+        "output_tokens": 273343
+      }
+    },
+    "cost_basis": "One historical CNY-per-million-token basis: cached input 0.04, uncached input 2, output 8. Not a current-price claim.",
+    "search_count_basis": "Requests classified by max_tokens=4096 in the ledger; not underlying search-engine query count.",
+    "limitation": "Two-symbol sample across different dates and development stages; not a single-factor randomized trial. Estimates are not reconciled bills; evidence-item counts are not quality scores."
+  }
+}
