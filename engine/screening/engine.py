@@ -347,16 +347,28 @@ def _factor_rows(
 ) -> List[Dict[str, Any]]:
     amounts = [max(0.0, _number(row.get("amount"))) for row in candidates]
     weights = {
-        "momentum": 0.28,
-        "trend": 0.22,
-        "liquidity": 0.20,
-        "valuation": 0.12,
-        "volume": 0.10,
-        "low_volatility": 0.08,
+        "momentum": 0.25,
+        "relative_strength": 0.20,
+        "trend": 0.12,
+        "volume_breakout": 0.12,
+        "acceleration": 0.08,
+        "risk_adjusted_momentum": 0.08,
+        "liquidity": 0.07,
+        "valuation": 0.04,
+        "low_volatility": 0.04,
         **(dict(settings.get("weights", {})) if isinstance(settings.get("weights"), Mapping) else {}),
     }
     weights = {key: max(0.0, _number(value)) for key, value in weights.items()}
     weight_sum = sum(weights.values()) or 1.0
+    d20_values: List[float] = []
+    for row in candidates:
+        snapshot = snapshots.get(_symbol(row.get("symbol")))
+        if not isinstance(snapshot, Mapping):
+            continue
+        value = _number(_nested(snapshot.get("indicators", {}), "change", "d20"))
+        if value is not None:
+            d20_values.append(float(value))
+    d20_median = sorted(d20_values)[len(d20_values) // 2] if d20_values else 0.0
     results: List[Dict[str, Any]] = []
     for row in candidates:
         symbol = _symbol(row.get("symbol"))
@@ -406,14 +418,28 @@ def _factor_rows(
             volume_score = 45.0
         volatility = max(0.0, _number(indicators.get("volatility"), 4))
         low_volatility = _clamp(100 - volatility * 12)
+        relative_strength = _clamp(50 + (d20 - d20_median) * 3)
+        acceleration = _clamp(50 + (d5 - d20) * 5)
+        volume_breakout = _clamp(50 + d5 * 3 + (volume_ratio - 1) * 20)
+        risk_adjusted_momentum = _clamp(50 + (d20 / max(volatility, 1.0)) * 5)
         factors = {
             "momentum": momentum,
+            "relative_strength": relative_strength,
             "trend": trend,
+            "volume_breakout": volume_breakout,
+            "acceleration": acceleration,
+            "risk_adjusted_momentum": risk_adjusted_momentum,
             "liquidity": liquidity,
             "valuation": valuation,
-            "volume": volume_score,
             "low_volatility": low_volatility,
         }
+        potential = (
+            factors["momentum"] * 0.32
+            + factors["relative_strength"] * 0.26
+            + factors["volume_breakout"] * 0.16
+            + factors["acceleration"] * 0.12
+            + factors["risk_adjusted_momentum"] * 0.14
+        )
         score = sum(factors[key] * weights.get(key, 0) for key in factors) / weight_sum
         reasons = [f"20日动量 {d20:+.1f}%", f"成交额 {amount / 100_000_000:.1f}亿"]
         if ma5 > ma10 > ma20 > 0:
@@ -433,9 +459,10 @@ def _factor_rows(
             "sector": str(row.get("sector", "")),
             "industry": str(row.get("industry", "")),
             "factors": {key: round(value, 2) for key, value in factors.items()},
+            "potential": round(potential, 2),
             "evidence": reasons,
         })
-    return sorted(results, key=lambda item: (-item["score"], item["symbol"]))
+    return sorted(results, key=lambda item: (-(0.55 * item["potential"] + 0.45 * item["score"]), item["symbol"]))
 
 
 def _latest_path(market: str) -> Path:
@@ -475,6 +502,160 @@ def latest_screening(market: str, *, max_age_minutes: Optional[int] = None, now:
     return payload
 
 
+def _apply_conditions(
+    rows: Sequence[Mapping[str, Any]],
+    conditions: Sequence[Mapping[str, Any]],
+) -> tuple[List[Dict[str, Any]], Dict[str, int]]:
+    """Filter discovered rows by user-supplied conditions.
+
+    Borrowed from TradingAgents-CN's ``screen_stocks_by_criteria``: the LLM (or
+    an API caller) supplies field/operator/value triples and the engine applies
+    them deterministically. Only fields present on the discovery rows are
+    supported here; richer fields need a snapshot-backed query.
+    """
+    accepted: List[Dict[str, Any]] = []
+    rejected: Dict[str, int] = {}
+    for original in rows:
+        row = dict(original)
+        ok = True
+        for condition in conditions:
+            field = str(condition.get("field") or "").strip()
+            operator = str(condition.get("operator") or "").strip().lower()
+            target = condition.get("value")
+            if not field:
+                continue
+            actual = row.get(field)
+            if field == "symbol":
+                actual = _symbol(actual)
+            elif field in {"price", "amount", "market_cap", "pe", "pb", "change_pct"}:
+                actual = _number(actual)
+            if operator == "between":
+                if not isinstance(target, (list, tuple)) or len(target) != 2:
+                    ok = False
+                else:
+                    low, high = _number(target[0]), _number(target[1])
+                    if actual is None or low is None or high is None or not (low <= actual <= high):
+                        ok = False
+            elif operator in {"in", "not_in"}:
+                values = target if isinstance(target, (list, tuple)) else [target]
+                contains = actual in values
+                if (operator == "in" and not contains) or (operator == "not_in" and contains):
+                    ok = False
+            elif operator == "contains":
+                if str(target or "") not in str(actual or ""):
+                    ok = False
+            else:
+                left, right = actual, _number(target)
+                if left is None or right is None:
+                    ok = False
+                elif operator == ">":
+                    ok = left > right
+                elif operator == ">=":
+                    ok = left >= right
+                elif operator == "<":
+                    ok = left < right
+                elif operator == "<=":
+                    ok = left <= right
+                elif operator in {"==", "="}:
+                    ok = left == right
+                elif operator in {"!=", "<>"}:
+                    ok = left != right
+                else:
+                    ok = False
+            if not ok:
+                rejected[field + " " + operator] = rejected.get(field + " " + operator, 0) + 1
+                break
+        if ok:
+            accepted.append(row)
+    return accepted, rejected
+
+
+def _miaoxiang_candidates(
+    market: str,
+    settings: Mapping[str, Any],
+) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Optional A-share candidate supplement from 妙想 (EastMoney stock-screen).
+
+    Only used for ``cn``.  Returns rows in the same shape as ``_discover`` so the
+    normal hard filters and factor scoring still decide the shortlist; 妙想 only
+    widens the candidate pool.  Quality is enforced here (PE>0) and by
+    ``_filter_candidates`` afterwards (ST/price/liquidity/change).
+    """
+    config = settings.get("miaoxiang")
+    config = config if isinstance(config, Mapping) else {}
+    enabled = bool(config.get("enabled", False))
+    audit: Dict[str, Any] = {"enabled": enabled, "added": 0, "error": None}
+    if market != "cn" or not enabled:
+        return [], audit
+    min_market_cap = _market_setting(settings, "min_market_cap", market, 0)
+    min_amount = _market_setting(settings, "min_amount", market, 0)
+    max_pe = _number(config.get("max_pe"), 30)
+    parts: List[str] = []
+    if min_market_cap > 0:
+        parts.append(f"市值大于{min_market_cap / 1e8:.0f}亿")
+    if min_amount > 0:
+        parts.append(f"今日成交额大于{min_amount / 1e8:.0f}亿")
+    if max_pe > 0:
+        parts.append(f"市盈率大于0且小于{max_pe:.0f}")
+    if not parts:
+        audit["error"] = "no_thresholds"
+        return [], audit
+    query = "A股" + "，".join(parts)
+    audit["query"] = query
+    try:
+        from engine.data.external_quotes import mx_screen
+
+        rows = mx_screen(query) or []
+    except Exception as exc:  # noqa: BLE001 - optional source must never break screening
+        audit["error"] = str(exc)[:300]
+        return [], audit
+
+    limit = max(1, min(100, int(config.get("limit", 30))))
+    mapped: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def append_rows(source_rows: List[Dict[str, Any]], require_pe: bool) -> int:
+        added = 0
+        for row in source_rows:
+            symbol = _symbol(row.get("symbol"))
+            pe = _number(row.get("pe_ttm"))
+            if not symbol or symbol in seen:
+                continue
+            if require_pe and (pe is None or pe <= 0):
+                continue
+            seen.add(symbol)
+            mapped.append({
+                "symbol": symbol,
+                "name": str(row.get("name") or ""),
+                "price": _number(row.get("price")),
+                "change_pct": _number(row.get("change_pct")),
+                "amount": _number(row.get("amount")),
+                "market_cap": _number(row.get("market_cap")),
+                "pe": pe,
+                "source": "miaoxiang",
+            })
+            added += 1
+            if len(mapped) >= limit:
+                break
+        return added
+
+    append_rows(rows, require_pe=True)
+    growth_query = str(config.get("growth_query") or "").strip()
+    if growth_query:
+        try:
+            growth_rows = mx_screen("A股" + growth_query) or []
+        except Exception as exc:  # noqa: BLE001 - optional supplement
+            audit["growth_error"] = str(exc)[:300]
+        else:
+            before = len(mapped)
+            append_rows(growth_rows, require_pe=False)
+            audit["growth_query"] = "A股" + growth_query
+            audit["growth_returned"] = len(growth_rows)
+            audit["growth_added"] = len(mapped) - before
+    audit["returned"] = len(rows)
+    return mapped, audit
+
+
 def run_screening(
     market: str,
     *,
@@ -485,6 +666,7 @@ def run_screening(
     autonomous_config: Mapping[str, Any],
     snapshot_loader: SnapshotLoader,
     now: datetime,
+    conditions: Optional[Sequence[Mapping[str, Any]]] = None,
 ) -> ScreeningOutcome:
     market = str(market).strip().lower()
     held = _dedupe(held_symbols)
@@ -522,6 +704,25 @@ def run_screening(
             status = "fallback"
             discovery_error = str(exc)[:1000]
             rows = [{"symbol": item, "name": ""} for item in fallback]
+
+    condition_rejected: Dict[str, int] = {}
+    if conditions:
+        rows, condition_rejected = _apply_conditions(rows, conditions)
+        if not rows:
+            status = "conditions_no_match"
+    mx_audit: Optional[Dict[str, Any]] = None
+    if status == "screened" and market == "cn":
+        mx_rows, mx_audit = _miaoxiang_candidates(market, settings)
+        if mx_rows:
+            accepted, mx_rejected = _filter_candidates(mx_rows, market, settings)
+            for reason, count in mx_rejected.items():
+                rejected[reason] = rejected.get(reason, 0) + count
+            existing = {row.get("symbol") for row in rows}
+            added = [row for row in accepted if row.get("symbol") not in existing]
+            rows = [*rows, *added]
+            mx_audit["added"] = len(added)
+            if added:
+                source = f"{source}+miaoxiang"
 
     ranked = sorted(rows, key=_cheap_score, reverse=True)
     preselected = ranked[:snapshot_limit]
@@ -574,6 +775,9 @@ def run_screening(
         "selected": selected,
         "rejected": rejected,
         "discovery_error": discovery_error or None,
+        "miaoxiang": mx_audit,
+        "conditions": list(conditions or []),
+        "condition_rejected": condition_rejected,
         "market_data_errors": selected_errors,
         "storage_backend": "mongodb+json" if mongo_snapshots_written else "json",
     }

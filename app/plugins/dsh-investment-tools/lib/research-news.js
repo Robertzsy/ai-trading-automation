@@ -113,6 +113,25 @@ export function normalizeNews(results, { symbol, market, now = Date.now(), lookb
 }
 
 // Released model-facing representation; detailed provenance remains opt-in.
+function compressExcerpt(value, max = 320) {
+  const raw = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!raw || raw.length <= max) return { text: raw, compressed: false };
+  const sentences = raw.split(/(?<=[。！？.!?])\s*/).filter(Boolean);
+  const weighted = sentence => /\d|同比|环比|亿|万|%|percent|revenue|profit|margin|deliver|shipment/i.test(sentence);
+  const kept = [];
+  let used = 0;
+  for (const sentence of sentences) {
+    if (kept.length && !weighted(sentence)) continue;
+    if (used + sentence.length > max - 1 && kept.length) break;
+    const room = max - 1 - used;
+    kept.push(sentence.slice(0, Math.max(0, room)));
+    used += Math.min(sentence.length, room);
+  }
+  const joined = kept.join(" ").trim();
+  const text = (joined || raw.slice(0, max - 1)).slice(0, max - 1) + "…";
+  return { text, compressed: true };
+}
+
 export function normalizeReleasedNews(results, { symbol, market, now = Date.now(), lookbackDays = 14 } = {}) {
   const collectedAt = new Date(now).toISOString();
   const window = newsWindow(market, now, lookbackDays);
@@ -129,7 +148,8 @@ export function normalizeReleasedNews(results, { symbol, market, now = Date.now(
       if (published.published_at && published.published_at > until) { invalidSources++; continue; }
       const item = {
         article_id: "N-" + createHash("sha256").update(`${market}:${symbol}:${canonical}`).digest("hex").slice(0, 16),
-        symbol, market, title: String(source.title ?? ""), summary: String(source.snippet ?? source.summary ?? ""),
+        symbol, market, title: String(source.title ?? ""), summary: compressExcerpt(source.snippet ?? source.summary ?? "").text,
+        summary_compressed: compressExcerpt(source.snippet ?? source.summary ?? "").compressed,
         source_url: source.url, canonical_url: canonical, source_host: new URL(canonical).hostname,
         ...published, collected_at: collectedAt,
         time_scope: !published.published_at ? "unknown" : published.published_at < since ? "background" : "recent",

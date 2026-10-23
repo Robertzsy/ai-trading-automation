@@ -500,7 +500,7 @@ def test_report_sections_are_contiguously_numbered(runtime):
     headings = [line for line in body.split("\n") if line.startswith("## ")]
     numbered = [h for h in headings if not h.startswith("## 附：")]
     numerals = [h[3:].split("、", 1)[0] for h in numbered]
-    assert numerals == ["一", "二", "三", "四", "五"][: len(numerals)], numerals
+    assert numerals == ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"][: len(numerals)], numerals
     # No gap: the last numbered section must be the trading disclaimer.
     assert "本报告未执行交易" in numbered[-1]
     assert body.count("生成时间：") == 1, "header must not duplicate the timestamp"

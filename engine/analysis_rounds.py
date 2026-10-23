@@ -95,6 +95,29 @@ def _submit_allowed() -> bool:
     return False
 
 
+def _screening_meta(market: str) -> Optional[Dict[str, Any]]:
+    """Snapshot of the screening result the round is about to use.
+
+    Recorded so the feedback loop can report screening freshness at round start
+    even when the result is re-screened or replaced later.
+    """
+    try:
+        from engine.screening.engine import latest_screening
+
+        payload = latest_screening(market)
+    except Exception:  # noqa: BLE001 - metadata must never block a round
+        return None
+    if not isinstance(payload, dict) or not payload:
+        return None
+    symbols = payload.get("selected_symbols") or payload.get("allowed_symbols") or []
+    return {
+        "generated_at": payload.get("generated_at"),
+        "source": payload.get("source"),
+        "selected_count": len(symbols) if isinstance(symbols, list) else None,
+        "selected_symbols": list(symbols) if isinstance(symbols, list) else None,
+    }
+
+
 def _worker(
     cycle_id: str,
     market: str,
@@ -162,6 +185,16 @@ def _worker(
                 analysis_runs.set_report_meta(cycle_id, descriptor)
         except Exception:  # noqa: BLE001 - the report is auxiliary
             logger.exception("[ANALYSIS-ROUND:%s] report generation failed", cycle_id)
+        # Persist one observation per terminal round for the self-optimisation
+        # review. Observation only: nothing here changes thresholds or code.
+        try:
+            from engine import feedback
+
+            final = analysis_runs.get(cycle_id)
+            if final is not None and final.get("status") in {"completed", "ready_for_execution", "failed", "cancelled"}:
+                feedback.write_round_feedback(final)
+        except Exception:  # noqa: BLE001 - feedback is auxiliary
+            logger.exception("[ANALYSIS-ROUND:%s] feedback write failed", cycle_id)
         owned_claim.release()
         with _lock:
             _active.pop(cycle_id, None)
@@ -297,6 +330,7 @@ def start(payload: Mapping[str, Any]) -> Dict[str, Any]:
                     "symbols": symbols,
                     "symbols_source": symbols_source,
                     "submit": _submit_allowed(),
+                    "screening": _screening_meta(market),
                 }
             )
             resumed = False

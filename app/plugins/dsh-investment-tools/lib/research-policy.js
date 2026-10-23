@@ -9,7 +9,7 @@ import { normalizeNews } from "./research-news.js";
 export const RESEARCH_TOOLS = Object.freeze([
   "investment_market_snapshot", "investment_market_history", "investment_fundamentals", "investment_security_search",
   "investment_portfolio", "investment_mandate", "investment_macro_latest",
-  "investment_report_latest", "investment_reports", "web_search", "web_fetch",
+  "investment_report_latest", "investment_reports", "investment_web_search", "web_search", "web_fetch",
 ]);
 const READS = new Set(RESEARCH_TOOLS);
 const hash = value => createHash("sha256").update(value).digest("hex").slice(0, 20);

@@ -4,6 +4,15 @@
 
 See the [README](README_EN.md) for installation and usage, and [GitHub Releases](https://github.com/Robertzsy/ai-trading-automation/releases) for published builds.
 
+## 2.3.0 — Screening relevance, actionable research and lower analysis cost (2026-10-23)
+
+- Added relative strength, volume breakout, acceleration and risk-adjusted momentum factors, growth candidates, and a potential/quality blended ranking.
+- Reports now include a decision summary, data-scope notes and historical decision references; evidence, sources and gaps are preserved more completely.
+- Added expected-return/downside assessment, conditional WATCH and cash-deployment rules; execution remains subject to the mandate, confidence threshold and hard risk controls.
+- Shared material, plan cache and query cache reduce duplicate retrieval; internal comparisons show 29% fewer requests and 28% lower cost at the same price basis.
+- Dashboard refresh: equity status band, holdings detail, chart switching and round timeline.
+- Fixed search-tool output validation, archive consistency after forced deployment, and screening prefetch/cache issues.
+
 ## 2.2.1 — Investment Research and Stability (2026-10-12)
 
 - Added an Investment Research workspace for history, reports, progress and stage evidence, keeping all three one-click actions.

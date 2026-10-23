@@ -113,3 +113,30 @@ test("environment variables override configured engine URL and token", async () 
     server.close();
   }
 });
+
+test("transient engine failure is retried instead of reported as a missing key", async () => {
+  let calls = 0;
+  const server = createServer((req, res) => {
+    calls += 1;
+    if (calls === 1) {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false, error: "busy" }));
+      return;
+    }
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true, ref: "DEEPSEEK_API_KEY", configured: true, value: "sk-live" }));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const ctx = fakeCtx();
+  try {
+    apply(ctx, { engineUrl: `http://127.0.0.1:${server.address().port}` });
+    const result = await ctx.service.resolve("DEEPSEEK_API_KEY");
+    assert.deepEqual(result, { value: "sk-live", source: "dpapi" });
+    assert.equal(calls, 2);
+    // A successful resolution is cached, so the next request does not hit the engine again.
+    assert.deepEqual(await ctx.service.resolve("DEEPSEEK_API_KEY"), { value: "sk-live", source: "dpapi" });
+    assert.equal(calls, 2);
+  } finally {
+    server.close();
+  }
+});

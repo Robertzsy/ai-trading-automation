@@ -92,7 +92,8 @@ test("four base roles receive the identical evidence prefix and original schema"
   assert.equal(calls.length, 4);
   assert.equal(new Set(calls.map(call => call.prompt.split('<role_instruction>')[0])).size, 1);
   assert(calls.every(call => call.schema.required.includes('data_quality')));
-  assert(calls.every(call => call.prompt.includes('主动调用 web_search')));
+  assert(calls.every(call => call.prompt.includes('investment_web_search')));
+  assert(calls.every(call => call.prompt.includes('禁止直接调用 web_search')));
   assert(calls.every(call => call.prompt.includes('不代表事件覆盖完整')));
   assert(calls.every(call => !call.prompt.includes('不超过 600 字') && !call.prompt.includes('只有关键材料缺失')));
 });

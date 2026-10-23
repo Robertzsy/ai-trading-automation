@@ -228,6 +228,7 @@
         engineUrl: 'http://127.0.0.1:8790'
         lightweightResults: true
         sharedResearch: true
+        singleConversationBaseResearch: false
         researchPolicy: 'off'
         researchRoles: false
         deduplicateResearch: false

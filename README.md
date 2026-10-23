@@ -1,16 +1,20 @@
 # AI 驱动多市场投资研究与模拟交易自动化系统
 
-**ai-trading-automation**
+**AI-Driven Global Portfolio Optimization & Multi-Agent Trading Automation System**
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.2.1-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.1)
+[![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
-AI Trading Automation 是一款面向 A 股、港股、美股和场内 ETF 的投资研究与**模拟交易**桌面应用，内置确定性选股、13 角色多智能体分析和硬风控撮合。2.x 基于 DeepSeek Harness（DSH）深度改造，对用户呈现为独立产品：只有 Dashboard、投资助手、分析中心和设置。
+AI Trading Automation 是一款将**多因子量化筛选、组合优化与多智能体 AI 研究**结合的投资研究与**模拟交易**桌面应用，覆盖 A 股、港股、美股和场内 ETF。量化引擎负责计算与约束，AI 负责结合技术面、财务、新闻和情绪证据形成判断，Python 风控与模拟经纪负责检查和执行。
 
-最新版本 **2.2.1**：新增投资研究工作区、本地股票推荐，并修复分析失败后反复启动的问题。
+**量化回答“哪些标的值得研究、仓位如何配置”，AI 回答“投资逻辑是否成立、有哪些反证”，风控决定“这笔模拟交易是否允许执行”。**
+
+2.x 基于 DeepSeek Harness（DSH）构建，提供总览、投资助手、投资研究和设置四个工作区。
+
+最新版本 **2.3.0**：提升选股针对性、研究结论可执行性，并显著降低分析成本；新增条件观察、现金部署规则与投资总览界面更新。
 
 > 本项目只支持研究与模拟交易，不连接真实券商，也不应直接用于真实资金决策。
 
@@ -31,19 +35,20 @@ AI Trading Automation 是一款面向 A 股、港股、美股和场内 ETF 的�
 ## 特性
 
 - **四市场一站式**：A 股 / 港股 / 美股 / 场内 ETF 统一行情、选股、分析与模拟账户；T+1/T+0、整手、涨跌停、佣金、印花税、滑点等市场规则内建。
-- **确定性选股**：硬筛选 + 六因子加权评分（动量 / 趋势 / 流动性 / 估值 / 量能 / 低波动），每只入选股附中文证据，权重与阈值可配置。
-- **13 角色委员会式分析**：四路基础研究 → 多空辩论 → 研究经理与逐标的交易员 → 组合草案 → 三方风险辩论 → 最终决策；结论强制引用证据，进度与检查点真实可见。
+- **多因子量化筛选**：硬过滤 + 动量 / 相对强度 / 趋势 / 放量突破 / 加速度 / 风险调整动量 / 流动性 / 估值 / 低波动多因子评分，输出候选排序、因子分与筛选依据，权重与阈值可配置。
+- **量化组合优化**：比较均值—方差、Black–Litterman、风险平价和成本调整方案，提供目标权重、现金比例、历史风险指标与调仓成本参考。
+- **多智能体 AI 研究**：四路基础研究 → 多空辩论 → 研究裁决与逐股建议 → 组合草案 → 三方风险辩论 → 最终决策；结构化保存观点、异议、证据与检查点。
 - **不可绕过的风控**：三档策略授权书、仓位封顶、回撤熔断、止损止盈内置；AI 决策必经 Python 硬风控与纸面撮合。
-- **产品化桌面应用**：Dashboard / 投资助手 / 分析中心 / 设置四个页面；一键安装、单实例、托盘、开机自启、覆盖升级保留数据。
+- **产品化桌面应用**：总览 / 投资助手 / 投资研究 / 设置四个页面；一键安装、单实例、托盘、开机自启、覆盖升级保留数据。
 - **持仓联动 Dashboard**：按市场和原币种查看账户与组合分布，点击持仓查看个股日线；支持走势线、K 线、时间范围、成本线、成交量、MA20 与成交日期，并标明行情来源和数据日期。
 - **对话式 AI 助手**：保留 DSH 原生思考、流式输出、工具、Skills、计划与子代理能力；支持日志诊断与经用户确认的代码修复。
 
 ## 安装
 
-- 下载 [v2.2.1 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.1) 中的 `AiTradingAutomation-Setup-x64.exe`
+- 下载 [v2.3.0 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0) 中的 `AiTradingAutomation-Setup-x64.exe`
 - 支持 Windows 10/11 x64；安装包内置 Python、Node.js、.NET 桌面运行时与 WebView2 兜底安装程序
 
-校验文件：[AiTradingAutomation-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.2.1/AiTradingAutomation-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
+校验文件：[AiTradingAutomation-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.3.0/AiTradingAutomation-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
 
 ```powershell
 Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
@@ -71,13 +76,30 @@ python -m venv .venv
 
 ## 核心投资逻辑
 
-AI Trading Automation 的投资智能由三段确定性逻辑构成：**先排除、再打分、后解释的选股**，**13 角色委员会式分析**，以及**不可绕过的风控纪律**。
+系统把投资过程拆成可计算的筛选与配置、基于证据的 AI 研究，以及受约束的模拟执行。
 
-- **选股**：先硬筛选（代码归一化、最低价 / 成交额 / 市值、PE/PB 上限、排除 ST/退市/权证），再按六因子加权评分排序，每只入选股附中文证据；
-- **多角色分析**：五阶段 13 角色（技术面/基本面/新闻/情绪 → 多空辩论 → 研究经理与交易员 → 组合草案 → 三方风险辩论 → 风险经理 → 组合经理），结论强制引用证据，研究不足的持仓强制 HOLD；
-- **决策与风控**：三档策略授权书定义硬边界；仓位 = min(市场单票上限, 策略单票上限)；回撤熔断强制清仓；止损止盈优先于 AI 建议；标的限于允许池、价格由引擎实时抓取。
+```text
+行情与历史数据 → 硬过滤 → 多因子候选排序
+                                  ↓
+财务、新闻与情绪证据 → 多智能体研究与辩论 → BUY / SELL / HOLD + 目标权重
+                                                       ↓
+                                      授权书与硬风控 → 模拟撮合 → 报告与执行记录
 
-因子计算方式、角色分工、风控参数与商业价值评估的完整说明见 [投资逻辑详解](docs/INVESTMENT_LOGIC.md)。
+组合优化器：独立提供权重、风险与成本方案，供助手读取和对照解读。
+```
+
+| 层次 | 已实现的方法 | 输出与作用 |
+|---|---|---|
+| 量化筛选 | 价格、成交额、市值、估值与名称规则过滤；多因子加权评分 | 缩小研究范围，保留因子分、筛选依据与拒绝原因统计 |
+| 组合配置 | 均值—方差最大夏普采样、Black–Litterman、风险平价、成本调整 | 比较目标权重、现金比例、历史收益与波动、VaR / 尾部损失及调仓成本 |
+| AI 研究 | 技术面、基本面、新闻、情绪四路研究，多空辩论与组合风险裁决 | 综合数值信号和事件背景，提出动作、目标权重、理由与证据引用 |
+| 风控与模拟执行 | 仓位、现金、换手、置信度、止损止盈、回撤与市场交易规则 | 检查 AI 建议，限制或拒绝订单，并记录模拟成交与拒绝原因 |
+
+**两者如何协同**：量化高分意味着优先研究；AI 继续审查趋势是否得到基本面与事件支持、是否存在反证，再形成组合建议。即使建议 BUY，也必须通过执行层检查；条件不足可以 HOLD。组合优化结果是独立的配置参考，固定研究工作流不会自动采用其推荐权重。
+
+当前多因子权重属于可配置规则；AI 的置信度是研究判断，不能当作经统计校准的上涨概率。组合优化指标来自历史样本估计，本项目尚未提供完整“选股—AI 决策—执行”策略经样本外验证的收益证明。
+
+因子计算、组合优化假设、角色分工与执行边界见 [投资逻辑详解](docs/INVESTMENT_LOGIC.md)。
 
 ### 一个真实用例
 
@@ -150,6 +172,7 @@ Python 投资引擎
 
 | 版本 | 核心变化 |
 |---|---|
+| 2.3.0 | 选股针对性、研究可执行性、分析成本与投资总览界面更新。 |
 | 2.2.1 | 投资研究工作区、本地股票推荐、失败恢复与修复确认。 |
 | 2.1.5 | 持仓与个股走势联动，首页用例可视化。 |
 | 2.1.4 | 界面可读性、分析进度与报告展示改进。 |
@@ -159,7 +182,7 @@ Python 投资引擎
 | 2.1.0 | 独立桌面界面与产品设置。 |
 | 2.0.0 | 桌面应用与多智能体流程重构。 |
 
-更新记录见 [中文更新日志](CHANGELOG.md) 和 [v2.2.1 发行说明](docs/RELEASE_NOTES_2.2.1.md)。
+更新记录见 [中文更新日志](CHANGELOG.md) 和 [v2.3.0 发行说明](docs/RELEASE_NOTES_2.3.0.md)。
 
 ## 安全边界
 

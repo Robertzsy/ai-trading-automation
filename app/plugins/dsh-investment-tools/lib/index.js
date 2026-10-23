@@ -46,6 +46,27 @@ const jsonRender = (_args, value) => {
   return [{ type: "text", text: text.length > 32000 ? text.slice(0, 32000) + "\n…(截断)" : text }];
 };
 
+/** Convert arbitrary web-search payloads to lossless JSON (no undefined/NaN/BigInt/cycles). */
+function losslessJson(value, seen = new WeakSet(), depth = 0) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "bigint") return Number.isSafeInteger(Number(value)) ? Number(value) : String(value);
+  if (typeof value === "undefined" || typeof value === "function" || typeof value === "symbol") return null;
+  if (depth > 20) return null;
+  if (value instanceof Date) return value.toISOString();
+  if (seen.has(value)) return "[circular]";
+  seen.add(value);
+  if (Array.isArray(value)) return value.map(item => losslessJson(item, seen, depth + 1));
+  if (value instanceof Map) return losslessJson(Object.fromEntries(value), seen, depth + 1);
+  if (value instanceof Set) return [...value].map(item => losslessJson(item, seen, depth + 1));
+  const output = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (item === undefined || typeof item === "function" || typeof item === "symbol") continue;
+    output[key] = losslessJson(item, seen, depth + 1);
+  }
+  return output;
+}
+
 /**
  * Register one engine-backed tool.
  * @param {import('@deepseek-ai/cordis').Context} ctx
@@ -140,6 +161,35 @@ export function apply(ctx, config) {
     },
     async ({ market, symbol }, exec) => client.get(`/api/research/fundamentals?market=${encodeURIComponent(market.toLowerCase())}&symbol=${encodeURIComponent(symbol)}`, { timeoutMs: 60000, signal: exec?.signal }),
     { timeoutMs: 65000, render: (_args, value) => [{ type: "text", text: JSON.stringify(value) }] },
+  );
+
+  registerTool(
+    ctx,
+    "investment_web_search",
+    "带精确查询缓存的联网搜索：先查当天同标的同查询缓存，未命中再调用原生搜索并回填。新闻/情绪角色优先使用，参数必须带 query、symbol、market。",
+    {
+      query: { type: "string", required: true, description: "搜索查询" },
+      symbol: { type: "string", required: true, description: "证券代码，如 600519 / 00700" },
+      market: { type: "string", required: true, description: "cn、hk、us 或 etf" },
+      maxResults: { type: "number", description: "最多返回条数，默认 20", default: 20 },
+    },
+    async ({ query, symbol, market, maxResults = 20 }, exec) => {
+      const day = new Date().toISOString().slice(0, 10);
+      const params = new URLSearchParams({ market: market.toLowerCase(), symbol, query, day });
+      try {
+        const cached = await client.get(`/api/research/search-cache?${params}`, { timeoutMs: 15000, signal: exec?.signal });
+        if (cached && cached.hit && cached.result) return { ...cached.result, cache_hit: true, cached_at: cached.created_at };
+      } catch { /* cache miss or API unavailable */ }
+      const web = typeof ctx.get === "function" ? ctx.get("web") : ctx.web;
+      if (!web?.search) throw new Error("联网搜索服务不可用");
+      const raw = await web.search({ query, maxResults: Math.max(1, Math.min(50, Math.trunc(maxResults))) }, exec?.signal);
+      const result = losslessJson(raw);
+      try {
+        await client.post("/api/research/search-cache", { market: market.toLowerCase(), symbol, query, day, result });
+      } catch { /* best-effort cache write */ }
+      return { ...result, cache_hit: false };
+    },
+    { timeoutMs: 65000 },
   );
 
   registerTool(

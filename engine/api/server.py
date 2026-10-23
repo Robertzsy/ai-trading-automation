@@ -191,6 +191,33 @@ class _Handler(BaseHTTPRequestHandler):
 
             self._send(200, {"ok": True, "symbol": symbol, "lookback": lookback, **fetcher.history(symbol, lookback=lookback)})
             return
+        if path == "/api/research/search-cache":
+            values = _query(self)
+            from engine.research.search_cache import load
+
+            try:
+                result = load(
+                    values.get("market", ""),
+                    values.get("symbol", ""),
+                    values.get("query", ""),
+                    values.get("day", ""),
+                )
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
+                return
+            self._send(200, {"ok": True, **result})
+            return
+        if path == "/api/research/plan":
+            values = _query(self)
+            from engine.research.plan_cache import load_plan
+
+            try:
+                result = load_plan(values.get("market", ""), values.get("symbol", ""), values.get("day", ""))
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
+                return
+            self._send(200, {"ok": True, **result})
+            return
         if path == "/api/research/fundamentals":
             values = _query(self)
             market, symbol = values.get("market", "").strip().lower(), values.get("symbol", "").strip()
@@ -244,7 +271,19 @@ class _Handler(BaseHTTPRequestHandler):
             try:
                 from engine.screening.preview import run_screening_preview
 
-                preview = run_screening_preview(market)
+                raw_conditions = (values.get("conditions") or "").strip()
+                conditions = None
+                if raw_conditions:
+                    try:
+                        parsed = json.loads(raw_conditions)
+                    except json.JSONDecodeError as exc:
+                        self._send(400, {"ok": False, "error": f"conditions 不是合法 JSON: {exc}"})
+                        return
+                    if not isinstance(parsed, list) or not parsed:
+                        self._send(400, {"ok": False, "error": "conditions 必须是非空 JSON 数组"})
+                        return
+                    conditions = parsed
+                preview = run_screening_preview(market, conditions=conditions)
             except ValueError as exc:
                 self._send(400, {"ok": False, "error": str(exc)[:800]})
                 return
@@ -489,6 +528,45 @@ class _Handler(BaseHTTPRequestHandler):
             except Exception:
                 logger.exception("security catalogue refresh failed")
                 self._send(503, {"ok": False, "error": "股票目录更新失败，原目录已保留，请稍后手动重试"})
+                return
+            self._send(200, {"ok": True, **result})
+            return
+        if path == "/api/research/search-cache":
+            payload = _read_json(self, limit=600_000)
+            if payload is None:
+                self._send(400, {"ok": False, "error": "invalid JSON body"})
+                return
+            from engine.research.search_cache import save
+
+            try:
+                result = save(
+                    str(payload.get("market", "")),
+                    str(payload.get("symbol", "")),
+                    str(payload.get("query", "")),
+                    str(payload.get("day", "")),
+                    payload.get("result") or {},
+                )
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
+                return
+            self._send(200, {"ok": True, **result})
+            return
+        if path == "/api/research/plan":
+            payload = _read_json(self, limit=25_000)
+            if payload is None:
+                self._send(400, {"ok": False, "error": "invalid JSON body"})
+                return
+            from engine.research.plan_cache import save_plan
+
+            try:
+                result = save_plan(
+                    str(payload.get("market", "")),
+                    str(payload.get("symbol", "")),
+                    str(payload.get("day", "")),
+                    payload.get("plan", ""),
+                )
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
                 return
             self._send(200, {"ok": True, **result})
             return

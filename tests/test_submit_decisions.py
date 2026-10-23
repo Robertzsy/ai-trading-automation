@@ -124,7 +124,7 @@ def test_submit_decisions_low_confidence_is_rejected_by_risk(tmp_path):
 
 
 def test_submit_decisions_rejects_bad_action(tmp_path):
-    with pytest.raises(ValueError, match="BUY、SELL 或 HOLD"):
+    with pytest.raises(ValueError, match="BUY、SELL、HOLD 或 WATCH"):
         _submit(idempotency_key="bad-action-01", decisions=[{"symbol": "600519", "action": "PANIC"}])
     with pytest.raises(ValueError, match="必须是数组"):
         _submit(idempotency_key="bad-action-02", decisions="600519")

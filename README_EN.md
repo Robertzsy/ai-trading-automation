@@ -1,16 +1,20 @@
 # AI-Driven Global Portfolio Optimization & Multi-Agent Trading Automation System
 
-**ai-trading-automation**
+**AI 驱动多市场投资研究与模拟交易自动化系统**
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.2.1-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.1)
+[![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
-AI Trading Automation is a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds, with deterministic screening, a 13-role multi-agent analysis pipeline, and hard risk-controlled execution. Version 2.x is deeply rebuilt on DeepSeek Harness (DSH), but presents a standalone product: no workspace selector, runtime-mode selector, or platform branding—only the Dashboard, Investment Assistant, Analysis Centre, and Settings.
+AI Trading Automation combines **multi-factor quantitative screening, portfolio optimization, and multi-agent AI research** in a desktop application for investment research and **paper trading** across China A-shares, Hong Kong stocks, U.S. equities, and exchange-traded funds. The quantitative engine calculates metrics and constraints; AI evaluates technical, financial, news, and sentiment evidence; Python risk controls and the paper broker check and execute decisions.
 
-The latest version, **2.2.1**, adds an Investment Research workspace and local stock suggestions, and fixes repeated starts after analysis failures.
+**Quantitative methods identify what to research and compare allocations. AI evaluates investment theses and counterevidence. Risk controls determine whether a proposed paper trade may execute.**
+
+Version 2.x is built on DeepSeek Harness (DSH) and provides four workspaces: Overview, Investment Assistant, Investment Research, and Settings.
+
+The latest version, **2.3.0**, improves screening relevance and research actionability while significantly reducing analysis cost. It adds conditional watch, cash-deployment rules and a dashboard refresh.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -31,19 +35,20 @@ The latest version, **2.2.1**, adds an Investment Research workspace and local s
 ## Features
 
 - **Four markets in one app**: unified market data, screening, analysis, and paper accounts for A-shares, Hong Kong stocks, U.S. equities, and ETFs; T+1/T+0, lot sizes, price limits, commission, stamp tax, and slippage rules are built in per market.
-- **Deterministic screening**: hard filters plus a six-factor weighted score (momentum / trend / liquidity / valuation / volume / low volatility); every selected stock carries Chinese-language evidence, and weights and thresholds are configurable.
-- **13-role committee-style analysis**: four base-research tracks → bull-bear debate → research manager and per-symbol trader → portfolio draft → three-way risk debate → final decision; conclusions must cite evidence, and live stages and checkpoints are visible.
+- **Multi-factor quantitative screening**: hard filters plus momentum / trend / liquidity / valuation / volume / low-volatility scores; outputs include rankings, factor scores, and screening reasons, with configurable weights and thresholds.
+- **Quantitative portfolio optimization**: compares mean–variance, Black–Litterman, risk-parity, and cost-adjusted allocations, with target weights, cash allocation, historical risk metrics, and rebalancing cost estimates.
+- **Multi-agent AI research**: four base-research tracks → bull-bear debate → research adjudication and per-stock proposals → portfolio draft → three-way risk debate → final decision; views, disagreements, evidence, and checkpoints are stored as structured records.
 - **Risk controls the AI cannot bypass**: three-tier strategy mandate, position capping, drawdown circuit breaker, and built-in stop-loss/take-profit; every AI decision must pass the deterministic Python risk layer and paper broker.
-- **Productized desktop app**: Dashboard, Investment Assistant, Analysis Centre, and Settings; one-click install, single instance, tray icon, autostart, and in-place upgrades that preserve data.
+- **Productized desktop app**: Overview, Investment Assistant, Investment Research, and Settings; one-click install, single instance, tray icon, autostart, and in-place upgrades that preserve data.
 - **Holdings-linked Dashboard**: account metrics and allocations remain in each market's native currency; select a holding to inspect its daily history, line/candlestick views, time ranges, cost basis, volume, MA20 and fill dates, with source and data dates shown.
 - **Conversational AI assistant**: retains DSH-native reasoning, streaming, tools, Skills, plans, and subagents; supports log diagnostics and code repairs with a proposed plan and user confirmation.
 
 ## Installation
 
-- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.2.1 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.2.1)
+- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.3.0 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.2.1/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.3.0/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
 ```powershell
 Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
@@ -71,13 +76,33 @@ Open `http://127.0.0.1:4567`, then configure the model and API key in Settings.
 
 ## Core Investment Logic
 
-AI Trading Automation's investment intelligence is built from three deterministic blocks: **exclude, score, and explain screening**, a **13-role committee-style analysis**, and **risk discipline the AI cannot bypass**.
+The system separates investment research into quantitative screening and allocation, evidence-based AI analysis, and constrained paper execution.
 
-- **Screening**: hard filters first (symbol normalization, minimum price / turnover / market cap, PE/PB caps, excluding ST/delisting/warrants), then a six-factor weighted ranking with Chinese-language evidence per pick;
-- **Multi-role analysis**: five stages and 13 roles (technical/fundamental/news/sentiment → bull-bear debate → research manager and trader → portfolio draft → three-way risk debate → risk manager → portfolio manager); conclusions must cite evidence, and under-researched holdings are forced to HOLD;
-- **Decision and risk control**: a three-tier strategy mandate defines hard boundaries; position = min(market per-stock cap, strategy per-stock cap); a drawdown circuit breaker force-liquidates; stop-loss/take-profit outrank AI suggestions; trading is limited to the allowed pool and prices are fetched live by the engine.
+```text
+Quotes and history → Hard filters → Multi-factor candidate ranking
+                                                ↓
+Financial, news, and sentiment evidence → Multi-agent research and debate
+                                                ↓
+                              BUY / SELL / HOLD + target weights
+                                                ↓
+                              Mandate and risk checks → Paper fills → Reports and receipts
 
-See [Investment Logic](docs/INVESTMENT_LOGIC_EN.md) for the full details: factor formulas, role responsibilities, risk parameters, and a business-value assessment.
+Portfolio optimizer: independently supplies allocation, risk, and cost comparisons
+for the assistant to retrieve and interpret.
+```
+
+| Layer | Implemented methods | Output and purpose |
+|---|---|---|
+| Quantitative screening | Price, turnover, market-cap, valuation, and name filters; multi-factor weighted scoring | Narrows the research universe and records factor scores, reasons, and rejection counts |
+| Portfolio allocation | Sample-based mean–variance maximum Sharpe, Black–Litterman, risk parity, and cost adjustment | Compares weights, cash, historical return and volatility estimates, VaR / tail losses, and rebalancing costs |
+| AI research | Technical, fundamental, news, and sentiment research; bull-bear debate and portfolio risk adjudication | Relates numeric signals to events and proposes actions, target weights, reasons, and evidence citations |
+| Risk and paper execution | Position, cash, turnover, confidence, protective exits, drawdown, and market-rule checks | Checks AI proposals, limits or rejects orders, and records paper fills and rejections |
+
+**How they work together**: a high quantitative score gives a candidate research priority. AI examines whether fundamentals and events support the signal, considers counterevidence, and proposes a portfolio decision. A BUY still has to pass execution checks; insufficient evidence can result in HOLD. Optimizer allocations are independent reference results; the fixed research workflow does not automatically adopt their weights.
+
+The multi-factor weights are configurable rules. AI confidence expresses a research judgment, not a statistically calibrated probability of a price increase. Optimizer metrics are estimates from historical samples; the project does not yet provide out-of-sample performance evidence for the complete screening–AI–execution strategy.
+
+See [Investment Logic](docs/INVESTMENT_LOGIC_EN.md) for factor calculations, optimizer assumptions, role responsibilities, and execution boundaries.
 
 ### A real worked example
 
@@ -150,6 +175,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 
 | Version | Highlights |
 |---|---|
+| 2.3.0 | Screening relevance, research actionability, lower analysis cost and dashboard refresh. |
 | 2.2.1 | Investment Research workspace, local stock suggestions, failure recovery and repair confirmation. |
 | 2.1.5 | Holdings-linked stock history and visual examples. |
 | 2.1.4 | Clearer interface, analysis progress and reports. |
@@ -159,7 +185,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 | 2.1.0 | Standalone desktop interface and product settings. |
 | 2.0.0 | Rebuilt desktop application and multi-agent workflow. |
 
-See the [changelog](CHANGELOG_EN.md) and [v2.2.1 release notes](docs/RELEASE_NOTES_2.2.1.md).
+See the [changelog](CHANGELOG_EN.md) and [v2.3.0 release notes](docs/RELEASE_NOTES_2.3.0.md).
 
 ## Safety Boundaries
 

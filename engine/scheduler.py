@@ -473,8 +473,15 @@ def _run_close_job(
         }
 
 
+def _auto_rounds_enabled() -> bool:
+    return bool(cfg.schedule.get("auto_rounds_enabled", True))
+
+
 def _build_intraday_job(market: str, time_str: str, label: str):
     def job() -> None:
+        if not _auto_rounds_enabled():
+            logger.info("[INTRADAY:%s] skipped because schedule.auto_rounds_enabled is false", market)
+            return
         if str(cfg.autonomous.get("operation_mode", "automatic")).lower() != "automatic":
             logger.info("[INTRADAY:%s] skipped because operation_mode is manual", market)
             return
@@ -491,6 +498,9 @@ def _build_intraday_job(market: str, time_str: str, label: str):
 
 def _build_close_job(market: str, time_str: str):
     def job() -> None:
+        if not _auto_rounds_enabled():
+            logger.info("[CLOSE:%s] skipped because schedule.auto_rounds_enabled is false", market)
+            return
         if str(cfg.autonomous.get("operation_mode", "automatic")).lower() != "automatic":
             logger.info("[CLOSE:%s] skipped because operation_mode is manual", market)
             return
@@ -565,6 +575,8 @@ def run_catch_up(markets: Optional[Sequence[str]] = None, *, include_macro: bool
                 logger.exception("Macro startup catch-up failed")
                 results.append({"kind": "macro", "status": "error", "error": str(exc)})
 
+    if not _auto_rounds_enabled():
+        return results
     if str(cfg.autonomous.get("operation_mode", "automatic")).lower() != "automatic":
         return results
 
@@ -605,14 +617,15 @@ def start(*, catch_up: bool = True) -> _BgScheduler:
         process_lease=lease,
     )
     try:
-        for market in cfg.enabled_markets:
-            for time_str in cfg.intraday_times(market) or []:
-                time_text = str(time_str)
-                label = time_text.replace(":", "")
-                scheduler.add_job(_build_intraday_job(market, time_text, label), trigger=_cron_trigger(market, time_text), id=f"{market}-{label}", replace_existing=True)
-            close_time = str(cfg.close_time(market) or "")
-            if close_time:
-                scheduler.add_job(_build_close_job(market, close_time), trigger=_cron_trigger(market, close_time), id=f"{market}-close", replace_existing=True)
+        if _auto_rounds_enabled():
+            for market in cfg.enabled_markets:
+                for time_str in cfg.intraday_times(market) or []:
+                    time_text = str(time_str)
+                    label = time_text.replace(":", "")
+                    scheduler.add_job(_build_intraday_job(market, time_text, label), trigger=_cron_trigger(market, time_text), id=f"{market}-{label}", replace_existing=True)
+                close_time = str(cfg.close_time(market) or "")
+                if close_time:
+                    scheduler.add_job(_build_close_job(market, close_time), trigger=_cron_trigger(market, close_time), id=f"{market}-close", replace_existing=True)
 
         macro_time = str(cfg.schedule.get("macro_daily_time", "08:00"))
         macro_hour, macro_minute = (int(value) for value in macro_time.split(":", 1))
@@ -624,7 +637,7 @@ def start(*, catch_up: bool = True) -> _BgScheduler:
         )
         scheduler.start()
         _active_scheduler = scheduler
-        if catch_up:
+        if catch_up and _auto_rounds_enabled():
             scheduler.add_job(
                 run_catch_up,
                 trigger="date",

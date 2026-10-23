@@ -103,7 +103,7 @@ autonomous:
   max_orders_per_cycle: 10
   max_position_pct: 32
   max_universe_size: 30
-  min_confidence: 0.65
+  min_confidence: 0.60
   minimum_agent_responses: 2
   minimum_priced_symbols: 2
   operation_mode: automatic
@@ -237,6 +237,7 @@ optimizer:
   timeout_seconds: 180
   view_confidence: 0.5
 schedule:
+  auto_rounds_enabled: true
   catch_up_grace_minutes: 480
   catch_up_markets:
   - cn
@@ -288,9 +289,14 @@ screening:
     - 现金
     - 同业存单
     - 债
-  max_abs_change_pct: 15
+  max_abs_change_pct: 0
   max_pb: 0
   max_pe: 0
+  miaoxiang:
+    enabled: true
+    limit: 30
+    max_pe: 30
+    growth_query: '营收同比增长大于15%，净利润同比增长大于15%'
   min_amount:
     cn: 100000000
     etf: 50000000
@@ -308,7 +314,7 @@ screening:
     us: 5
   optimizer_max_age_minutes: 1440
   refresh_minutes: 30
-  shortlist_size: 20
+  shortlist_size: 8
   snapshot_limit: 60
   storage:
     # no URI -> no connection attempt at all, JSON only (storage.py get_screening_store).
@@ -323,12 +329,15 @@ screening:
     retry_seconds: 600
   use_for_optimizer: true
   weights:
-    liquidity: 0.2
-    low_volatility: 0.08
-    momentum: 0.28
-    trend: 0.22
-    valuation: 0.12
-    volume: 0.1
+    momentum: 0.25
+    relative_strength: 0.2
+    trend: 0.12
+    volume_breakout: 0.12
+    acceleration: 0.08
+    risk_adjusted_momentum: 0.08
+    liquidity: 0.07
+    valuation: 0.04
+    low_volatility: 0.04
 trading:
   entry_method: first 50%, add on -2% pullback, avoid chasing +3% intraday spikes
   force_build_positions: true

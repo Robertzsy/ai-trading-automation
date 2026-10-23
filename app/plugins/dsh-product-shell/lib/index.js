@@ -262,6 +262,18 @@ export function apply(ctx) {
               sendJson(res, 200, await engineFetch("/api/analysis/rounds/active"));
               return;
             }
+            if (action === "screening") {
+              // Read-only screening cache (symbols + audit timestamp). The UI
+              // uses this to decide whether the last screening is still fresh
+              // (30-minute TTL) before reusing it for a new analysis round.
+              const market = (url.searchParams.get("market") ?? "").trim().toLowerCase();
+              if (!["cn", "hk", "us", "etf"].includes(market)) {
+                sendJson(res, 400, { ok: false, error: "market 必须是 cn、hk、us 或 etf" });
+                return;
+              }
+              sendJson(res, 200, await engineFetch(`/api/screening/${encodeURIComponent(market)}`));
+              return;
+            }
             if (action === "screen") {
               // One-click screening. Long-running (tens of seconds: it loads the
               // whole market universe), so the engine call is awaited rather than

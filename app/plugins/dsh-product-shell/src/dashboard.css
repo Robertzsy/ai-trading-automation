@@ -1,4 +1,4 @@
-/* Holdings and price chart share the existing product's colour/type tokens. */
+﻿/* Holdings and price chart share the existing product's colour/type tokens. */
 .ia-db-page{color:var(--ia-text-1)}
 .ia-db-page button,.ia-db-page input{font:inherit}
 .ia-db-page button{cursor:pointer}
@@ -6,8 +6,8 @@
 .ia-db-page button:focus-visible,.ia-db-page input:focus-visible{outline:2px solid var(--ia-accent);outline-offset:3px}
 .ia-db-muted{color:var(--ia-text-3);font-size:var(--ia-fs-caption);line-height:1.55}
 .ia-db-market-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-.ia-db-market-picker,.ia-db-choices{display:flex;gap:4px;flex-wrap:wrap}
-.ia-db-market-picker{background:var(--ia-surface-2);padding:4px;border-radius:14px}
+.ia-db-market-picker,.ia-db-choices{display:flex;gap:4px;flex-wrap:wrap}.ia-db-choices{background:#EDF1F7;padding:3px;border-radius:12px}
+.ia-db-market-picker{background:#EDF1F7;padding:4px;border-radius:14px}
 .ia-db-market-picker button,.ia-db-choices button{border:0;background:transparent;color:var(--ia-text-3);border-radius:10px;padding:8px 18px;font-size:var(--ia-fs-body-sm);white-space:nowrap}
 .ia-db-market-picker button[aria-pressed=true]{background:var(--ia-surface);color:var(--ia-accent-text);box-shadow:var(--ia-shadow-xs)}
 .ia-db-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}
@@ -18,7 +18,7 @@
 .ia-db-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
 .ia-db-panel-head h3{margin:0;font-size:var(--ia-fs-body);font-weight:600}
 .ia-db-panel-head>span{color:var(--ia-text-3);font-size:var(--ia-fs-caption)}
-.ia-db-workbench{display:grid;grid-template-columns:245px minmax(0,1fr);gap:16px;align-items:start}
+.ia-db-workbench{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:stretch}.ia-db-workbench>.ia-db-panel{min-height:0}.ia-db-watch{display:flex;flex-direction:column}
 .ia-db-stock-list{display:flex;flex-direction:column;gap:8px}
 .ia-db-stock{width:100%;text-align:left;background:transparent;color:var(--ia-text-1);border:1px solid transparent;border-radius:16px;padding:13px 12px;transition:background-color var(--ia-dur-fast)}
 .ia-db-stock:hover{background:var(--ia-surface-2)}
@@ -67,7 +67,7 @@
 .ia-db-chart-empty{min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;color:var(--ia-text-3);font-size:var(--ia-fs-body-sm);padding:20px;overflow-wrap:anywhere}
 .ia-db-chart-empty p{margin:0;max-width:100%}
 .ia-db-skeleton{height:160px;width:100%;border-radius:12px;background:linear-gradient(180deg,var(--ia-surface-2),var(--ia-surface))}
-.ia-db-secondary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.ia-db-secondary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.18fr);gap:16px;margin-top:16px}
 .ia-db-allocation{display:flex;gap:3px;height:18px;border-radius:6px;overflow:hidden;margin:22px 0 18px}
 .ia-db-allocation span{min-width:0}
 .ia-db-allocation-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
@@ -93,3 +93,46 @@
 @media(max-width:600px){.ia-db-page .ia-page-head{height:auto;min-height:100px;padding:16px;display:block}.ia-db-page .ia-page-title{white-space:nowrap}.ia-db-page .ia-page-status{margin-top:10px;justify-content:flex-start}.ia-db-page .ia-page-content{padding:14px 10px}.ia-db-allocation-list{grid-template-columns:1fr}}
 @media(max-width:420px){.ia-db-metrics,.ia-db-stock-list{grid-template-columns:1fr}.ia-db-quote{align-items:flex-start}.ia-db-position{gap:12px 8px}}
 @media(pointer:coarse){.ia-db-market-picker button,.ia-db-choices button,.ia-db-options label,.ia-db-allocation-item{min-height:44px}.ia-db-date-slider input{min-height:44px}}
+/* Sliding segmented control + chart draw-in. The thumb is rendered by the
+   component; these rules only position it and neutralise the old "active
+   button paints itself" styling that would hide the thumb. */
+.ia-db-market-picker,.ia-db-choices{position:relative}
+.ia-db-market-picker>.ia-seg-thumb{top:4px;bottom:4px;border-radius:10px}
+.ia-db-choices>.ia-seg-thumb{top:3px;bottom:3px;border-radius:9px}
+.ia-db-market-picker>button,.ia-db-choices>button{position:relative;z-index:1}
+.ia-db-market-picker>button[aria-pressed=true],.ia-db-choices>button[aria-pressed=true]{background:transparent!important;box-shadow:none!important;color:var(--ia-accent-text)}
+.ia-db-price-line{stroke-dasharray:1;stroke-dashoffset:1;animation:ia-db-draw 1.1s cubic-bezier(.4,0,.2,1) .12s forwards}
+.ia-db-area{animation:ia-db-area-in .9s ease .2s backwards}
+@keyframes ia-db-draw{to{stroke-dashoffset:0}}
+@keyframes ia-db-area-in{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.ia-db-price-line,.ia-db-area{animation:none!important;stroke-dasharray:none;stroke-dashoffset:0}}
+
+/* ── status band: equity + stats + market switch (demo layout) ─────────── */
+.ia-db-band{display:grid;grid-template-columns:minmax(228px,auto) minmax(0,1fr) auto;gap:26px;align-items:center;padding:18px 22px;border:1px solid var(--ia-border-subtle);border-radius:var(--ia-r-card);background:var(--ia-surface);box-shadow:var(--ia-shadow-sm);margin-bottom:16px}
+.ia-db-band-main{min-width:0}
+.ia-db-band-label{display:block;font-size:12px;line-height:18px;color:var(--ia-text-3)}
+.ia-db-band-equity{font-size:30px;font-weight:650;line-height:1.25;letter-spacing:-.02em;margin-top:2px}
+.ia-db-band-sub{margin-top:4px;font-size:12px;line-height:18px;color:var(--ia-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ia-db-band-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));min-width:0}
+.ia-db-band-stat{padding:2px 20px;border-left:1px solid var(--ia-border-subtle);min-width:0}
+.ia-db-band-stat:first-child{border-left:0;padding-left:0}
+.ia-db-band-stat b{display:block;margin:3px 0 2px;font-size:18px;font-weight:600;line-height:1.35;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ia-db-band-detail{display:block;font-size:11px;line-height:16px;color:var(--ia-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ia-db-band-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.ia-db-primary{white-space:nowrap}
+@media(max-width:1280px){.ia-db-band{grid-template-columns:minmax(200px,auto) minmax(0,1fr);gap:18px}.ia-db-band-actions{grid-column:1 / -1;justify-content:flex-start}}
+@media(max-width:860px){.ia-db-band{grid-template-columns:1fr;gap:14px}.ia-db-band-stats{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:14px}.ia-db-band-stat{padding:0}.ia-db-band-stat:nth-child(odd){border-left:0}}
+
+/* ── holdings meta · chart code chips · round timeline ────────────────── */
+.ia-db-stock-meta{display:block;margin-top:2px;font-size:11px;line-height:16px;color:var(--ia-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ia-db-chart-chips{display:flex;gap:5px;margin-right:12px}
+.ia-db-chart-chips button{border:1px solid var(--ia-border-subtle);background:var(--ia-surface);color:var(--ia-text-3);border-radius:var(--ia-r-full);padding:3px 10px;font-size:12px;line-height:18px}
+.ia-db-chart-chips button[aria-pressed=true]{background:color-mix(in srgb,var(--ia-viz-1) 10%,var(--ia-surface));border-color:color-mix(in srgb,var(--ia-viz-1) 45%,var(--ia-border-subtle));color:var(--ia-accent-text);font-weight:600}
+.ia-db-timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ia-db-timeline li{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 8px;border-top:1px solid var(--ia-border-subtle);font-size:var(--ia-fs-caption)}
+.ia-db-timeline li:first-child{border-top:0}
+.ia-db-timeline li[data-current=true]{background:color-mix(in srgb,var(--ia-viz-1) 7%,var(--ia-surface));border-radius:10px}
+.ia-db-timeline .ia-num{color:var(--ia-text-3);font-size:12px;font-variant-numeric:tabular-nums}
+.ia-db-timeline-copy{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ia-db-trade-label[data-side=buy]{background:color-mix(in srgb,var(--ia-viz-1) 12%,var(--ia-surface));color:var(--ia-accent-text)}
+.ia-db-trade-label[data-side=sell]{background:color-mix(in srgb,var(--ia-ok) 14%,var(--ia-surface));color:var(--ia-ok-text)}

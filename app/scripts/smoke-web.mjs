@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Headless acceptance smoke for the AI Trading Automation product shell.
  *
  * Launches headless Chrome, loads the investment-web profile, and verifies
  * what the browser actually renders:
  *   1. no visible DSH / DeepSeek / Harness / fish branding
- *   2. product left nav (Dashboard / 投资助手 / 分析中心 / 设置) works
+ *   2. product left nav (总览 / 投资助手 / 投资研究 / 设置) works
  *   3. the conversation kernel area renders (投资助手 page)
  *   4. Dashboard and Settings pages render with the investment sections
  *   5. no uncaught page exceptions / failed plugin bundles
@@ -199,13 +199,13 @@ async function main() {
     check(!hasBrand, "no DeepSeek/Harness visible in page text");
 
     // 2. Product left navigation. 分析流程 is not a destination any more: its
-    //    board lives inside 分析中心, so the nav is four entries and the removal
+    //    board lives inside 投资研究, so the nav is four entries and the removal
     //    is asserted rather than merely tolerated.
     const navText = await evaluate(
       cdp,
       `Array.from(document.querySelectorAll('.ia-navbtn')).map(b => b.textContent.trim()).join('|')`,
     );
-    check(String(navText).includes("Dashboard") && String(navText).includes("投资助手") && String(navText).includes("分析中心") && String(navText).includes("设置"), `left nav renders (${navText})`);
+    check(String(navText).includes("总览") && String(navText).includes("投资助手") && String(navText).includes("投资研究") && String(navText).includes("设置"), `left nav renders (${navText})`);
     check(!String(navText).includes("分析流程"), `left nav no longer carries a separate 分析流程 tab (${navText})`);
     check(!String(navText).includes("账户"), `left nav has no account entry (${navText})`);
     const brandText = await evaluate(cdp, `document.querySelector('.ia-rail-brand') ? document.querySelector('.ia-rail-brand').getAttribute('title') : ''`);
@@ -216,8 +216,19 @@ async function main() {
     check(String(sidebarText).includes("会话"), `assistant page shows session sidebar (${sidebarText.slice(0, 60).replace(/\\n/g, ' ')})`);
     const centerHtml = await evaluate(cdp, `document.querySelector('.ia-center') ? document.querySelector('.ia-center').innerHTML.length : 0`);
     check(Number(centerHtml) > 500, `conversation kernel mounted (${centerHtml} bytes of DOM)`);
+    // The context panel lives in a drawer now: open it before asserting.
+
+    await evaluate(cdp, `document.querySelector('.ia-assist-ctx')?.click()`);
+
+    await sleep(500);
+
     const contextText = await evaluate(cdp, `document.querySelector('.ia-context') ? document.querySelector('.ia-context').innerText : ''`);
-    check(String(contextText).includes("投资上下文") && String(contextText).includes("分析流程"), "assistant page shows investment context");
+
+    check(String(contextText).includes("投资上下文") && String(contextText).includes("分析流程"), "assistant page shows investment context in the drawer");
+
+    await evaluate(cdp, `document.querySelector('.ia-assist-ctx')?.click()`);
+
+    await sleep(300);
     const residualSelectorsVisible = await evaluate(cdp, `Array.from(document.querySelectorAll('[aria-label="选择工作区"],[aria-label^="访问模式"]')).some(el => getComputedStyle(el).display !== 'none')`);
     check(!residualSelectorsVisible, "workspace and access-mode selectors are hidden");
     const composerPlaceholder = await evaluate(cdp, `document.querySelector('.ia-center textarea')?.placeholder ?? ''`);
@@ -225,20 +236,20 @@ async function main() {
     check(!/workspace|工作区管理/i.test(String(visibleText)), "no workspace management UI in visible text");
 
     // 4. Dashboard page.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('Dashboard')).click()`);
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('总览')).click()`);
     await sleep(1500);
     const dashText = await evaluate(cdp, "document.body.innerText");
-    check(String(dashText).includes("投资总览"), "Dashboard renders 投资总览");
+    check(String(dashText).includes("投资总览"), "总览 renders 投资总览");
     const dashboard = await evaluate(cdp, `({
       markets: document.querySelectorAll('.ia-db-market-picker button').length,
-      metrics: document.querySelectorAll('.ia-db-metric').length,
+      metrics: document.querySelectorAll('.ia-db-band-stat').length,
       watch: Boolean(document.querySelector('.ia-db-watch')),
       focus: Boolean(document.querySelector('.ia-db-focus')),
       secondary: document.querySelectorAll('.ia-db-secondary > section').length,
       holdings: document.querySelectorAll('.ia-db-stock').length,
     })`);
     check(dashboard?.markets === 4 && dashboard?.metrics === 4, "Dashboard renders four market choices and account metrics");
-    check(dashboard?.watch && dashboard?.focus && dashboard?.secondary === 2, "Dashboard renders holdings, stock detail, allocation and trades");
+    check(dashboard?.watch && dashboard?.focus && dashboard?.secondary === 3, "Dashboard renders holdings, stock detail, allocation, trades and the round timeline");
     for (let marketIndex = 0; marketIndex < 4; marketIndex++) {
       await evaluate(cdp, `document.querySelectorAll('.ia-db-market-picker button')[${marketIndex}].click()`);
       await waitFor(async () => evaluate(cdp, `document.querySelectorAll('.ia-db-market-picker button')[${marketIndex}]?.getAttribute('aria-pressed') === 'true'`), "Dashboard market selection");
@@ -260,20 +271,20 @@ async function main() {
 
     // 4b. The workflow board moved into the analysis centre (its own nav entry is
     //     gone). Navigate there first, then assert the merge left a working page.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('分析中心')).click()`);
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('投资研究')).click()`);
     await sleep(2200);
     const mergedCentre = await evaluate(cdp, `(() => {
       const navs = Array.from(document.querySelectorAll('.ia-navbtn')).map((b) => b.textContent.trim());
       return {
         navs,
-        hasAnalyzePanel: Boolean(document.querySelector('.ia-an-grid')),
-        hasStartPanel: Boolean(document.querySelector('#ia-an-quick-typed')),
+        hasResearchGrid: Boolean(document.querySelector('.ia-research-grid')),
+        hasResearchSide: Boolean(document.querySelector('.ia-research-side')),
         bodyLen: document.body.innerText.length,
       };
     })()`);
     check(
-      mergedCentre?.hasAnalyzePanel === true && mergedCentre?.hasStartPanel === true,
-      `分析中心 is reachable after the merge (${JSON.stringify(mergedCentre)})`,
+      mergedCentre?.hasResearchGrid === true && mergedCentre?.hasResearchSide === true,
+      `投资研究 workspace is reachable (${JSON.stringify(mergedCentre)})`,
     );
     check(
       Array.isArray(mergedCentre?.navs) && mergedCentre.navs.length === 4,
@@ -355,14 +366,19 @@ async function main() {
     //    log after driving the tab. Purely additive: assertions 1-7 above are
     //    untouched, and the exception filter repeats the one used in step 7 so
     //    this section cannot pass by ignoring a failure.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('分析中心'))?.click()`);
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('投资研究'))?.click()`);
     await sleep(1500);
     const analyzeNav = await evaluate(cdp, `Array.from(document.querySelectorAll('.ia-navbtn')).map(b => b.textContent.trim()).join('|')`);
-    check(String(analyzeNav).includes("分析中心"), `left nav has the analysis centre entry (${analyzeNav})`);
-    const analyzeGrid = await evaluate(cdp, `document.querySelector('.ia-an-grid') ? getComputedStyle(document.querySelector('.ia-an-grid')).display : ''`);
+    check(String(analyzeNav).includes("投资研究"), `left nav has the research entry (${analyzeNav})`);
+    const analyzeGrid = await evaluate(cdp, `document.querySelector('.ia-research-grid') ? getComputedStyle(document.querySelector('.ia-research-grid')).display : ''`);
     check(String(analyzeGrid) === "grid", `analysis centre grid container mounted (display: ${analyzeGrid || "missing"})`);
     const analyzeContainers = await evaluate(cdp, `document.querySelectorAll('[class*="ia-an-"]').length`);
     check(Number(analyzeContainers) >= 3, `analysis centre ia-an-* containers render (${analyzeContainers} elements)`);
+    // The start panel (one-click entries + pre-flight) now lives in the
+    // "新建研究" drawer, so open it before reading its copy. The report tab stays
+    // active until 7d switches to the process tab for the progress board.
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-research-actions button')].find((b) => b.textContent.includes('新建研究'))?.click()`);
+    await sleep(800);
     const analyzeText = await evaluate(cdp, "document.body.innerText");
     // The pre-flight rows are collapsed while every precondition passes, so this
     // asserts the summary line rather than the individual rows (which the
@@ -551,17 +567,21 @@ async function main() {
       );
     }
 
-    // 7d. Progress must be graphical, not a static glyph. The board is pinned so
-    //     it cannot scroll away while the user reads the lists beneath it.
+    // 7d. Progress must be graphical, not a static glyph. The research side
+    //     column is pinned so it cannot scroll away while the report scrolls.
+    await evaluate(cdp, `document.getElementById('ia-research-tab-process')?.click()`);
+    await sleep(800);
     const progress = await evaluate(cdp, `(() => {
-      const board = document.querySelector('.ia-an-board');
+      const side = document.querySelector('.ia-research-side');
       const rings = [...document.querySelectorAll('.ia-an-ring')];
       const first = rings[0];
       const fill = first ? first.querySelector('.ia-an-ring-fill') : null;
       const bar = document.querySelector('.ia-an-progress-fill');
-      const start = document.querySelector('.ia-an-start');
+      const drawer = document.querySelector('dialog.ia-an-drawer');
       return {
-        boardSticky: board ? getComputedStyle(board).position : 'absent',
+        sidePosition: side ? getComputedStyle(side).position : 'absent',
+        drawerOpen: drawer ? drawer.open === true : false,
+        startInsideDrawer: Boolean(drawer && drawer.querySelector('.ia-an-start')),
         ringCount: rings.length,
         ringSvgs: first ? first.querySelectorAll('svg circle').length : 0,
         ringHasDash: fill ? String(fill.getAttribute('stroke-dasharray') || '').length > 0 : false,
@@ -569,21 +589,13 @@ async function main() {
         ringLabelled: first ? String(first.getAttribute('aria-label') || '').length > 0 : false,
         barPresent: Boolean(bar),
         barTransition: bar ? getComputedStyle(bar).transitionProperty.includes('transform') : false,
-        startSticky: start ? getComputedStyle(start).position : 'absent',
       };
     })()`);
-    check(progress?.boardSticky === "sticky", `analysis board is pinned while lists scroll (${progress?.boardSticky})`);
-    // The start panel is sticky only while the viewport is tall enough for it:
-    // a sticky panel taller than the viewport traps its own content out of reach,
-    // so short windows fall back to static by design. Assert the rule, not one
-    // of its two legitimate outcomes.
+    check(progress?.sidePosition === "sticky", `research side column is pinned while records scroll (${progress?.sidePosition})`);
     check(
-      progress?.startSticky === "sticky" || progress?.startSticky === "static",
-      `start panel uses a deliberate position (${progress?.startSticky})`,
+      progress?.drawerOpen === true && progress?.startInsideDrawer === true,
+      `new-research drawer hosts the start panel (open=${progress?.drawerOpen}, panel=${progress?.startInsideDrawer})`,
     );
-    if (progress?.startSticky === "static") {
-      console.error("   (start panel is static because the viewport is under 760px tall, by design)");
-    }
     // The ring and the bar only exist once a round has stages. Asserting them on
     // an installation with no rounds would fail for lack of data rather than for
     // a defect, which teaches nothing -- so say so and skip, like the markdown

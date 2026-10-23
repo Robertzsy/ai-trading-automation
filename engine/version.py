@@ -3,4 +3,4 @@
 Kept in sync with `pyproject.toml` and the release archive name.
 """
 
-__version__ = "2.2.1"
+__version__ = "2.3.0"

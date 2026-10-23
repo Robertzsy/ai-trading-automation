@@ -1,104 +1,127 @@
-# AI-Driven Global Portfolio Optimization & Multi-Agent Trading Automation System — Investment Logic Explained
+# AI-Driven Global Portfolio Optimization & Multi-Agent Trading Automation System — Quantitative and AI Investment Logic
 
-> **ai-trading-automation**
+[Back to README](../README_EN.md) · [简体中文](INVESTMENT_LOGIC.md)
 
-This document explains the core investment intelligence of AI Trading Automation 2.1.3: **screening logic**, the **multi-role analysis pipeline**, **decision and risk control**, and a **business-value assessment** for each.
+AI Trading Automation connects multi-factor screening, quantitative portfolio optimization, multi-agent research, and paper execution. This document describes their methods, inputs, outputs, and boundaries. See the [research data contract](RESEARCH_DATA_PIPELINE.md) for data availability and source conventions.
 
-> This document covers the investment logic itself; reliability mechanisms (checkpoint recovery, idempotent receipts, credential storage) are covered in the [2.0 architecture](ARCHITECTURE_2.0.md).
+**Quantitative methods identify what to research and compare allocations. AI evaluates investment theses and counterevidence. Risk controls determine whether a proposed paper trade may execute.**
 
-## 1. Screening: Why One Stock Is More Worth Buying Than Another
+## 1. From Data to Decisions
 
-The design principle is nine words: **exclude first, score second, explain last**. Screening is a deterministic two-stage pipeline—the LLM does not improvise.
-
-### 1.1 Hard Filters (Exclude First)
-
-- **Symbol normalization**: strip `sh/sz/bj/hk/us` prefixes to unify security identity, so the same stock is never double-counted or missed because of notation differences;
-- **Five classes of hard thresholds**: minimum price, minimum turnover, minimum market cap, PE cap, PB cap, and maximum daily move;
-- **Name-list exclusions**: exclude ST/*ST, delisting, warrants (WARRANT/RIGHT/UNIT/PREFERRED) and similar by name pattern; the ETF market additionally excludes money-market, short-term financing, and bond instruments;
-- **Auditable rejections**: every rejected stock records which rule rejected it.
-
-This layer blocks liquidity traps, delisting risk, extreme moves, and shell speculation first—**"don't buy the wrong one" comes before "buy the better one".**
-
-### 1.2 Six-Factor Weighted Scoring (Then Score)
-
-| Factor (weight) | How it is computed | Question it answers |
+| Component | Main inputs | Method and output |
 |---|---|---|
-| Momentum (0.28) | 5/20-day price change, clamp-mapped | Is it strengthening right now |
-| Trend (0.22) | MA5/10/20/60 alignment + MACD bars + RSI14 | Mid-term trend direction and health |
-| Liquidity (0.20) | Turnover percentile within the sample | Can I get in and out |
-| Valuation (0.12) | PE/PB historical band scoring | Is it expensive right now (auxiliary) |
-| Volume (0.10) | Relative volume change | Is capital paying attention |
-| Low volatility (0.08) | Recent volatility level | Can I hold it |
+| Quantitative screening | Market discovery, quotes, historical indicators | Hard filters and multi-factor scores produce candidates and screening reasons |
+| AI stock research | Candidates or user-specified symbols, quotes, financials, news, sentiment, holdings | Four research tracks, bull-bear debate, and research adjudication produce per-stock proposals |
+| AI portfolio research | Stock proposals, account, strategy mandate | Portfolio drafting, risk debate, and final adjudication produce actions and target weights |
+| Risk controls and paper execution | Decisions, current account, engine-fetched quotes, effective constraints | Generates eligible orders, simulates fills or rejections, and saves receipts |
+| Quantitative allocation reference | Historical prices, current holdings, costs, configuration | Independently compares portfolio schemes for the assistant to retrieve and interpret |
 
-Composite score = Σ(factor score × weight). The top N stocks by score (default cap 30) are taken, then an Agent re-screen produces the normalized candidate list. Every selected stock carries Chinese-language evidence, and weights and thresholds are configurable.
+Screening scores, AI judgments, optimizer weights, and final paper orders are distinct recorded results. User-specified stocks can enter research directly. Optimizer results are retrieved through a separate tool; the fixed research workflow does not automatically adopt their recommended weights.
 
-**Worked example (illustrative numbers)**: stock A is up 8.3% over 20 days (momentum 0.90), has bullish moving-average alignment (trend 0.85), sits at the 92nd turnover percentile (liquidity 0.92), and trades at the 45th PE percentile (valuation 0.60), for a weighted total of ≈ 0.81; stock B scores ≈ 0.36. A is selected, with evidence such as "up 8.3% over 20 days, 92nd percentile of the sample; bullish moving-average alignment; turnover at the 92nd percentile; PE at the 45th percentile of the last three years—neutral valuation."
+## 2. Quantitative Screening: Narrowing the Research Universe
 
-### 1.3 Business-Value Assessment
+### 2.1 Filtering and Preselection
 
-- **Explainable → trustworthy**: every pick carries a written reason the user can review;
-- **Discipline → fewer traps**: exclusion rules keep ST stocks, liquidity traps, and delisting risk out;
-- **Zero cost → margin advantage**: screening is deterministic code that consumes no tokens; the LLM is reserved for the re-screen and deep analysis;
-- **Reproducible → auditable**: the same market data always yields the same candidate list;
-- **Configurable → productizable**: factor weights, thresholds, and exclusion rules are configurable, supporting productized strategy styles.
+The native market-discovery path normalizes security symbols and applies configured name exclusions, minimum price, turnover, market cap, PE/PB caps, and daily-move limits. ST/delisting name matches and exclusions for certain security types depend on market configuration. The audit records rejection counts by reason.
 
-## 2. Multi-Role Analysis: How a "Buy or Not" Verdict Is Reached
+Eligible candidates receive a low-cost preliminary ranking. Detailed snapshots and multi-factor scores are then calculated for a limited subset. Configuration bounds the final shortlist, while existing holdings also enter the research universe. Configured fixed pools and user-specified stocks follow different entry paths and should not be treated as having passed every market-discovery filter.
 
-A single model "wants to buy everything", so IA moves an institutional research committee into code—13 roles across five stages.
+When sources or factors are unavailable, the result records fallback status, sources, and errors. Missing factor scores are not presented as valid rankings.
 
-### 2.1 Five Stages and 13 Roles
+### 2.2 Multi-Factor Weighted Scoring
 
-| Stage | Roles | Responsibility |
+Each factor maps to a 0–100 score. Default weights are:
+
+| Factor | Default weight | Current calculation |
+|---|---:|---|
+| Momentum | 25% | Average of linearly mapped and clamped 5-day and 20-day price changes |
+| Relative strength | 20% | 20-day return deviation from the current candidate sample median |
+| Trend | 12% | Price relative to MA20/MA60, MA5/10/20 alignment, MACD histogram, and RSI14 range |
+| Volume breakout | 12% | Joint mapping of 5-day return and volume ratio, rather than volume alone |
+| Acceleration | 8% | Difference between 5-day and 20-day momentum |
+| Risk-adjusted momentum | 8% | 20-day return divided by recent volatility, then mapped |
+| Liquidity | 7% | Turnover percentile relative to the current preselected candidate sample |
+| Valuation | 4% | Piecewise scores from absolute current PE/PB bands |
+| Low volatility | 4% | Inverse mapping of recent return volatility, clamped to the valid score range |
+
+The composite normalizes configured weights:
+
+```text
+Composite score = Σ(factor score × configured weight) / Σ(configured weight)
+```
+
+Factors are combined with normalized configured weights. The score is used only for candidate ranking; it is not an expected return or probability of a price increase. A potential score and a quality score are further blended 55% / 45% for the final candidate ranking.
+
+The valuation factor uses absolute PE/PB bands; it does not calculate a stock's historical valuation percentile or apply industry neutralization. Weights are configured rules, not learned parameters. A score of 77 does not mean a 77% probability of a price increase. Scores can be recalculated from the same data, configuration, and implementation; changing live data or fallback inputs can change the result.
+
+Implementation: [screening engine](../engine/screening/engine.py).
+
+## 3. Portfolio Optimization: Comparing Allocation and Risk
+
+The optimizer aligns common historical trading dates, estimates return means and covariance, and compares schemes using current holdings and trading costs:
+
+| Method | Current implementation | Purpose |
 |---|---|---|
-| ① Base research (parallel per symbol) | Technical / fundamental / news / sentiment analysts | Research each dimension with cited evidence |
-| ② Research debate | Bull / bear researchers | Argue both sides |
-| ② Research debate | Research manager | Adjudicate disagreements and evidence sufficiency |
-| ② Research debate | Trader (per symbol) | Convert conclusions into BUY/SELL/HOLD + target weight + confidence |
-| ③ Portfolio draft | — | Combine per-symbol results into a draft portfolio |
-| ④ Risk debate | Aggressive / conservative / neutral analysts | Debate risk from three stances |
-| ④ Risk debate | Risk manager | Risk adjudication and constraints |
-| ⑤ Final decision | Portfolio manager | Final decision list (BUY/SELL/HOLD + weight + confidence) |
+| Mean–variance | Samples candidate weights and compares historically estimated Sharpe ratios | Compares return and volatility tradeoffs |
+| Black–Litterman | Blends equilibrium returns derived from covariance and prior weights with historical-mean views, then searches weights | Compares allocations after incorporating the prior |
+| Risk parity | Iteratively adjusts weights toward equal asset risk contributions | Examines risk concentration |
+| Cost adjustment | Estimates turnover, commission, taxes, and slippage between current and target weights before comparing schemes | Examines how rebalancing costs affect allocation choices |
 
-### 2.2 Code Implementation
+Outputs include risky-asset weights, whole-account weights with CASH, historical return and volatility estimates, Sharpe ratios, rebalancing costs, and sample-based VaR95, average tail loss, maximum drawdown, and worst daily/weekly/monthly performance. Risky-sleeve weights and whole-account weights are distinguished, with cash allocation retained.
 
-- **Native workflow orchestration**: the pipeline is a DSH-native workflow script (pipeline / parallel / agent); the four base-research tracks run in parallel per symbol, while debates and adjudications proceed stage by stage;
-- **Frozen schemas + composition-time validation**: all 13 role output schemas are frozen as shared constants and validated with JSON Schema when the plugin loads—structural errors surface before launch;
-- **Mandatory evidence citations**: every conclusion must cite evidence (minimum one citation); under-cited candidates are dropped;
-- **Quality floor**: if base-research success falls below 80%, the whole cycle fail-stops; under-researched holdings are forced to HOLD and non-holdings are excluded;
-- **Role memory**: every role keeps structured memory (default 6 entries per role) and accumulates per-stock knowledge across cycles;
-- **Cost control**: downstream roles receive compressed evidence summaries (default 16,000 characters); full evidence is persisted and traceable.
+Close-of-day scheduling runs the optimizer and saves its results. The investment assistant can retrieve the latest output for comparison and interpretation. These are allocation references; actual rebalancing still requires decision submission and risk checks.
 
-### 2.3 Business-Value Assessment
+The current Black–Litterman views use historical mean returns and configured confidence, without model-generated return forecasts. Search and iteration are numerical approximations. Historical metrics and cost estimates are not future returns or a substitute for a complete strategy backtest.
 
-- **Bias counterweight**: a mandatory bear enters the debate, offsetting the single-model buy bias;
-- **Hallucination defense**: "conclusions must carry evidence" leaves fabrication nowhere to hide;
-- **Restraint when needed**: below 0.65 confidence the system does not act, and under-researched holdings are forced to HOLD—"when in doubt, don't" becomes code;
-- **Full transparency**: the Analysis Workflow page shows real stages, agent progress, and evidence counts;
-- **Methodology spillover**: every use is a live demonstration of an institutional research process.
+Implementation: [optimization algorithms](../engine/optimizer/engine.py) · [data alignment and scheme comparison](../engine/optimizer/runner.py).
 
-## 3. Decision and Risk Control: Why It Can Only Trade This Way
+## 4. AI Research: Explaining Signals and Testing the Thesis
 
-### 3.1 Three-Tier Strategy Mandate
+After candidates enter research, AI examines technical, fundamental, news, and sentiment evidence to assess the investment thesis behind each signal. Specialized roles and debates retain competing views.
 
-Conservative / neutral / aggressive tiers, each defining hard boundaries for total position, cash reserve, per-stock cap, per-order cap, minimum confidence, turnover cap, daily trade count, drawdown reduction, and maximum drawdown (defaults: 32% per stock, 38% per order, 35% per-cycle turnover, 0.65 confidence, at most 40 decisions / 10 orders per cycle). Boundary values always come from code—editing files cannot change them.
+| Stage | Roles and responsibilities | Output |
+|---|---|---|
+| Base research | Technical, fundamental, news, and sentiment research for each symbol | Views, evidence, risks, and data-quality notes |
+| Research debate and stock proposals | Bull and bear arguments, research-manager adjudication, and per-stock trader proposals | BUY / SELL / HOLD, target weights, confidence, and reasons |
+| Portfolio draft | Portfolio construction manager combines stock proposals with account constraints | Portfolio-level draft decisions |
+| Risk debate | Aggressive, conservative, and neutral risk perspectives, followed by risk-manager adjudication | Risk assessments and revised decisions |
+| Final decision | Portfolio manager combines research and risk conclusions | Final decision list and risk notes |
 
-### 3.2 Execution Logic
+The number of role executions varies with symbol count and debate rounds. With the default single research-debate and risk-debate rounds, four stocks expand into 38 role tasks.
 
-- **Position capping**: target weight = min(market per-stock cap, strategy per-stock cap)—A-share market rules cap a single stock at 10%, so even a strategy allowing 32% executes at 10%;
-- **Portfolio-level constraints**: per-order value, per-cycle turnover, cash reserve, and target total exposure all apply; available cash is further bounded by "target exposure − current holdings value";
-- **Drawdown circuit breaker**: hitting the maximum drawdown line (A-shares -18%) force-liquidates all holdings and rejects every new buy;
-- **Protective decisions outrank the AI**: hard stop-loss (A-shares -7%), trailing stop (-4% from the high-water mark), and two-tier take-profit (+15% sells 30%, +25% sells 40%) are executed by code automatically, always before AI suggestions;
-- **Symbol and price double-checking**: trading is limited to the allowed pool (holdings ∪ latest screening ∪ configured default symbols); execution prices are fetched by the engine from live quotes, never from AI payloads;
-- **Four-market rules built in**: T+1/T+0, lot sizes, price limits, commission, stamp tax, and slippage are all applied to paper execution per each market's real rules.
+- **Traceable inputs**: shared research packets retain sources, dates, units, and gaps for quotes, financials, and news. Some derived metrics are calculated programmatically when inputs have comparable accounting bases.
+- **Structured outputs**: roles exchange views, reasoning, risks, and evidence references through structured results. Stage outputs and original materials are archived separately.
+- **Limits for incomplete research**: base research must meet configured completeness and citation thresholds. Failed holdings are forced to HOLD, failed new candidates are excluded, and an insufficient overall success ratio stops the round.
+- **Counterarguments retained**: bull-bear and risk debates expose disagreements, with successive research, risk, and portfolio adjudication.
 
-### 3.3 Business-Value Assessment
+For example, a stock with strong momentum and volume scores still needs review: do financial results or events support the signal, is there counterevidence, and do valuation or entry conditions undermine it? AI then proposes action or HOLD. This illustrates the collaboration; it is not a recorded run or performance result.
 
-- **Discipline built in**: stop-loss and take-profit are code, not willpower; the drawdown circuit breaker does not negotiate;
-- **Risk-profile fit**: three tiers match different risk preferences, and boundaries cannot be casually broken by the AI or the user;
-- **Real cost feel**: commission, stamp tax, slippage, and T+1 all enter simulated execution, so trained strategies account for friction by default.
+Citations and schema checks improve traceability but do not automatically establish that sources or reasoning are correct. AI confidence expresses belief in a particular judgment: high confidence in HOLD does not imply a bullish outlook, and confidence cannot be substituted for a quantitative factor score.
 
-## 4. Summary
+Implementation: [multi-stage workflow](../app/plugins/dsh-investment-tools/lib/analysis-workflow.js) · [research data contract](RESEARCH_DATA_PIPELINE.md).
 
-The value of this product is not "AI makes you more money" but "a set of explainable, disciplined, auditable investment decision processes turned into software anyone can run"—screening has reasons, conclusions have evidence, and trading has boundaries.
+## 5. Risk Controls and Paper Execution
 
-> This project supports research and paper trading only. It does not connect to a live broker and does not constitute investment advice.
+Final decisions contain an action, target weight, confidence, reason, and evidence references. At execution, the Python engine independently checks the account, quotes, and effective constraints.
+
+- **Position and funding limits**: target weights are capped by both market and strategy per-stock limits. Order value, total exposure, cash reserve, turnover, and order-count limits further constrain tradable size.
+- **Protective decisions take priority**: execution checks generate configured hard stops, trailing stops, and partial take-profit exits. A maximum-drawdown breach blocks new purchases and generates liquidation decisions.
+- **Symbol and price validation**: decisions must use the allowed symbol pool. The engine obtains reference prices rather than executing AI-supplied prices directly.
+- **Market-configured paper fills**: lot size, sellable quantity, T+1/T+0, price limits, commission, taxes, and slippage are checked or applied. Protective sales may also be blocked by trading rules, so a trigger does not guarantee immediate liquidation.
+- **Reviewable receipts**: fills, rejection reasons, and account-embedded idempotency receipts are saved to prevent duplicate fills on retries.
+
+Conservative, neutral, and aggressive mandates define different risk budgets. Effective parameters depend on the selected strategy, market configuration, and compatibility behavior; consult the current mandate and configuration. There is no single confidence threshold that applies to every market and strategy.
+
+Manual research normally stops pending approval. When autonomous paper scheduling is enabled, it can submit paper decisions under the existing authorization and checks. Every path uses paper accounts.
+
+Implementation: [strategy mandate](../engine/investment/mandate.py) · [risk controls](../engine/trading/risk.py) · [paper broker](../engine/trading/broker.py).
+
+## 6. Interpreting Capabilities and Validation
+
+Implemented capabilities include rule-based screening, quantitative allocation comparisons, multi-agent evidence research, and paper-execution records. These support reviewing why a candidate was selected, why action or HOLD was proposed, and why risk controls restricted an order. They do not establish investment performance.
+
+The repository also contains a lightweight momentum-rule backtest with return, drawdown, Sharpe, and cost metrics. It uses simplified price and cost assumptions, does not replay the complete multi-agent decision process, and does not reproduce all paper-broker rules.
+
+Evaluating the full strategy still requires defined sample periods, point-in-time data, benchmarks, out-of-sample intervals, costs, and execution assumptions. Candidate scores, historical optimizer metrics, individual research cases, and passing software tests cannot replace that validation.
+
+> This project supports investment research and paper trading only. It does not connect to a live broker and does not constitute investment advice.

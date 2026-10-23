@@ -357,3 +357,59 @@ def test_screening_persists_snapshots_factors_and_run_to_store(monkeypatch, tmp_
 
     assert result.audit["storage_backend"] == "mongodb+json"
     assert [call[0] for call in store.calls] == ["discovery", "snapshots", "factors", "run"]
+
+
+def test_miaoxiang_supplements_cn_candidates_with_quality_filter(monkeypatch, tmp_path):
+    monkeypatch.setattr(engine, "SCREENING_DIR", tmp_path)
+    monkeypatch.setattr(engine.fetcher, "market_list", lambda market, **kwargs: {
+        "source": "test-market",
+        "data": [
+            {"symbol": "600519", "name": "甲", "price": 100, "amount": 5e8, "market_cap": 2e11, "pe": 20, "pb": 3},
+        ],
+    })
+    from engine.data import external_quotes
+
+    def fake_mx(query):
+        assert "A股" in query and "市盈率" in query
+        return [
+            {"symbol": "300750", "name": "宁德", "price": 100, "change_pct": 2, "amount": 6e8, "market_cap": 1e11, "pe_ttm": 20},
+            {"symbol": "600519", "name": "甲", "price": 100, "change_pct": 1, "amount": 5e8, "market_cap": 2e11, "pe_ttm": 20},
+            {"symbol": "600001", "name": "ST坏", "price": 5, "change_pct": 0, "amount": 1e8, "market_cap": 1e10, "pe_ttm": 10},
+            {"symbol": "600002", "name": "亏损", "price": 5, "change_pct": 0, "amount": 1e8, "market_cap": 1e10, "pe_ttm": -5},
+        ]
+
+    monkeypatch.setattr(external_quotes, "mx_screen", fake_mx)
+
+    def load(symbols, workers):
+        return {
+            "600519": _snapshot("600519", 1, 5e8),
+            "300750": _snapshot("300750", 3, 6e8),
+        }, {}
+
+    result = engine.run_screening(
+        "cn",
+        held_symbols=[],
+        configured_symbols=[],
+        fallback_symbols=[],
+        settings={
+            "enabled": True,
+            "discovery_limit": 20,
+            "snapshot_limit": 10,
+            "shortlist_size": 3,
+            "min_price": {"cn": 0},
+            "min_amount": {"cn": 1e8},
+            "min_market_cap": {"cn": 5e9},
+            "exclude_name_patterns": ["ST"],
+            "miaoxiang": {"enabled": True, "max_pe": 30, "limit": 10},
+        },
+        autonomous_config={"max_universe_size": 3, "market_data_workers": 1},
+        snapshot_loader=load,
+        now=NOW,
+    )
+
+    audit = result.audit
+    assert audit["miaoxiang"]["added"] == 1
+    assert audit["source"].endswith("+miaoxiang")
+    symbols = {row["symbol"] for row in audit["selected"]}
+    assert "300750" in symbols
+    assert "600002" not in {row["symbol"] for row in audit["selected"]}  # negative PE dropped

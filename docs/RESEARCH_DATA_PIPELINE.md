@@ -109,3 +109,104 @@ AKShare 使用 MIT 代码许可，BaoStock 发布元数据标注 BSD；库的代
 `selectiveFastThinking` / `IA_SELECTIVE_FAST_THINKING=1` 默认关闭。开启后仅基础研究的 `technical_analyst`、`news_analyst` 使用 `reasoningEffort=off`；基本面、情绪、辩论、交易员、组合和风险经理沿用原有档位。使用 SDK 的 `agent/request` 配置接口，先等待工作流发布可信子角色身份，再发送首个请求，不从提示词识别角色。模型、输出上限、工具定义及研究资料保持原样。此为关闭思考的试验：当前 SDK 不支持官方新增的 low 档位，不能将 off 宣称为 low；应以实际请求参数和 usage 验证，不能只看配置。
 
 该试验拒绝与简洁论据、专用角色、去重、统一输出或工具策略同时启用。Checkpoint 记录 `research_thinking=fast-news-technical-v1`，续跑不能更换策略，须新建 cycle。未知身份、绑定超时或取消不发送请求。计量继续记录所有请求的实际思考档位与费用所需 usage；低档位不自动证明低成本或质量等价，验收前不扩大默认配置。
+
+## 数据源扩展（2026-10-17）
+
+### 妙想（东方财富 MX Skills）
+
+- 已安装 6 个 skill：`mx-data`、`mx-search`、`mx-xuangu`、`mx-zixuan`、`mx-moni`、`mx-poster`
+  （`app/skills/`，并同步到安装版 `skills/`）。
+- `MX_APIKEY` 写入用户环境变量与安装版 `.env`。
+- 引擎新增 `engine/data/external_quotes.py`：
+  - `mx_quote()`：自然语言查询单只标的的最新价/涨跌幅/成交额/PE（补齐快照缺口）；
+  - `mx_screen()`：自然语言选股，返回标准化候选（代码/名称/价格/涨跌/成交额/PE/市值）。
+- 实测（2026-10-17）：`腾讯控股` → 成交额 79.01 亿、PE 14.23；A 股选股条件
+  “市值>500亿、成交额>5亿、PE<30” 返回 159 只。
+
+### Tushare Pro
+
+- Token 写入用户环境变量与安装版 `.env`。
+- 免费档频率限制明显（`stock_basic` 1 次/小时、`hk_daily` 1 次/分钟），因此只按
+  **每个市场每个交易日一次** 拉取全市场快照并缓存到 `runtime/data/tushare-<market>-<date>.json`。
+- 字段：CN `daily_basic`（amount 千元、pe_ttm、total_mv）；HK `hk_daily`（amount）。
+  `hk_daily_adj` 无权限，HK 复权仍走原有 akshare 链。
+
+### 快照补齐
+
+`fetcher.snapshot()` 现在会在 Node/Tencent 快照之后执行 `enrich_snapshot()`：
+
+1. 用已有历史重算 `high_52w` / `low_52w` / `amplitude`（修复 1.27、658.7 这类脏值）；
+2. `amount<=0` 或 `pe` 缺失时依次尝试 Tushare 日快照、妙想单标的查询；
+3. 记录 `data_sources` 与 `data_gaps`（缺失写 `null`，不再用 0 冒充）。
+
+实测安装版引擎：`00700` amount=7,901,198,756、PE=14.234（来源 miaoxiang，无缺口）；
+`600519` amount=5,075,530,000、PE=20.4。
+
+## 选股新鲜度（30 分钟 TTL）
+
+- 新增只读代理 `GET /api/investment/analysis?action=screening&market=…`，返回真实选股缓存
+  （`generated_at` + `selected_symbols`）。
+- 界面「来自选股」改读该缓存并显示选股时间与年龄；超过 **30 分钟** 标为过期。
+- 「一键全流程」：缓存 ≤30 分钟直接复用；否则先重新选股再启动分析。
+- 手动点「一键筛选股票」：**无条件重跑**，不受 TTL 影响。
+- 引擎侧 `investment_analysis_workflow` 的自动轮次兜底选股同样按 30 分钟 TTL 判断。
+
+## 自优化反馈闭环
+
+- `engine/feedback.py`：每轮结束写入 `runtime/opt-feedback/round-<cycle>.json`
+  （决策、置信度、HOLD 原因分类、证据数、token 用量），`weekly_summary()` 生成周报。
+- 该模块只做观测与汇总：不改阈值、不改提示词、不改代码；改进建议需人工确认。
+
+## 反馈指标与选股新鲜度采集（2026-10-17 第二轮）
+
+- 轮次启动时记录选股快照：`analysis_runs` 新增 `screening` 字段
+  （`generated_at` / `source` / `selected_count`），由 `engine.screening.engine.latest_screening()` 读取。
+- `engine/feedback.py` 增强：
+  - 反馈 JSON 增加 `screening.age_minutes_at_start`、`execution.{fills,rejected}`；
+  - 新增 `metrics(days, min_confidence=0.65)`，聚合轮次数、决策数、BUY 数、成交/拒绝率、
+    置信度均值/最小/最大、低于阈值占比、HOLD 原因分布、选股年龄（平均/最大/过期轮次）；
+  - `weekly_summary()` 直接使用上述指标。
+- 单元测试：`tests/test_feedback.py`（含选股年龄、原因分类、执行率、空状态）。
+- 安装版已同步（17 个文件，备份 `hotfix-backups\data-sources-20261017-182546`），引擎重启后验证通过。
+
+### 数据质量遥测与可执行建议（同日第三轮）
+
+- `external_quotes.enrich_snapshot()` 每次快照富化追加一行到
+  `runtime/opt-feedback/data-quality.jsonl`（symbol / market / initial_gaps / remaining_gaps / sources），
+  作为「数据缺口率」的原始观测。
+- `engine.feedback` 新增：
+  - `data_quality_summary(start, end)`：快照数、有初始缺口的快照数、仍有缺口的快照数、缺口率、
+    补数来源直方图；
+  - 轮次反馈 JSON 增加 `data_quality`（该轮时间窗内的数据质量）；
+  - `metrics()` 增加 `data_quality`；
+  - `recommendations(data)`：按指标生成 ≤3 条建议（数据源 / 置信度 / 选股新鲜度 / 选股时点），
+    周报的「建议」小节改为由它生成；
+  - CLI：`python -m engine.feedback [days] [--json]`。
+- 验证：单元测试 6 项通过；实网富化 `00700` 记录 `initial_gaps=[amount,pe] → []`、来源 miaoxiang；
+  安装版周报已能输出 1 轮 / 4 决策 / 平均置信度 0.628 / 3 低于 0.65 / 1 条建议。
+
+### 反馈落点统一（同日第四轮）
+
+- `analysis_runs.finish()` 现在在写入终态后直接调用 `feedback.write_round_feedback()`，
+  覆盖 worker 兜底、启动恢复、headless 报错等所有终态路径，不再依赖 worker 线程；
+- `tests/test_feedback.py` 增加 finish 路径用例（共 7 项通过）；
+- 对历史完成轮次补录选股快照（`backfilled: true`），首份真实周报因此能给出选股新鲜度结论：
+  `15871 分钟`（约 11 天）→ 触发「选股过期」建议。
+
+### HOLD 原因分布修正（同日第五轮）
+
+- 之前按「轮次级去重集合」统计，4 个 HOLD 决策只记 1 次；现在按**每个决策**的原因桶计数，
+  并在反馈 JSON 中新增 `hold_reason_counts`；
+- 兼容旧记录：只有 `reason_bucket`（单值）字段的历史反馈也能正确计数；
+- 安装版周报更正为 `HOLD 原因分布：confidence 4`（此前显示 1）；
+- `tests/test_feedback.py` 增至 9 项通过。
+
+### 数据缺口率实测（2026-10-17 18:32，安装版真实选股）
+
+对安装版引擎执行一次港股「一键筛选股票」（不调用模型）：发现 500 只、候选 306、选出 4 只
+（01810 / 09988 / 00700 / 00992），选股时间刷新为 `2026-10-17T18:32:14+08:00`。
+
+- 4 只快照初始都缺 `amount` 与 `pe`，全部由妙想补齐，**剩余缺口 0** → 数据缺口率 **0.0**；
+- 周报由此从 `数据缺口率：-` 变为 `0.0（快照 4，仍有缺口 0）`；
+- 说明：该次选股不需要模型调用，可安全用于验证数据链路；下一轮分析使用这份 30 分钟内的选股，
+  不会重复扫描，超过 30 分钟则自动重跑。

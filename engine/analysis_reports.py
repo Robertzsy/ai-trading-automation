@@ -329,6 +329,170 @@ def _decision_section(run: Mapping[str, Any], number: int = 4) -> List[str]:
     return lines
 
 
+def _iso_dt(value: Any) -> Optional[datetime]:
+    try:
+        return datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _summary_section(run: Mapping[str, Any]) -> List[str]:
+    """Decision summary first: what the round concluded, at a glance.
+
+    Mirrors TradingAgents' portfolio-manager decision block: the reader sees
+    the recommendation, rating, confidence and weight before any narrative.
+    """
+    decisions = [item for item in (run.get("decisions") or []) if isinstance(item, Mapping)]
+    if not decisions:
+        return []
+    counts = {"BUY": 0, "SELL": 0, "HOLD": 0}
+    confidences: List[float] = []
+    for item in decisions:
+        action = str(item.get("action") or "").upper()
+        counts[action] = counts.get(action, 0) + 1
+        value = item.get("confidence")
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            confidences.append(float(value))
+    average = f"{sum(confidences) / len(confidences):.0%}" if confidences else "-"
+    lines = [
+        "## 一、决策摘要",
+        "",
+        f"- 研究标的：{len(run.get('symbols') or [])} 只；"
+        f"买入 {counts.get('BUY', 0)} / 卖出 {counts.get('SELL', 0)} / 观望 {counts.get('HOLD', 0)}；"
+        f"平均置信度：{average}",
+        "",
+        "| 标的 | 评级 | 置信度 | 目标权重 | 一句话结论 |",
+        "|---|---|---|---|---|",
+    ]
+    for item in decisions:
+        action = str(item.get("action") or "").upper()
+        weight = item.get("target_weight")
+        weight_value = float(weight) if isinstance(weight, (int, float)) and not isinstance(weight, bool) else None
+        if action == "BUY":
+            rating = "买入" if (weight_value or 0) > 0 else "观察（0 权重）"
+        elif action == "SELL":
+            rating = "卖出"
+        else:
+            rating = "持有/观望"
+        confidence = item.get("confidence")
+        confidence_text = (
+            f"{float(confidence):.0%}" if isinstance(confidence, (int, float)) and not isinstance(confidence, bool) else "-"
+        )
+        weight_text = f"{weight_value:.0%}" if weight_value is not None else "-"
+        reason = re.sub(r"\s+", " ", str(item.get("reason") or "")).strip()
+        conclusion = reason.split("。")[0][:90] if reason else "-"
+        lines.append(
+            f"| {_safe(item.get('symbol'), 20)} | {rating} | {confidence_text} | {weight_text} | {conclusion} |"
+        )
+    lines.append("")
+    return lines
+
+
+def _context_section(run: Mapping[str, Any]) -> List[str]:
+    """Screening provenance, data quality and reproducibility caveats."""
+    lines = ["## 一、上下文与数据口径", ""]
+    screening = run.get("screening") if isinstance(run.get("screening"), Mapping) else None
+    if screening:
+        generated = _iso_dt(screening.get("generated_at"))
+        started = _iso_dt(run.get("started_at"))
+        age = None
+        if generated is not None and started is not None:
+            age = round((started - generated).total_seconds() / 60, 1)
+        line = (
+            f"- 选股：生成于 {_safe(screening.get('generated_at'), 40)}，"
+            f"来源 {_safe(screening.get('source'), 60) or '-'}，候选 {screening.get('selected_count', '-')} 只"
+        )
+        if age is not None:
+            line += f"，启动时已 {age:.1f} 分钟"
+        lines.append(line)
+        if age is not None and age > 30:
+            lines.append("- ⚠️ 该轮使用的选股结果在启动时已超过 30 分钟 TTL，候选池可能过期。")
+    try:
+        from engine import feedback
+
+        started = _iso_dt(run.get("started_at"))
+        ended = _iso_dt(run.get("completed_at")) or _iso_dt(run.get("updated_at"))
+        quality = feedback.data_quality_summary(started, ended)
+    except Exception:  # noqa: BLE001 - report must not depend on telemetry
+        quality = {}
+    if quality.get("snapshots"):
+        rate = quality.get("gap_rate")
+        rate_text = "-" if rate is None else f"{rate:.0%}"
+        sources = "、".join(
+            f"{name} {count}" for name, count in (quality.get("sources") or {}).items()
+        ) or "-"
+        lines.append(
+            f"- 数据质量：快照 {quality.get('snapshots')} 个；仍有缺口 {quality.get('with_remaining_gaps')} 个；"
+            f"缺口率 {rate_text}；补数来源 {sources}"
+        )
+    else:
+        lines.append("- 数据质量：本轮无遥测记录")
+    lines.extend([
+        "- 数据口径：行情与财务为抓取时点的公开数据快照，不同来源可能存在口径/时点差异；缺失字段会在证据中标注。",
+        "- 复现说明：LLM 输出具有非确定性，相同输入不保证完全相同的结论或置信度。",
+        "",
+    ])
+    return lines
+
+
+def _memory_section(run: Mapping[str, Any]) -> List[str]:
+    """Previous decisions for the same symbols (memory-log style)."""
+    symbols = {str(item) for item in (run.get("symbols") or []) if str(item)}
+    if not symbols:
+        return []
+    try:
+        from engine import feedback
+
+        paths = sorted(feedback.feedback_dir().glob("round-*.json"))
+    except Exception:  # noqa: BLE001
+        return []
+    latest: Dict[str, Dict[str, Any]] = {}
+    for path in paths:
+        try:
+            row = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if str(row.get("cycle_id")) == str(run.get("cycle_id")):
+            continue
+        stamp = str(row.get("completed_at") or row.get("started_at") or "")
+        for decision in row.get("decisions") or []:
+            if not isinstance(decision, Mapping):
+                continue
+            symbol = str(decision.get("symbol") or "")
+            if symbol not in symbols:
+                continue
+            previous = latest.get(symbol)
+            if previous is None or stamp > str(previous.get("stamp") or ""):
+                latest[symbol] = {
+                    "stamp": stamp,
+                    "cycle_id": row.get("cycle_id"),
+                    "action": decision.get("action"),
+                    "confidence": decision.get("confidence"),
+                }
+    if not latest:
+        return []
+    lines = [
+        "## 一、历史决策参考",
+        "",
+        "同一标的在本轮之前最近一次的决策（来自本地反馈记录，仅用于对比，不参与本轮判断）：",
+        "",
+        "| 标的 | 上次轮次 | 决策 | 置信度 | 时间 |",
+        "|---|---|---|---|---|",
+    ]
+    for symbol in sorted(latest):
+        item = latest[symbol]
+        confidence = item.get("confidence")
+        confidence_text = (
+            f"{float(confidence):.0%}" if isinstance(confidence, (int, float)) and not isinstance(confidence, bool) else "-"
+        )
+        lines.append(
+            f"| {_safe(symbol, 20)} | {_safe(item.get('cycle_id'), 80)} | {_safe(item.get('action'), 20)} "
+            f"| {confidence_text} | {_safe(item.get('stamp'), 40)} |"
+        )
+    lines.append("")
+    return lines
+
+
 def _risk_section(run: Mapping[str, Any], number: int = 5) -> List[str]:
     warnings = run.get("warnings")
     failed_agents = [
@@ -503,10 +667,13 @@ def render_round_report(
     body: List[str] = []
     number = 1
     for block in (
+        _summary_section(run),
         _goal_section(goal, goal_history, 1),
+        _context_section(run),
+        _decision_section(run, 4),
+        _memory_section(run),
         _stage_section(run, 2),
         _agent_section(run, 3),
-        _decision_section(run, 4),
         _risk_section(run, 5),
         _brief_section(run),
     ):

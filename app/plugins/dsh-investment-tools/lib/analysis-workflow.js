@@ -29,9 +29,20 @@ const decisionSchema = {
   additionalProperties: false,
   properties: {
     symbol: { type: "string" },
-    action: { type: "string", enum: ["BUY", "SELL", "HOLD"] },
+    action: { type: "string", enum: ["BUY", "SELL", "HOLD", "WATCH"] },
     target_weight: { type: "number" },
     confidence: { type: "number" },
+    expected_return_20d: { type: "number" },
+    expected_return_60d: { type: "number" },
+    downside_20d: { type: "number" },
+    upside_target: { type: "number" },
+    downside_stop: { type: "number" },
+    probability_up_20d: { type: "number" },
+    probability_up_60d: { type: "number" },
+    watch_trigger: { type: "number" },
+    watch_expiry_days: { type: "number" },
+    forced_deployment: { type: "boolean" },
+    advisory_only: { type: "boolean" },
     reason: { type: "string" },
     evidence_ids: { type: "array", items: { type: "string" } },
   },
@@ -136,10 +147,21 @@ const BASE_RESEARCH_SCRIPT = `
 const schema = ${JSON.stringify(WORKFLOW_AGENT_SCHEMAS.baseResearch)};
 phase("基础研究");
 const rows = await pipeline(args.symbols, async (_previous, symbol) => {
-  const analyses = await parallel(args.roles.map((role) => () => agent(
-    "你是" + args.role_instructions[role] + "。只研究 " + symbol + "（" + args.market.toUpperCase() + "）。必须先调用 investment_market_snapshot 和 investment_market_history；新闻/情绪角色还应调用 web_search 查近期事件。不得猜测数据。输出证据时每条给出稳定 id、标题、来源 URL 或投资工具名称、以及该证据支持的事实。结合授权书与以下有限历史记忆，但当前数据优先：" + JSON.stringify(args.memory).slice(0,3000),
-    {label:symbol + ":" + role,phase:"基础研究",schema}
-  )));
+  const analyses = await parallel(args.roles.map((role) => async () => {
+    const prompt = "你是" + args.role_instructions[role] + "。只研究 " + symbol + "（" + args.market.toUpperCase() + "）。必须先调用 investment_market_snapshot 和 investment_market_history；新闻/情绪角色必须先调用 investment_web_search（参数含 query/symbol/market，优先使用 research_plan 的 canonical queries）；只有该工具报错时才允许调用 web_search 回退，禁止直接调用 web_search。提交前必须按 coverage_checklist 自查财报日期、交付/出货、卖方评级三类各至少 2 条证据，合计至少 16 条；不足就补 canonical query。不得猜测数据。输出证据时每条给出稳定 id、标题、来源 URL 或投资工具名称、以及该证据支持的事实。结合授权书与以下有限历史记忆，但当前数据优先："
+      + "输出要求（必须遵守）：先用 3–5 句给出结论，正文总长不超过 1200 个汉字（硬性预算，超预算视为不合格提交）；证据条目最多 12 条，每条一句话；只保留关键事实、反证、失效条件和数据缺口，不重复背景、不复述材料，不得为凑长度展开。"
+      + "检索分三段，总次数不超过 20 次。第一段（最多 5 次，每类合并中英文关键词只查一次）：①业绩/公告：最近财报日期、下一次业绩日期、指引变化；②重大事件：近三个月回购/配售/监管/诉讼/召回/管理层变动；③经营数据：出货/交付/订单/产能/价格及行业同比；④卖方预期：至少两家机构的评级/目标价变动及日期；⑤资金与交易：南向净买卖、沽空比率、成交/量比异常。第二段（最多 10 次）：只针对第一段未确认的日期、数字或主源逐项定向补查，每次查询前先写明要补的缺口，优先港交所/公司公告/官方数据，同一事实最多两个来源。第三段（最多 5 次）：剩余不确定或反证自由检索；仍缺失的内容在 data_quality 明确写“未核实”。停止条件：五类问题各有至少一条可溯源证据，或达到 20 次；禁止为同一事实重复搜索。检索到 15 次时必须先评估缺口并停止扩展；达到 20 次必须立即停止检索并提交结构化结果，继续检索视为违反检索预算。"
+      + JSON.stringify(args.memory).slice(0,3000);
+    const options = {label:symbol + ":" + role,phase:"基础研究",schema};
+    // One transient subagent failure (e.g. a brief credential/network error)
+    // must not discard a whole symbol: retry the role once before giving up.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const result = await agent(prompt, options);
+      if (result) return result;
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+    return null;
+  }));
   return {symbol, analyses};
 });
 return rows.filter(Boolean);
@@ -316,6 +338,78 @@ function validBaseResearch(rows, minimumAnalysts, minimumCitations, requireCitat
   return { good, failed: uniqueSymbols(failed) };
 }
 
+function pctValue(value, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return fallback;
+  return number > 1 ? number / 100 : number;
+}
+
+/** Cash-deployment guard: high cash + positive-EV candidates must not end in 0% invested. */
+function enforceCashDeployment(decisions, recommendations, portfolio, mandate) {
+  const minCash = pctValue(mandate?.min_cash_reserve_pct, 0.25);
+  const maxPosition = pctValue(mandate?.max_position_pct, 0.12);
+  const minConfidence = pctValue(mandate?.min_confidence, 0.60);
+  const cash = Number(portfolio?.cash ?? portfolio?.cash_balance ?? 0);
+  const total = Number(portfolio?.totalCapital ?? portfolio?.total_capital ?? portfolio?.total_assets ?? portfolio?.equity ?? portfolio?.total_value ?? 0);
+  const cashPct = total > 0 ? cash / total : 1;
+  if (cashPct <= minCash + 0.05) return decisions;
+  const positive = (Array.isArray(recommendations) ? recommendations : []).filter(item => (
+    Number(item?.expected_return_20d) > 0 || Number(item?.expected_return_60d) > 0
+  ));
+  if (!positive.length) return decisions;
+  const targetInvested = Math.max(0, 1 - minCash);
+  const perName = Math.min(maxPosition, targetInvested / positive.length);
+  const bySymbol = new Map(decisions.map(item => [item.symbol, item]));
+  const ranked = [...positive].sort((a, b) => Math.max(Number(b.expected_return_20d)||0, Number(b.expected_return_60d)||0) - Math.max(Number(a.expected_return_20d)||0, Number(a.expected_return_60d)||0));
+  const desired = Math.min(targetInvested, positive.length * perName);
+  let invested = decisions.reduce((sum, item) => sum + (item.action === "BUY" ? Number(item.target_weight) || 0 : 0), 0);
+  let changed = false;
+  for (const recommendation of ranked) {
+    if (invested >= desired - 0.005) break;
+    const symbol = String(recommendation?.symbol ?? "").toUpperCase();
+    const decision = bySymbol.get(symbol);
+    if (!decision) continue;
+    const remaining = Math.max(0, desired - invested);
+    const weight = Math.min(perName, remaining);
+    if (weight <= 0) break;
+    if (decision.action !== "BUY" || Number(decision.target_weight) < weight) {
+      const before = decision.action === "BUY" ? Number(decision.target_weight) || 0 : 0;
+      decision.action = "BUY";
+      decision.target_weight = Math.max(before, weight);
+      decision.forced_deployment = true;
+      if (Number(decision.confidence) < minConfidence) decision.advisory_only = true;
+      decision.reason = "现金部署强制：现金 " + (cashPct * 100).toFixed(1) + "% 高于目标上限 " + ((1 - targetInvested) * 100).toFixed(1) + "%，且该标的 EV 为正，按授权书标准仓位部署。这项是分析建议，不构成硬性交易。 " + String(decision.reason || "");
+      invested += Math.max(0, decision.target_weight - before);
+      changed = true;
+    }
+  }
+  // Hard deployment floor: when cash is high, the book may not stay all-cash just
+  // because every candidate is in WATCH/HOLD. Promote the highest-confidence
+  // candidates until at least 25% is deployed (still bounded by max_position).
+  const floor = Math.min(0.25, targetInvested);
+  if (invested < floor - 0.005) {
+    const fallback = decisions
+      .filter(item => item.action !== "SELL")
+      .sort((a, b) => (Number(b.confidence)||0) - (Number(a.confidence)||0));
+    for (const decision of fallback) {
+      if (invested >= floor - 0.005) break;
+      const weight = Math.min(maxPosition, floor - invested);
+      if (weight <= 0) break;
+      if (decision.action !== "BUY" || Number(decision.target_weight) < weight) {
+        const before = decision.action === "BUY" ? Number(decision.target_weight) || 0 : 0;
+        decision.action = "BUY";
+        decision.target_weight = Math.max(before, weight);
+        decision.forced_deployment = true;
+        if (Number(decision.confidence) < minConfidence) decision.advisory_only = true;
+        decision.reason = "现金部署强制：现金 " + (cashPct * 100).toFixed(1) + "% 高于目标上限，组合不得全现金；按最低部署 25% 与单票上限执行。这项是分析建议，不构成硬性交易。 " + String(decision.reason || "");
+        invested += Math.max(0, decision.target_weight - before);
+        changed = true;
+      }
+    }
+  }
+  return changed ? decisions.map(item => ({...item, target_weight: Math.max(0, Math.min(1, Number(item.target_weight)||0))})) : decisions;
+}
+
 function normalizedDecisions(raw, allowedSymbols, forcedHolds) {
   const allowed = new Set(allowedSymbols);
   const forced = new Set(forcedHolds);
@@ -324,14 +418,26 @@ function normalizedDecisions(raw, allowedSymbols, forcedHolds) {
     const symbol = String(item?.symbol ?? "").trim();
     if (!allowed.has(symbol)) continue;
     let action = String(item?.action ?? "HOLD").toUpperCase();
-    if (!["BUY", "SELL", "HOLD"].includes(action) || forced.has(symbol)) action = "HOLD";
+    if (!["BUY", "SELL", "HOLD", "WATCH"].includes(action) || forced.has(symbol)) action = "HOLD";
+    const watch = action === "WATCH";
     const weight = Number(item?.target_weight);
     const confidence = Number(item?.confidence);
     bySymbol.set(symbol, {
       symbol,
       action,
-      target_weight: Number.isFinite(weight) ? Math.max(0, Math.min(1, weight)) : 0,
+      target_weight: watch ? 0 : (Number.isFinite(weight) ? Math.max(0, Math.min(1, weight)) : 0),
       confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0,
+      ...(Number.isFinite(Number(item?.expected_return_20d)) ? { expected_return_20d: Number(item.expected_return_20d) } : {}),
+      ...(Number.isFinite(Number(item?.expected_return_60d)) ? { expected_return_60d: Number(item.expected_return_60d) } : {}),
+      ...(Number.isFinite(Number(item?.downside_20d)) ? { downside_20d: Number(item.downside_20d) } : {}),
+      ...(Number.isFinite(Number(item?.upside_target)) ? { upside_target: Number(item.upside_target) } : {}),
+      ...(Number.isFinite(Number(item?.downside_stop)) ? { downside_stop: Number(item.downside_stop) } : {}),
+      ...(Number.isFinite(Number(item?.probability_up_20d)) ? { probability_up_20d: Number(item.probability_up_20d) } : {}),
+      ...(Number.isFinite(Number(item?.probability_up_60d)) ? { probability_up_60d: Number(item.probability_up_60d) } : {}),
+      ...(Number.isFinite(Number(item?.watch_trigger)) ? { watch_trigger: Number(item.watch_trigger) } : {}),
+      ...(Number.isFinite(Number(item?.watch_expiry_days)) ? { watch_expiry_days: Number(item.watch_expiry_days) } : {}),
+      ...(item?.forced_deployment === true ? { forced_deployment: true } : {}),
+      ...(item?.advisory_only === true ? { advisory_only: true } : {}),
       reason: forced.has(symbol) ? "基础研究未达到完整性阈值，按故障安全规则保持持仓。" : String(item?.reason ?? "") .slice(0, 1000),
       evidence_ids: uniqueSymbols(Array.isArray(item?.evidence_ids) ? item.evidence_ids : []).slice(0, 30),
     });
@@ -475,7 +581,7 @@ const requiredAgent = async (prompt, options) => {
 }
 
 /** Register the deterministic multi-stage analysis tool. */
-export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true, researchRoles = false, deduplicateResearch = false, researchBriefs = false, selectiveFastThinking = false } = {}) {
+export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptimization = false, sharedResearch = false, researchPolicy = "off", lightweightResults = false, uniformOutput = false, strictEvidence = true, researchRoles = false, deduplicateResearch = false, researchBriefs = false, selectiveFastThinking = false, singleConversationBaseResearch = false } = {}) {
   if (!["off", "observe", "enforce"].includes(researchPolicy)) throw new Error("researchPolicy must be off, observe or enforce");
   if (researchBriefs && (researchRoles || deduplicateResearch || uniformOutput || researchPolicy !== "off")) throw new Error("researchBriefs 试验需关闭其他角色、去重、输出与工具策略试验");
   if (researchBriefs) assertObjectJsonSchema(briefSchema(WORKFLOW_AGENT_SCHEMAS.baseResearch));
@@ -483,7 +589,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
   const thinking = selectiveFastThinking ? installResearchThinking(ctx) : null;
   const policy = researchPolicy !== "off" || researchRoles || deduplicateResearch ? installResearchPolicy(ctx, { schemas: WORKFLOW_AGENT_SCHEMAS, strictEvidence, uniformOutput, researchRoles }) : null;
   const collectShared = sharedResearch || cacheOptimization || Boolean(policy) || researchBriefs;
-  const cachedScripts = researchBriefs ? briefWorkflowScripts(WORKFLOW_AGENT_SCHEMAS) : collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS, { researchRoles }) : null;
+  const cachedScripts = researchBriefs ? briefWorkflowScripts(WORKFLOW_AGENT_SCHEMAS) : collectShared ? cacheWorkflowScripts(WORKFLOW_AGENT_SCHEMAS, { researchRoles, singleBase: singleConversationBaseResearch }) : null;
   const summarize = lightweightResults ? analysisSummary : value => value;
   const activeRuns = new Map();
   installCoordinatorGuard(ctx);
@@ -639,8 +745,14 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         let targets = uniqueSymbols(symbols);
         let screeningNote = null;
         if (targets.length === 0) {
+          // Reuse the cached screening only while it is fresh (30 minutes);
+          // otherwise re-screen so an autonomous round never runs on a stale pool.
+          const SCREENING_TTL_MS = 30 * 60 * 1000;
           let screeningPayload = await client.get("/api/screening/"+normalizedMarket);
-          if (!screeningPayload?.cached || !screeningPayload?.screening) {
+          const cachedScreening = screeningPayload?.screening;
+          const cachedAt = Date.parse(String(cachedScreening?.generated_at ?? cachedScreening?.audited_at ?? ""));
+          const screeningFresh = Boolean(screeningPayload?.cached && cachedScreening && Number.isFinite(cachedAt) && (Date.now() - cachedAt) <= SCREENING_TTL_MS);
+          if (!screeningFresh) {
             screeningPayload = await client.issue("run_screening", {market:normalizedMarket}, {requestedBy:"dsh-analysis-workflow",timeoutMs:300000});
           }
           const screening = screeningPayload?.screening ?? screeningPayload;
@@ -737,7 +849,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           } catch { collectionWarnings.push("共享取证归档接口失败；本轮数据追溯不完整"); }
         }
         if (collectShared) checkCancellation(await client.get("/api/analysis/run?cycle_id=" + encodeURIComponent(cycleId)));
-        const base = await runStage("base_research",cachedScripts?.base_research ?? BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory,packets,research_roles:researchRoles},targets.length*4);
+        const base = await runStage("base_research",(singleConversationBaseResearch ? cachedScripts?.base_research_single : null) ?? cachedScripts?.base_research ?? BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory,packets,research_roles:researchRoles},targets.length*4);
         const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations,targets);
         const successRatio = validation.good.length / targets.length;
         const requiredRatio = Math.max(0,Math.min(1,Number(workflowConfig.minimum_symbol_research_success_ratio ?? 0.8)));
@@ -746,10 +858,14 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
         const debate = await runStage("research_debate",cachedScripts?.research_debate ?? RESEARCH_DEBATE_SCRIPT,{research:validation.good,mandate,holdings,rounds:researchRounds},Math.max(1,validation.good.length*(2*researchRounds+2)));
         const recommendations = (Array.isArray(debate) ? debate : []).map((row) => row?.trader).filter(Boolean);
         const draft = await runStage("portfolio_draft",cachedScripts?.portfolio_draft ?? PORTFOLIO_SCRIPT,{portfolio,mandate,recommendations},1);
-        const risk = await runStage("risk_review",cachedScripts?.risk_review ?? RISK_SCRIPT,{draft,portfolio,mandate,rounds:riskRounds},3*riskRounds+1);
+        const risk = await runStage("risk_review",cachedScripts?.risk_review ?? RISK_SCRIPT,{draft,portfolio,mandate,recommendations,research:validation.good,rounds:riskRounds},3*riskRounds+1);
         const finalResult = await runStage("final_decision",cachedScripts?.final_decision ?? FINAL_SCRIPT,{risk,recommendations,mandate},1);
         const decisionSymbols = uniqueSymbols([...validation.good.map(row => row.symbol), ...failedHoldings]);
-        const decisions = normalizedDecisions(finalResult?.decisions,decisionSymbols,failedHoldings);
+        const decisions = enforceCashDeployment(normalizedDecisions(finalResult?.decisions,decisionSymbols,failedHoldings),recommendations,portfolio,mandate);
+        if (finalResult && typeof finalResult === "object") finalResult.decisions = decisions;
+        try {
+          await client.post("/api/analysis/runs/archive", { cycle_id: cycleId, stages: { final_decision: { ...(finalResult || {}), decisions } } }, { timeoutMs: 120000 });
+        } catch { /* the report will still use the canonical run decisions */ }
         const warnings = [...collectionWarnings, ...validation.failed.map((symbol) => holdingSymbols.includes(symbol) ? symbol+" 基础研究不完整，已强制 HOLD" : symbol+" 基础研究不完整，已从候选决策排除")];
         // Persist the final decisions FIRST and enter ready_for_execution:
         // the engine canonicalizes the decisions, computes the decision

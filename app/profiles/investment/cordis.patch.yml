@@ -70,6 +70,7 @@
         engineUrl: 'http://127.0.0.1:8790'
         lightweightResults: true
         sharedResearch: true
+        singleConversationBaseResearch: false
         # Independent pilot switches; validate real-data quality before rollout.
         researchPolicy: 'off'
         researchRoles: false

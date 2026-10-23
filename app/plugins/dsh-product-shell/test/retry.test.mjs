@@ -9,7 +9,7 @@ import { apply } from "../lib/index.js";
 
 test("retry button, browser POST and engine proxy preserve explicit retry and original cycle",async()=>{
   const client=readFileSync(new URL('../lib/client.js',import.meta.url),'utf8');
-  const submitCode=client.slice(client.indexOf('const submitStart = async (options) => {'),client.indexOf('const handleStart = () => {'));
+  const submitCode=client.slice(client.indexOf('const submitStart = async (options) => {'),client.indexOf('const handleStart ='));
   const retryCode=client.slice(client.indexOf('const handleRetry = () => {'),client.indexOf('const handleStop = async () => {'));
   const home=mkdtempSync(join(tmpdir(),'ata-retry-')),oldHome=process.env.DSH_HOME,oldEngine=process.env.INVESTMENT_ENGINE_URL;
   const routes=new Map(),received=[],effects=[];

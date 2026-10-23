@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 import re
 import threading
 from datetime import datetime, timezone
@@ -17,6 +18,8 @@ from typing import Any, Dict, Mapping, Optional
 from engine import analysis_events
 from engine.atomic_write import write_text_atomic
 from engine.paths import runtime_dir
+
+logger = logging.getLogger("ai-trading-automation.analysis_runs")
 
 _lock = threading.RLock()
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}$")
@@ -220,6 +223,8 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             "symbols": symbols,
             "symbols_source": symbols_source,
             "submit": bool(payload.get("submit", False)),
+            # Screening freshness captured at round start (feedback loop only).
+            "screening": payload.get("screening") if isinstance(payload.get("screening"), dict) else None,
             "holding_symbols": [
                 str(item).strip()
                 for item in (payload.get("holding_symbols", []) if isinstance(payload.get("holding_symbols"), list) else [])
@@ -523,6 +528,15 @@ def finish(payload: Mapping[str, Any], *, failed: bool = False) -> Dict[str, Any
         run["completed_at"] = now
         _close_interrupted_agents(run, now)
         _write(path, run)
+        # Every terminal transition (worker fallback, startup recovery, headless
+        # error) lands here; persist the feedback observation at the same point
+        # so the loop does not depend on one particular caller.
+        try:
+            from engine import feedback
+
+            feedback.write_round_feedback(run)
+        except Exception:  # noqa: BLE001 - feedback is auxiliary
+            logger.exception("round feedback write failed for %s", cycle_id)
         return copy.deepcopy(run)
 
 

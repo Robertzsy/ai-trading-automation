@@ -366,13 +366,54 @@ window.__ModuleLoader__.load({
 		const productCss = [
 			".ia-shell{display:grid;grid-template-columns:88px minmax(0,1fr);height:100%;min-width:0;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary)}",
 			".ia-rail{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:16px 9px 12px;border-right:1px solid rgba(255,255,255,.07);background:var(--ia-rail-bg);color:var(--ia-rail-text)}",
-			".ia-rail-brand{width:42px;height:42px;margin:0 auto 16px;display:grid;place-items:center;border-radius:var(--ia-r-card);background:var(--ia-grad-primary);color:#fff;font-size:var(--ia-fs-body-sm);font-weight:700;box-shadow:var(--ia-shadow-md)}",
-			".ia-rail-nav{display:flex;flex-direction:column;gap:5px}.ia-rail-spacer{flex:1}",
-			".ia-navbtn{min-height:58px;border:0;background:transparent;color:var(--ia-rail-text-dim);font:inherit;font-size:var(--ia-fs-caption);line-height:16px;padding:7px 3px;border-radius:var(--ia-r-tab);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;white-space:nowrap}",
-			".ia-navbtn:hover{background:rgba(255,255,255,.07);color:#fff}.ia-navbtn[data-active=true]{background:color-mix(in srgb,var(--ia-accent-cyan) 22%,transparent);color:#fff;font-weight:500;box-shadow:inset 2px 0 0 var(--ia-accent-cyan)}",
+			".ia-rail-brand{width:42px;height:42px;margin:0 auto 16px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,#2563EB 0%,#1D4ED8 60%,#1E3A8A 100%);color:#fff;font-size:var(--ia-fs-body-sm);font-weight:700;box-shadow:0 10px 22px -8px rgba(43,120,255,.9),inset 0 1px 0 rgba(255,255,255,.35)}",
+			".ia-rail-nav{display:flex;flex-direction:column;gap:6px}.ia-rail-spacer{flex:1}",
+			".ia-navbtn{position:relative;min-height:58px;border:0;background:transparent;color:#8E99AC;font:inherit;font-size:var(--ia-fs-caption);line-height:16px;letter-spacing:.3px;padding:8px 4px;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background .28s var(--ia-ease-out),color .28s var(--ia-ease-out),transform .28s var(--ia-ease-out),box-shadow .28s var(--ia-ease-out)}",
+			".ia-navbtn>*{position:relative;z-index:1}",
+			".ia-navbtn:hover{background:rgba(255,255,255,.06);color:#E7EDF8}.ia-navbtn:hover .ia-icon{color:#E7EDF8}",
+			".ia-navbtn:active{transform:scale(.985)}",
+			".ia-navbtn[data-active=true]{color:#fff;font-weight:600;transform:translateY(-1px);background:linear-gradient(160deg,#2563EB 0%,#1D4ED8 50%,#12275F 100%);box-shadow:0 1px 2px rgba(0,0,0,.35),0 2px 10px -3px rgba(40,110,255,.35),0 12px 28px -14px rgba(40,110,255,.45),inset 0 1px 0 rgba(255,255,255,.10)}",
+			".ia-navbtn[data-active=true] .ia-icon{color:#fff;filter:drop-shadow(0 0 5px rgba(120,170,255,.55))}",
+
+			/* ── assistant: status strip + context drawer (demo layout) ── */
+			".ia-assist{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}",
+			".ia-assist-strip{flex:none;display:flex;align-items:center;gap:14px;height:46px;padding:0 18px;border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-base);color:var(--ia-label-2);font-size:12px;white-space:nowrap;overflow:hidden}",
+			".ia-assist-item{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis}",
+			".ia-assist-item b{font-weight:600;color:var(--dsw-alias-label-primary);max-width:190px;overflow:hidden;text-overflow:ellipsis}",
+			".ia-assist-sep{width:1px;height:14px;flex:none;background:var(--dsw-alias-border-l2)}",
+			".ia-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--ia-ok)}",
+			".ia-dot[data-kind=warn]{background:var(--ia-warn)}.ia-dot[data-kind=danger]{background:var(--ia-danger)}",
+			".ia-assist-ctx{margin-left:auto;flex:none;height:30px;padding:0 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:var(--ia-r-full);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer;transition:background-color .2s ease,color .2s ease,border-color .2s ease}",
+			".ia-assist-ctx:hover{background:var(--ia-hover)}",
+			".ia-assist-ctx[aria-pressed=true]{border-color:transparent;background:var(--ia-grad-primary);color:#fff}",
+			".ia-assist-body{display:flex;flex:1;min-height:0;position:relative}",
+			".ia-ctx-drawer{position:absolute;top:10px;right:10px;bottom:10px;width:min(380px,calc(100% - 20px));z-index:20;display:flex;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-base);box-shadow:var(--ia-shadow-lg);overflow:hidden}",
+			".ia-ctx-drawer .ia-context{width:100%;border-left:0;flex:1}",
+			".ia-ctx-drawer .ia-context-row>span{white-space:nowrap}",
+			/* ── settings: single column + right anchor rail (demo layout) ── */
+			".ia-settings{flex-direction:row-reverse}",
+			".ia-settings-nav{width:196px;border-right:0;border-left:1px solid var(--dsw-alias-border-l1);padding:18px 10px;gap:2px;align-self:flex-start;position:sticky;top:0;background:transparent}",
+			".ia-settings-nav button{border:0;background:transparent;text-align:left;font:inherit;font-size:12px;line-height:18px;padding:8px 10px;border-radius:8px;color:var(--ia-label-3);border-left:2px solid transparent}",
+			".ia-settings-nav button:hover{background:var(--ia-hover);color:var(--dsw-alias-label-primary)}",
+			".ia-settings-nav button[data-active=true]{background:transparent;color:var(--ia-accent-text);font-weight:600;border-left-color:var(--ia-accent)}",
+			".ia-settings-content{padding:20px 26px;display:flex;flex-direction:column;gap:18px}",
+			".ia-set-section{padding:18px 20px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--ia-r-card);background:var(--ia-surface);box-shadow:var(--ia-shadow-xs);scroll-margin-top:16px}",
+			".ia-set-title{margin:0 0 12px;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary)}",
 			".ia-navicon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;line-height:0}",
 			".ia-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0;color:currentColor}",
 			".ia-icon svg{display:block}",
+			/* ── motion & interaction layer ─────────────────────────────── */
+			"@keyframes ia-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}",
+			"@keyframes ia-draw{to{stroke-dashoffset:0}}",
+			".ia-an-panel,.ia-db-panel,.ia-db-metric,.ia-research-side>.ia-an-panel{animation:ia-enter .42s var(--ia-ease-out) backwards}",
+			".ia-db-metrics>.ia-db-metric:nth-child(2){animation-delay:45ms}.ia-db-metrics>.ia-db-metric:nth-child(3){animation-delay:90ms}.ia-db-metrics>.ia-db-metric:nth-child(4){animation-delay:135ms}",
+			"@media(hover:hover){.ia-an-panel,.ia-db-panel,.ia-db-metric,.ia-research-history{transition:transform .34s var(--ia-ease-out),box-shadow .34s var(--ia-ease-out),border-color .34s var(--ia-ease-out)}.ia-an-panel:hover,.ia-db-panel:hover,.ia-db-metric:hover{transform:translateY(-3px);box-shadow:var(--ia-shadow-md);border-color:color-mix(in srgb,var(--ia-accent) 22%,var(--dsw-alias-border-l1))}}",
+			".ia-seg{position:relative}",
+			".ia-seg-thumb{position:absolute;top:3px;bottom:3px;left:0;width:0;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(16,24,40,.20),0 1px 2px rgba(16,24,40,.12);pointer-events:none;z-index:0;transition:transform .34s var(--ia-ease-out),width .34s var(--ia-ease-out)}",
+			".ia-seg>button{position:relative;z-index:1}",
+			".ia-seg>button[aria-pressed=true],.ia-seg>button[data-active=true]{background:transparent!important;box-shadow:none!important}",
+			".ia-tabs-ink{position:absolute;bottom:-1px;height:2px;border-radius:2px;background:var(--ia-accent);pointer-events:none;z-index:1;transition:transform .32s var(--ia-ease-out),width .32s var(--ia-ease-out)}",
+			"@media(prefers-reduced-motion:reduce){.ia-an-panel,.ia-db-panel,.ia-db-metric,.ia-navbtn,.ia-seg-thumb,.ia-tabs-ink,.ia-an-progress-fill,.ia-an-ring-fill,.ia-an-ring::after{animation:none!important;transition:none!important}}",
 			".ia-body{min-width:0;min-height:0;display:flex;position:relative;background:var(--dsw-alias-bg-base)}",
 			".ia-sidebar{width:250px;border-right:1px solid var(--dsw-alias-border-l1);background:var(--dsw-specific-sidebar-fill,var(--dsw-alias-bg-base))}",
 			".ia-sidebar-head{height:68px;flex:none;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--dsw-alias-border-l1)}",
@@ -479,14 +520,14 @@ window.__ModuleLoader__.load({
 			".ia-an-kpi{padding:10px 12px;background:var(--ia-surface);min-width:0}",
 			".ia-an-kpi span{display:block;font-size:var(--ia-fs-micro);color:var(--ia-label-3)}",
 			".ia-an-kpi b{display:block;margin-top:4px;font-size:var(--ia-fs-body);font-weight:600;color:var(--dsw-alias-label-primary);word-break:break-all}",
-			".ia-an-stage{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--dsw-alias-border-l2)}",
+			".ia-an-stage{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:12px;align-items:center;padding:16px 0;border-top:1px solid var(--dsw-alias-border-l2)}",
 			".ia-an-stage:first-child{border-top:none}",
-			".ia-an-stage-dot{width:24px;height:24px;border-radius:var(--ia-r-btn);display:grid;place-items:center;font-size:var(--ia-fs-caption);background:var(--ia-hover);color:var(--ia-label-3)}",
+			".ia-an-stage-dot{width:36px;height:36px;border-radius:var(--ia-r-btn);display:grid;place-items:center;font-size:var(--ia-fs-caption);background:var(--ia-hover);color:var(--ia-label-3)}",
 			".ia-an-stage[data-status=running] .ia-an-stage-dot{background:color-mix(in srgb,var(--ia-accent) 16%,transparent);color:var(--ia-accent-text)}",
 			".ia-an-stage[data-status=completed] .ia-an-stage-dot{background:color-mix(in srgb,var(--ia-ok) 16%,transparent);color:var(--ia-ok-text)}",
 			".ia-an-stage[data-status=failed] .ia-an-stage-dot{background:color-mix(in srgb,var(--ia-danger) 16%,transparent);color:var(--ia-danger-text)}",
-			".ia-an-stage-name{font-size:var(--ia-fs-caption);color:var(--dsw-alias-label-primary)}",
-			".ia-an-stage-meta{margin-top:3px;font-size:var(--ia-fs-micro);line-height:15px;color:var(--ia-label-3);word-break:break-all}",
+			".ia-an-stage-name{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary)}",
+			".ia-an-stage-meta{margin-top:3px;font-size:var(--ia-fs-micro);line-height:16px;color:var(--ia-label-3);word-break:break-all}",
 			".ia-an-stage-time{font-size:var(--ia-fs-caption);color:var(--ia-label-3);text-align:right;white-space:nowrap}",
 			".ia-an-agents{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:9px;margin-top:12px}",
 			".ia-an-agent{border:1px solid var(--dsw-alias-border-l2);border-radius:var(--ia-r-tab);padding:9px 10px;background:var(--dsw-alias-bg-base);min-width:0}",
@@ -511,20 +552,23 @@ window.__ModuleLoader__.load({
 			   typography (the .ia-md-* rules own the prose). */
 			".ia-an-report-body{margin:10px 0 0;padding:11px;border-radius:var(--ia-r-tab);background:var(--dsw-alias-bg-layer-1,transparent);border:1px solid var(--dsw-alias-border-l2);max-height:420px;overflow:auto}",
 			/* ── progress: circular stage ring + round bar ─────────────────── */
-			".ia-an-ring{position:relative;width:24px;height:24px;display:inline-grid;place-items:center;flex:none}",
+			".ia-an-ring{position:relative;width:50px;height:50px;display:inline-grid;place-items:center;flex:none}",
 			".ia-an-ring svg{display:block;transform:rotate(-90deg)}",
 			".ia-an-ring-track{stroke:var(--ia-border-subtle)}",
 			/* Only the dash offset and the stroke colour change, so a stage row never
 			   reflows while its ring fills. */
 			".ia-an-ring-fill{transition:stroke-dashoffset var(--ia-dur-slow) var(--ia-ease-out),stroke var(--ia-dur-fast) var(--ia-ease-out)}",
-			".ia-an-ring-mark{position:absolute;inset:0;display:grid;place-items:center;font-size:var(--ia-fs-micro);line-height:1;color:var(--ia-text-3)}",
+			".ia-an-ring-mark{position:absolute;inset:0;display:grid;place-items:center;font-size:11px;font-weight:600;line-height:1;letter-spacing:-.02em;font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;color:var(--ia-text-3)}",
 			".ia-an-ring[data-kind=ok] .ia-an-ring-mark{color:var(--ia-ok-text)}",
 			".ia-an-ring[data-kind=danger] .ia-an-ring-mark{color:var(--ia-danger-text)}",
 			".ia-an-ring[data-kind=accent] .ia-an-ring-mark{color:var(--ia-accent-text)}",
 			/* A running stage breathes; reduced-motion below freezes it and the ring
 			   plus the textual status still carry the state. */
-			".ia-an-ring[data-status=running] svg{animation:ia-ring-spin var(--ia-dur-flow) linear infinite}",
-			"@keyframes ia-ring-spin{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}",
+			"/* A running stage eases forward instead of spinning: the ring fill follows */",
+			"/* an estimated elapsed fraction and transitions smoothly. */",
+			".ia-an-ring[data-status=running] .ia-an-ring-fill{transition:stroke-dashoffset 1.1s cubic-bezier(.22,1,.36,1)}",
+			".ia-an-ring[data-status=running]::after{content:'';position:absolute;inset:-2px;border-radius:50%;border:2px solid color-mix(in srgb,var(--ia-accent) 30%,transparent);opacity:.3;animation:ia-ring-breathe 4.6s ease-in-out infinite;pointer-events:none}",
+			"@keyframes ia-ring-breathe{0%,100%{opacity:.22;transform:scale(.97)}50%{opacity:.65;transform:scale(1.03)}}",
 			".ia-an-progress{margin:8px 0 2px}",
 			".ia-an-progress-track{height:6px;border-radius:var(--ia-r-full);background:var(--ia-border-subtle);overflow:hidden}",
 			".ia-an-progress-fill{height:100%;border-radius:var(--ia-r-full);background:var(--ia-grad-primary);transform-origin:left center;transform:scaleX(0);transition:transform var(--ia-dur-slow) var(--ia-ease-out)}",
@@ -540,8 +584,12 @@ window.__ModuleLoader__.load({
 			   cannot see the ring. */
 			".ia-an-board{position:sticky;top:0;z-index:var(--ia-z-sticky);background:var(--ia-surface);padding-bottom:6px}",
 			".ia-research-toolbar,.ia-research-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.ia-research-heading h2{font-size:calc(var(--ia-fs-body) * 1.25);margin:0 0 6px}.ia-research-controls{display:flex;gap:8px;flex-wrap:wrap}",
-			".ia-research-grid{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;align-items:start}.ia-research-workspace{min-width:0}.ia-research-history{position:sticky;top:12px}.ia-research-rounds{max-height:65vh;overflow:auto}.ia-research-rounds .ia-an-report-item{margin:5px 0}",
-			".ia-research-tabs{display:flex;gap:8px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--dsw-alias-border-l2);margin-bottom:16px}.ia-research-tabs button[aria-selected=true]{background:var(--ia-hover-solid);border-color:var(--ia-brand);color:var(--dsw-alias-label-primary)}",
+			".ia-research-grid{display:grid;grid-template-columns:284px minmax(0,1fr);gap:18px;align-items:start}.ia-research-workspace{min-width:0}.ia-research-side{display:flex;flex-direction:column;gap:14px;position:sticky;top:12px}.ia-research-history{position:sticky;top:12px}.ia-research-rounds{max-height:65vh;overflow:auto}.ia-research-rounds .ia-an-report-item{margin:5px 0}",
+			".ia-research-actions .ia-an-panel-head{margin-bottom:12px}.ia-research-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.ia-research-chips .ia-chip{margin-right:0;padding:3px 10px;border-radius:var(--ia-r-full);background:var(--dsw-alias-bg-layer-1);border-color:var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);font-size:var(--ia-fs-caption)}",
+			".ia-research-action-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ia-research-action-btns .ia-an-btn{justify-content:center}",
+			".ia-research-primary{grid-column:1/-1;background:var(--ia-grad-primary);border-color:transparent;color:#fff}.ia-research-primary:hover:not(:disabled){filter:brightness(1.06);background:var(--ia-grad-primary)}",
+			".ia-research-tabs{position:relative;display:flex;gap:8px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--dsw-alias-border-l2);margin-bottom:16px}.ia-research-tabs button[aria-selected=true]{background:transparent!important;border-color:transparent!important;color:var(--ia-accent-text);font-weight:600}",
+			".ia-tabs>.ia-seg-thumb{top:auto;bottom:-1px;height:2px;border-radius:2px;background:var(--ia-accent);box-shadow:none}",
 			".ia-research-page .ia-an-report-body{max-height:none;overflow:visible}.ia-research-page .ia-an-board{position:static}.ia-an-role-groups details{padding:12px 0;border-top:1px solid var(--dsw-alias-border-l2)}.ia-an-role-groups summary{cursor:pointer;font-size:var(--ia-fs-body-sm)}.ia-an-evidence-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:var(--ia-fs-caption)}",
 			".ia-an-drawer{box-sizing:border-box;width:min(590px,calc(100% - 32px));max-height:calc(100vh - 48px);margin:24px 24px 24px auto;padding:18px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--ia-r-card);background:var(--ia-surface);color:var(--dsw-alias-label-primary);box-shadow:var(--ia-shadow-lg);overflow:auto}.ia-an-drawer::backdrop{background:color-mix(in srgb,var(--dsw-alias-label-primary) 25%,transparent)}.ia-an-drawer .ia-an-start{position:static}.ia-an-drawer h2{font-size:calc(var(--ia-fs-body) * 1.25);margin:0}",
 			".ia-an-lookup{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}.ia-an-stock-option{display:flex;justify-content:space-between;gap:10px;text-align:left;width:100%;padding:9px;border:0;border-bottom:1px solid var(--dsw-alias-border-l2);background:var(--ia-surface);color:var(--dsw-alias-label-primary);font:inherit;font-size:var(--ia-fs-body-sm);cursor:pointer;flex-wrap:wrap}.ia-an-stock-option:hover,.ia-an-stock-option[aria-selected=true]{background:var(--ia-hover-solid)}.ia-an-catalog{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}",
@@ -614,7 +662,15 @@ window.__ModuleLoader__.load({
 			".ia-news-body{max-height:420px;overflow-y:auto}",
 			".ia-news-body .ia-md>*:first-child{margin-top:0}",
 			"@media(max-width:1440px){.ia-an-main{grid-template-columns:minmax(0,1fr)}}",
-			"@media(max-width:1180px){.ia-an-grid{grid-template-columns:1fr}}"
+			"@media(max-width:1180px){.ia-an-grid{grid-template-columns:1fr}}",
+".ia-settings{display:flex;flex-direction:row-reverse;flex:1;min-width:0;overflow:hidden;background:var(--dsw-alias-bg-base)}",
+			".ia-settings-nav{flex:none;width:196px;padding:18px 10px;gap:2px;align-self:flex-start;position:sticky;top:0;border:0;border-left:1px solid var(--dsw-alias-border-l1);background:transparent}",
+			".ia-settings-nav button{border:0;border-left:2px solid transparent;background:transparent;text-align:left;font:inherit;font-size:12px;line-height:18px;padding:8px 10px;border-radius:8px;color:var(--ia-label-3);cursor:pointer}",
+			".ia-settings-nav button:hover{background:var(--ia-hover);color:var(--dsw-alias-label-primary)}",
+			".ia-settings-nav button[data-active=true]{background:transparent;color:var(--ia-accent-text);font-weight:600;border-left-color:var(--ia-accent)}",
+			".ia-settings-content{flex:1;min-width:0;overflow-y:auto;padding:20px 26px;max-width:none;display:flex;flex-direction:column;gap:18px}",
+			".ia-set-section{padding:18px 20px;border:1px solid var(--dsw-alias-border-l1);border-radius:var(--ia-r-card);background:var(--ia-surface);box-shadow:var(--ia-shadow-xs);scroll-margin-top:16px}",
+			".ia-ctx-drawer .ia-context-row>span{white-space:nowrap}",
 		].join("");
 		// ── design tokens ──────────────────────────────────────────────────
 		//
@@ -702,9 +758,10 @@ window.__ModuleLoader__.load({
   --ia-lh-tight:1.25; --ia-lh-snug:1.4; --ia-lh-body:1.6;
   --ia-fw-regular:400; --ia-fw-medium:500; --ia-fw-semibold:600; --ia-fw-bold:700;
 
-  /* L2 · radii — large-radius language */
+  /* L2 · radii — card radius dropped from 24 to 18 so cards and controls
+     share one visual family; modals keep the larger step. */
   --ia-r-xs:8px; --ia-r-sm:10px; --ia-r-btn:14px; --ia-r-tab:16px;
-  --ia-r-chart:22px; --ia-r-card:24px; --ia-r-modal:28px; --ia-r-full:999px;
+  --ia-r-chart:22px; --ia-r-card:18px; --ia-r-modal:24px; --ia-r-full:999px;
 
   /* L2 · elevation (multi-layer, low alpha) */
   --ia-shadow-xs:0 1px 2px rgba(16,24,40,.04);
@@ -772,10 +829,10 @@ window.__ModuleLoader__.load({
      area, so it needs its own ink/surface set rather than the global one.
      P1 re-points these at the blue brand ramp; keeping them as tokens now means
      that retheme is a token edit, not a rule rewrite. */
-  --ia-rail-bg:#10272B;
-  --ia-rail-text:#DCE9E9;
-  --ia-rail-text-dim:#9FB2B5;
-  --ia-rail-active-text:#70D6C4;
+  --ia-rail-bg:#0F172A;
+  --ia-rail-text:#B6C0D2;
+  --ia-rail-text-dim:#9AA6BD;
+  --ia-rail-active-text:#FFFFFF;
 
   /* L2 · brand accent. Was a teal ramp; the design target is the blue ramp, so
      P1 only has to repoint these two tokens. */
@@ -827,10 +884,8 @@ window.__ModuleLoader__.load({
 
 /* Per-component tuning ONLY. The five interaction states live in .ia-elev
    above, applied on the element itself, so nothing is restated here. The rail's
-   items opt out of travel: in an 88px band a moving row reads as jitter, and the
-   rail already separates itself from the page. */
-.ia-rail .ia-navbtn{box-shadow:none}
-.ia-rail .ia-navbtn[data-active=true]{box-shadow:inset 0 1px 0 var(--ia-edge-hi),inset 2px 0 0 var(--ia-accent-cyan)}
+   items are styled in productCss: an active item is a gradient card with a soft
+   blue outer shadow — no inset edge line, matching the approved design. */
 .ia-sidebar .ia-session[data-active=true]{box-shadow:inset 0 1px 2px var(--ia-edge-lo)}
 
 /* DSH's own conversation controls (the composer's add button, the workspace
@@ -931,6 +986,32 @@ window.__ModuleLoader__.load({
 			if (!Number.isFinite(number)) return "-";
 			return number.toLocaleString("zh-CN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 		};
+		/* Sliding thumb for segmented controls. The container owns one absolutely
+		   positioned .ia-seg-thumb; the active button defines its offset and width,
+		   so switching animates instead of jumping (iOS-style segmented control). */
+		function useSegThumb(ref, deps) {
+			react.useEffect(() => {
+				const el = ref && ref.current;
+				if (!el) return;
+				const activeSelector = '[aria-pressed="true"],[data-active="true"],[aria-selected="true"]';
+				const place = () => {
+					const thumb = el.querySelector(":scope > .ia-seg-thumb");
+					if (!thumb) return;
+					const active = el.querySelector(activeSelector);
+					if (!active) { thumb.style.width = "0px"; return; }
+					thumb.style.transform = "translateX(" + active.offsetLeft + "px)";
+					thumb.style.width = active.offsetWidth + "px";
+				};
+				place();
+				const observer = typeof ResizeObserver === "function" ? new ResizeObserver(place) : null;
+				if (observer) observer.observe(el);
+				window.addEventListener("resize", place);
+				return () => {
+					if (observer) observer.disconnect();
+					window.removeEventListener("resize", place);
+				};
+			}, deps || []);
+		}
 		const marketName = { cn: "A股", hk: "港股", us: "美股", etf: "ETF" };
 
 		// ── Dashboard ─────────────────────────────────────────────────────
@@ -1272,7 +1353,7 @@ window.__ModuleLoader__.load({
 		  } else {
 		    const path=dbPath(bars,x,y);
 		    svg.push(dbH('path',{key:'area',d:path+' L'+right+','+bottom+' L'+left+','+bottom+' Z',className:'ia-db-area'}),
-		      dbH('path',{key:'line',d:path,className:'ia-db-price-line',fill:'none',strokeWidth:2.2,strokeLinejoin:'round'}));
+		      dbH('path',{key:'line',d:path,className:'ia-db-price-line',pathLength:1,fill:'none',strokeWidth:2.2,strokeLinejoin:'round'}));
 		  }
 		  if(options.ma) {
 		    const start=ma.findIndex(row=>row.ma!==null);
@@ -1324,6 +1405,13 @@ window.__ModuleLoader__.load({
 		  const summaryState=useInvestmentSummary(10000),summary=summaryState.data ?? {},status=summary.status ?? {};
 		  const [market,setMarket]=react.useState('cn'),[selection,setSelection]=react.useState({}),[period,setPeriod]=react.useState('quarter'),[type,setType]=react.useState('line');
 		  const [options,setOptions]=react.useState({cost:true,volume:true,trades:true,ma:false});
+		  // Sliding segmented controls: the thumb lives in the container and follows the
+		  // active button, so switching market / period / chart type animates instead of
+		  // flashing a new page.
+		  const marketRef=react.useRef(null),periodRef=react.useRef(null),typeRef=react.useRef(null);
+		  useSegThumb(marketRef,[market]);
+		  useSegThumb(periodRef,[period]);
+		  useSegThumb(typeRef,[type]);
 		  const account=dbAccount(summary.portfolios?.[market],market),holdings=account?.holdings ?? [];
 		  const holding=holdings.find(item=>item.code===selection[market]) ?? holdings[0] ?? null;
 		  const histories=useDashboardHistories(market,holdings.map(item=>item.code),holding?.code);
@@ -1348,55 +1436,86 @@ window.__ModuleLoader__.load({
 		  const errorState=(message,retry)=>dbH('div',{className:'ia-db-chart-empty',role:'status'},icon('alertTriangle',22),dbH('p',null,message),retry?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:retry},'重新加载'):null);
 		  const allocation=account?.equity>0 && account.value!==null && account.cash>=0 ? [...holdings.map((item,i)=>({name:item.name,code:item.code,value:item.value,opacity:.45+.15*(i%4)})),{name:'现金',value:account.cash,opacity:1}] : [];
 		  const colors=item=>item.code?'var(--ia-viz-1)':'var(--ia-border-strong)';
+		  const nextCycle = status.markets?.[market]?.next_cycle;
+		  const equityText = account?.equity > 0 ? dbMoney(account.equity, currency, 0) : '—';
+		  const pnlText = account?.pnl === null || account?.pnl === undefined ? '—' : (account.pnl > 0 ? '+' : '') + dbMoney(account.pnl, currency, 0);
+		  const pnlRate = account?.equity > 0 && Number.isFinite(account.pnl) ? (account.pnl / (account.equity - account.pnl)) * 100 : null;
+		  const usageText = account?.equity > 0 && account.value !== null ? ((account.value / account.equity) * 100).toFixed(1) + '%' : '—';
+		  const runs = Array.isArray(summary.analysisRuns) ? summary.analysisRuns : [];
+		  const metricChip = (label, value, detail) => dbH('div', { className: 'ia-db-band-stat', key: label },
+		    dbH('span', { className: 'ia-db-band-label' }, label),
+		    dbH('b', { className: 'ia-num' }, value),
+		    detail ? dbH('span', { className: 'ia-db-band-detail' }, detail) : null);
 		  return dbH('div',{className:'ia-page ia-db-page','data-red-up':market!=='us'},
 		    dbH(PageHeader,{title:'投资总览',subtitle:'从组合到个股，看清每一次变化',status:summaryState.loading?'正在连接投资引擎':'模拟交易 · 风控'+riskLabel,statusKind:engineError?'error':status.control?.kill_switch || status.control?.paused?'warn':'ok'}),
 		    dbH('div',{className:'ia-page-content'},
 		      engineError?dbH('div',{className:'ia-notice','data-kind':'err',role:'alert'},'引擎暂不可达：'+engineError):null,
-		      dbH('div',{className:'ia-db-market-row'},dbH('div',{className:'ia-db-market-picker','aria-label':'查看市场'},dbMarkets.map(key=>dbH('button',{key,type:'button','aria-pressed':market===key,onClick:()=>setMarket(key)},marketName[key]))),
-		        dbH('span',{className:'ia-db-muted'},'各市场按币种独立展示')),
-		      dbH('div',{className:'ia-db-metrics'},metrics.map(([label,value,detail])=>dbH('div',{className:'ia-db-metric',key:label},dbH('div',{className:'ia-db-muted'},label),dbH('div',{className:'ia-db-metric-value'},value),dbH('div',{className:'ia-db-muted'},detail)))),
+		      dbH('section',{className:'ia-db-band'},
+		        dbH('div',{className:'ia-db-band-main'},
+		          dbH('span',{className:'ia-db-band-label'},'账户权益'),
+		          dbH('div',{className:'ia-db-band-equity ia-num'},equityText),
+		          dbH('div',{className:'ia-db-band-sub'},'现金 '+dbMoney(account?.cash,currency,0)+' · 市值 '+dbMoney(account?.value,currency,0))),
+		        dbH('div',{className:'ia-db-band-stats'},
+		          metricChip('持仓浮动盈亏',pnlText,pnlRate===null?null:(pnlRate>0?'+':'')+pnlRate.toFixed(2)+'%'),
+		          metricChip('资金使用率',usageText,account?.cash!==null && account?.equity>0?'现金占比 '+(account.cash/account.equity*100).toFixed(1)+'%':'等待账户数据'),
+		          metricChip('持有标的',account?holdings.length+' 只':'—',marketName[market]+' · 独立模拟账户'),
+		          metricChip('下一轮',nextCycle?String(nextCycle).replace('T',' ').slice(5,16):'—',status.operation_mode==='automatic'?'自动运行':'手动运行')),
+		        dbH('div',{className:'ia-db-band-actions'},
+		          dbH('div',{ref:marketRef,className:'ia-db-market-picker ia-seg','aria-label':'查看市场'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),dbMarkets.map(key=>dbH('button',{key,type:'button','aria-pressed':market===key,onClick:()=>setMarket(key)},marketName[key]))),
+		          onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev ia-elev-lg ia-db-primary',onClick:onOpenAnalysis},'＋ 新建研究'):null)),
 		      dbH('div',{className:'ia-db-workbench'},
-		        dbH('section',{className:'ia-db-panel ia-db-watch'},panelHead('我的持仓',account?holdings.length+' 只':''),
+		        dbH('section',{className:'ia-db-panel ia-db-watch'},panelHead('我的持仓',account?holdings.length+' 只 · 市值 '+dbMoney(account.value,currency,0):''),
 		          holdings.length?dbH('div',{className:'ia-db-stock-list'},holdings.map(item=>{
 		            const stockHistory=histories.items[item.code],rows=stockHistory?.data?.bars ?? [],latest=rows.at(-1),previous=rows.at(-2);
 		            const change=previous?(latest.close/previous.close-1)*100:null;
 		            return dbH('button',{type:'button',className:'ia-db-stock',key:item.code,'aria-pressed':holding?.code===item.code,'aria-label':'查看'+item.name+'的走势',onClick:()=>choose(item.code)},
 		              dbH('div',{className:'ia-db-stock-row'},dbH('b',null,item.name),dbH('span',{className:'ia-num'},dbMoney(latest?.close ?? item.price))),
 		              dbH('div',{className:'ia-db-stock-row'},dbH('span',{className:'ia-db-muted'},item.code),dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(change)},dbSigned(change))),
-		              dbH(DashboardSparkline,{history:stockHistory,name:item.name}),dbH('span',{className:'ia-db-stock-date'},latest?latest.date+' 收盘':'账户记录价 · 更新时间未知'));
+		              dbH(DashboardSparkline,{history:stockHistory,name:item.name}),
+		              dbH('span',{className:'ia-db-stock-meta ia-num'},dbMoney(item.shares,'',0)+' 股 · 成本 '+dbMoney(item.cost,currency)+' · 盈亏 '+((item.pnl>0?'+':'')+dbMoney(item.pnl,currency))));
 		          })):dbH('div',{className:'ia-empty'},summaryState.loading?'正在读取持仓…':account?'暂无持仓':'账户数据暂不可用'),
-		          holdings.length?dbH('div',{className:'ia-db-watch-foot'},'近1个月日线 · 点击查看详情'):null),
+		          holdings.length?dbH('div',{className:'ia-db-watch-foot'},'近1个月日线 · 点击切换右侧走势'):null),
 		        dbH('section',{className:'ia-db-panel ia-db-focus'},holding?dbH(react.Fragment,null,
-		          dbH('div',{className:'ia-db-focus-head'},dbH('div',{'aria-live':'polite'},dbH('h2',null,holding.name),dbH('div',{className:'ia-db-muted'},holding.code+' · '+marketName[market]+' · 日线历史')),
-		            dbH('div',{className:'ia-db-quote'},dbH('span',{className:'ia-db-muted'},'最近收盘'),dbH('strong',null,dbMoney(current?.close,currency)),
-		              dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(rangeChange)},dbPeriodNames[period]+' '+dbSigned(rangeChange)))),
-		          dbH('div',{className:'ia-db-toolbar'},dbH('div',{className:'ia-db-choices','aria-label':'时间范围'},Object.entries(dbPeriodNames).map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':period===key,onClick:()=>setPeriod(key)},label))),
-		            dbH('div',{className:'ia-db-choices','aria-label':'图表类型'},[['line','走势线'],['candle','K 线']].map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':(canCandle?type:'line')===key,disabled:key==='candle'&&!canCandle,title:key==='candle'&&!canCandle?'当前来源没有完整的开高低收数据':undefined,onClick:()=>setType(key)},label)))),
+		          dbH('div',{className:'ia-db-focus-head'},
+		            dbH('div',{'aria-live':'polite'},dbH('h2',null,'价格走势'),
+		              dbH('div',{className:'ia-db-muted'},holding.name+' · '+holding.code+' · '+dbPeriodNames[period])),
+		            dbH('div',{className:'ia-db-quote'},
+		              holdings.length>1?dbH('div',{className:'ia-db-chart-chips'},holdings.map(item=>dbH('button',{key:item.code,type:'button','aria-pressed':holding.code===item.code,onClick:()=>choose(item.code)},item.code))):null,
+		              dbH('strong',null,dbMoney(current?.close,currency)),
+		              dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(rangeChange)},dbSigned(rangeChange)))),
+		          dbH('div',{className:'ia-db-toolbar'},
+		            dbH('div',{ref:periodRef,className:'ia-db-choices ia-seg','aria-label':'时间范围'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),Object.entries(dbPeriodNames).map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':period===key,onClick:()=>setPeriod(key)},label))),
+		            dbH('div',{ref:typeRef,className:'ia-db-choices ia-seg','aria-label':'图表类型'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),[['line','走势线'],['candle','K 线']].map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':(canCandle?type:'line')===key,disabled:key==='candle'&&!canCandle,title:key==='candle'&&!canCandle?'当前来源没有完整的开高低收数据':undefined,onClick:()=>setType(key)},label))),
+		            dbH('div',{className:'ia-db-options'},[['cost','成本线',canCost],['volume','成交量',canVolume],['trades','买卖日期',!!trades.length],['ma','MA20',!!history && history.bars.length>=20]].map(([key,label,enabled])=>dbH('label',{key},dbH('input',{type:'checkbox',checked:options[key],disabled:!enabled,onChange:event=>setOptions(previous=>({...previous,[key]:event.target.checked}))}),label)))),
 		          selected?.error?errorState(selected.error,()=>histories.retry(holding.code)):!history?dbH('div',{className:'ia-db-chart-empty','aria-busy':true,role:'status'},dbH('div',{className:'ia-db-skeleton'}),'正在加载历史行情…'):history.bars.length<2?errorState('暂时没有足够的历史行情',()=>histories.retry(holding.code)):
 		            dbH(DashboardPriceChart,{key:market+':'+holding.code,history,holding,market,period,type,options:{...options,volume:options.volume&&canVolume,cost:options.cost&&canCost},trades}),
-		          dbH('div',{className:'ia-db-options'},[['cost','成本线',canCost],['volume','成交量',canVolume],['trades','买卖日期',!!trades.length],['ma','MA20',!!history && history.bars.length>=20]].map(([key,label,enabled])=>dbH('label',{key},dbH('input',{type:'checkbox',checked:options[key],disabled:!enabled,onChange:event=>setOptions(previous=>({...previous,[key]:event.target.checked}))}),label))),
-		          history?dbH('div',{className:'ia-db-provenance'},dbH('span',null,'来源 '+(history.source || '未提供')+' · '+(history.adjusted===true?'前复权':history.adjusted===false?'不复权':'复权状态未知')+' · 最后交易日 '+(current?.date || '—')),
-		            age>7?dbH('span',{className:'ia-db-data-warning'},'历史行情距今 '+age+' 天，请留意数据日期'):null,
-		            history.degraded || history.adjusted!==true || history.warnings.length?dbH('span',{className:'ia-db-data-warning',role:'status'},'行情提示：'+(history.warnings.join('；') || (history.degraded?'已使用备用行情来源':'复权状态未经确认'))):null):null,
 		          dbH('div',{className:'ia-db-position'},[['持有数量',dbMoney(holding.shares,'',0)+' 股'],['当前持仓成本',dbMoney(holding.cost,currency)],['账户记录估值',dbMoney(holding.price,currency)],['持仓浮动盈亏',(holding.pnl>0?'+':'')+dbMoney(holding.pnl,currency)]].map(([label,value])=>dbH('div',{key:label},dbH('span',{className:'ia-db-muted'},label),dbH('strong',null,value)))),
-		          dbH('div',{className:'ia-db-muted ia-db-position-date'},'账户估值时间：'+(holding.lastPriceAt?String(holding.lastPriceAt).replace('T',' '):'未记录')+' · 图表显示历史收盘价')):errorState(account?'选中一只持仓即可查看走势':'等待账户数据'))),
+		          history?dbH('div',{className:'ia-db-provenance'},dbH('span',null,'来源 '+(history.source || '未提供')+' · 最后交易日 '+(current?.date || '—')),age>7?dbH('span',{className:'ia-db-data-warning'},' · 行情距今 '+age+' 天'):null,
+		            history.degraded || history.adjusted!==true || history.warnings.length?dbH('span',{className:'ia-db-data-warning',role:'status'},' · 行情提示：'+(history.warnings.join('；') || (history.degraded?'已使用备用行情来源':'复权状态未经确认'))):null):null):dbH(react.Fragment,null,dbH('div',{className:'ia-db-focus-head'},dbH('div',null,dbH('h2',null,'价格走势'),dbH('div',{className:'ia-db-muted'},account?'选择左侧持仓查看走势':'等待账户数据'))),dbH('div',{className:'ia-db-chart-empty','data-kind':'empty',role:'status'},dbH('p',null,account?'选中一只持仓即可查看走势':'账户数据暂不可用'))))),
 		      dbH('div',{className:'ia-db-secondary'},
+		        dbH('section',{className:'ia-db-panel'},panelHead('轮次时间线','最近 '+(runs.length?Math.min(runs.length,5):0)+' 轮'),
+		          runs.length?dbH('ul',{className:'ia-db-timeline'},runs.slice(0,5).map((run,index)=>dbH('li',{key:String(run.cycle_id ?? run.id ?? index),'data-current':index===0},
+		            dbH('b',{className:'ia-num'},String(run.started_at ?? run.created_at ?? '').replace('T',' ').slice(5,16)),
+		            dbH('span',{className:'ia-db-timeline-copy'},(marketName[run.market] ?? run.market ?? '-')+' · '+(run.label || '股票研究')),
+		            dbH('span',{className:'ia-chip','data-kind':analysisStatusKind(run.status)},analysisStatusLabel(run.status))))):dbH('div',{className:'ia-empty'},'暂无历史轮次')),
 		        dbH('section',{className:'ia-db-panel'},panelHead('组合分布','本市场 · 含现金'),allocation.length?dbH(react.Fragment,null,
 		          dbH('div',{className:'ia-db-allocation',role:'img','aria-label':marketName[market]+'资产占比'},allocation.map(item=>dbH('span',{key:item.code || 'cash',style:{flex:item.value,background:colors(item),opacity:item.opacity},title:item.name+' '+(item.value/account.equity*100).toFixed(1)+'%'}))),
 		          dbH('div',{className:'ia-db-allocation-list'},allocation.map(item=>dbH(item.code?'button':'div',{key:item.code || 'cash',className:'ia-db-allocation-item',...(item.code?{type:'button',onClick:()=>choose(item.code),'aria-label':'查看'+item.name+'的走势'}:{})},
 		            dbH('i',{style:{background:colors(item),opacity:item.opacity},'aria-hidden':true}),dbH('span',null,item.name),dbH('span',{className:'ia-db-muted'},(item.value/account.equity*100).toFixed(1)+'%'))))):dbH('div',{className:'ia-empty'},'暂无可展示的资产分布')),
-		        dbH('section',{className:'ia-db-panel'},panelHead('所选股票的交易记录','模拟成交'),trades.length?dbH('div',{className:'ia-db-ledger'},trades.slice(-5).reverse().map((trade,i)=>dbH('div',{className:'ia-db-trade',key:trade.id || trade.date+':'+i},
-		          dbH('span',{className:'ia-db-trade-label'},trade.action==='BUY'?'买':'卖'),dbH('div',{className:'ia-db-trade-copy'},dbH('b',null,holding.name+' · '+(trade.action==='BUY'?'买入':'卖出')),dbH('span',{className:'ia-db-muted'},trade.date.replace('T',' ').slice(0,16)+' · 成交价 '+dbMoney(trade.price,currency))),dbH('span',{className:'ia-db-muted'},dbMoney(trade.shares,'',0)+' 股'))),
-		          dbH('div',{className:'ia-db-muted ia-db-trade-note'},'图表标记对应成交日期，成交价以记录为准')):dbH('div',{className:'ia-empty'},holding?'该股票暂无模拟成交记录':'选中持仓后查看成交记录'))),
+		        dbH('section',{className:'ia-db-panel'},panelHead('交易记录','近 5 笔 · 模拟成交'),trades.length?dbH('div',{className:'ia-db-ledger'},trades.slice(-5).reverse().map((trade,i)=>dbH('div',{className:'ia-db-trade',key:trade.id || trade.date+':'+i},
+		          dbH('span',{className:'ia-db-trade-label','data-side':trade.action==='BUY'?'buy':'sell'},trade.action==='BUY'?'买入':'卖出'),
+		          dbH('div',{className:'ia-db-trade-copy'},dbH('b',null,holding.name),dbH('span',{className:'ia-db-muted'},trade.date.replace('T',' ').slice(5,16)+' · '+dbMoney(trade.shares,'',0)+' 股 @ '+dbMoney(trade.price,currency))),
+		          dbH('span',{className:'ia-db-muted ia-num'},dbMoney(trade.shares*trade.price,currency))))):dbH('div',{className:'ia-empty'},holding?'该股票暂无模拟成交记录':'选中持仓后查看成交记录'))),
 		      dbH('section',{className:'ia-db-panel ia-db-activity'},panelHead('运行与研究',status.operation_mode==='automatic'?'自动运行':'手动运行'),
 		        dbH('div',{className:'ia-db-activity-grid'},dbH('div',null,dbH('b',null,'风控'+riskLabel),dbH('p',{className:'ia-db-muted'},'策略：'+(status.mandate?.display_name ?? status.mandate?.profile ?? '—'))),
-		          dbH('div',null,dbH('b',null,marketName[market]+' 下一轮'),dbH('p',{className:'ia-db-muted'},String(status.markets?.[market]?.next_cycle ?? '尚未安排').replace('T',' ').slice(0,16))),
+		          dbH('div',null,dbH('b',null,marketName[market]+' 下一轮'),dbH('p',{className:'ia-db-muted'},String(nextCycle ?? '尚未安排').replace('T',' ').slice(0,16))),
 		          dbH('div',null,dbH('b',null,'最近轮次报告'),reports.length?dbH('ul',null,reports.slice(0,3).map(report=>dbH('li',{key:report.file},report.file))):dbH('p',{className:'ia-db-muted'},'暂无轮次报告'))),
-		        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+analysisTaskCounts(summary.analysis).completed+'/'+(summary.analysis.expected_agents ?? 0)):null,
+		        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+analysisTaskCounts(summary.analysis).completed+'/'+Math.max(Number(summary.analysis.expected_agents ?? 0),analysisTaskCounts(summary.analysis).total)):null,
 		        onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:onOpenAnalysis},'打开分析流程与报告'):null),
 		      typeof summary.macro?.content==='string' && summary.macro.content?dbH('section',{className:'ia-card ia-news',style:{marginTop:14}},panelHead('市场早报','每交易日 08:00 采集'),dbH('div',{className:'ia-news-body'},renderMarkdown(summary.macro.content))):null));
+
 		}
-		injectSheet(CSS_ID + "/dashboard", "/* Holdings and price chart share the existing product's colour/type tokens. */\n.ia-db-page{color:var(--ia-text-1)}\n.ia-db-page button,.ia-db-page input{font:inherit}\n.ia-db-page button{cursor:pointer}\n.ia-db-page button:disabled{cursor:default;opacity:.5}\n.ia-db-page button:focus-visible,.ia-db-page input:focus-visible{outline:2px solid var(--ia-accent);outline-offset:3px}\n.ia-db-muted{color:var(--ia-text-3);font-size:var(--ia-fs-caption);line-height:1.55}\n.ia-db-market-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}\n.ia-db-market-picker,.ia-db-choices{display:flex;gap:4px;flex-wrap:wrap}\n.ia-db-market-picker{background:var(--ia-surface-2);padding:4px;border-radius:14px}\n.ia-db-market-picker button,.ia-db-choices button{border:0;background:transparent;color:var(--ia-text-3);border-radius:10px;padding:8px 18px;font-size:var(--ia-fs-body-sm);white-space:nowrap}\n.ia-db-market-picker button[aria-pressed=true]{background:var(--ia-surface);color:var(--ia-accent-text);box-shadow:var(--ia-shadow-xs)}\n.ia-db-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}\n.ia-db-metric,.ia-db-panel{background:var(--ia-surface);border:1px solid var(--ia-border-subtle);border-radius:var(--ia-r-card);min-width:0;box-shadow:var(--ia-shadow-sm)}\n.ia-db-metric{padding:18px 20px}\n.ia-db-metric-value{font-size:clamp(20px,2.2vw,30px);font-weight:650;line-height:1.25;letter-spacing:-.03em;font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;margin:10px 0 7px;overflow-wrap:anywhere}\n.ia-db-panel{padding:20px}\n.ia-db-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}\n.ia-db-panel-head h3{margin:0;font-size:var(--ia-fs-body);font-weight:600}\n.ia-db-panel-head>span{color:var(--ia-text-3);font-size:var(--ia-fs-caption)}\n.ia-db-workbench{display:grid;grid-template-columns:245px minmax(0,1fr);gap:16px;align-items:start}\n.ia-db-stock-list{display:flex;flex-direction:column;gap:8px}\n.ia-db-stock{width:100%;text-align:left;background:transparent;color:var(--ia-text-1);border:1px solid transparent;border-radius:16px;padding:13px 12px;transition:background-color var(--ia-dur-fast)}\n.ia-db-stock:hover{background:var(--ia-surface-2)}\n.ia-db-stock[aria-pressed=true]{background:color-mix(in srgb,var(--ia-viz-1) 8%,var(--ia-surface));border-color:var(--ia-viz-1)}\n.ia-db-stock-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}\n.ia-db-stock-row b{font-size:var(--ia-fs-body-sm);font-weight:500;min-width:0;overflow-wrap:anywhere}\n.ia-db-stock-row .ia-num{flex:none;font-variant-numeric:tabular-nums;font-size:var(--ia-fs-body-sm)}\n.ia-db-stock-row .ia-trend{font-size:var(--ia-fs-caption)}\n.ia-db-spark,.ia-db-spark-empty{height:38px;margin:9px 0 5px;width:100%}\n.ia-db-spark svg{display:block;width:100%;height:38px}\n.ia-db-spark-empty{display:flex;align-items:center;color:var(--ia-text-3);font-size:var(--ia-fs-caption)}\n.ia-db-stock-date{font-size:11px;color:var(--ia-text-3);display:block}\n.ia-db-watch-foot{margin-top:16px;font-size:var(--ia-fs-caption);color:var(--ia-text-3)}\n.ia-db-focus-head{display:flex;justify-content:space-between;align-items:start;gap:16px;margin-bottom:16px}\n.ia-db-focus-head h2{font-size:var(--ia-fs-h3);font-weight:600;margin:0 0 4px;overflow-wrap:anywhere}\n.ia-db-quote{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}\n.ia-db-quote strong{font-size:clamp(22px,2.4vw,32px);font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;line-height:1.3}\n.ia-db-quote .ia-trend{font-size:var(--ia-fs-caption)}\n.ia-db-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--ia-border-subtle)}\n.ia-db-choices button{padding:6px 10px;font-size:var(--ia-fs-caption)}\n.ia-db-choices button[aria-pressed=true]{background:var(--ia-surface-2);color:var(--ia-accent-text)}\n.ia-db-chart{min-width:0}\n.ia-db-readout{min-height:52px;padding:12px 0 8px;display:flex;align-items:baseline;gap:5px 10px;flex-wrap:wrap;font-size:var(--ia-fs-caption);color:var(--ia-text-3);font-variant-numeric:tabular-nums}\n.ia-db-readout b{font-weight:500;color:var(--ia-text-2)}\n.ia-db-main-chart{display:block;width:100%;touch-action:pan-y}\n.ia-db-main-chart text{fill:var(--ia-text-3);font-family:var(--ia-font-num);font-size:11px}\n.ia-db-grid{stroke:var(--ia-border-subtle);stroke-width:1}\n.ia-db-area{fill:var(--ia-viz-1);opacity:.07}\n.ia-db-price-line{stroke:var(--ia-viz-1)}\n.ia-db-ma{stroke:var(--ia-viz-2)}\n.ia-db-cost{stroke:var(--ia-viz-3);stroke-width:1.2}\n.ia-db-volume{fill:var(--ia-viz-1);opacity:.22}\n.ia-db-guide{stroke:var(--ia-text-3);stroke-width:1;stroke-dasharray:3 4;pointer-events:none}\n.ia-db-trade-mark circle{fill:var(--ia-surface);stroke:var(--ia-viz-1);stroke-width:2}\n.ia-db-date-slider{display:flex;align-items:center;gap:12px;margin:3px 0 10px;font-size:var(--ia-fs-caption);color:var(--ia-text-3)}\n.ia-db-date-slider>span{white-space:nowrap}\n.ia-db-date-slider input{width:100%;min-width:0;accent-color:var(--ia-viz-1)}\n.ia-db-options{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;font-size:var(--ia-fs-caption);color:var(--ia-text-2);margin:12px 0}\n.ia-db-options label{display:flex;gap:5px;align-items:center;cursor:pointer}\n.ia-db-options input{accent-color:var(--ia-viz-1)}\n.ia-db-provenance{display:flex;flex-direction:column;gap:4px;color:var(--ia-text-3);font-size:11px;line-height:1.6;overflow-wrap:anywhere}\n.ia-db-data-warning{color:var(--ia-warn-text)}\n.ia-db-position{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--ia-border-subtle)}\n.ia-db-position strong{display:block;margin-top:5px;font-size:var(--ia-fs-body-sm);font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}\n.ia-db-position-date{margin-top:12px;font-size:11px}\n.ia-db-chart-empty{min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;color:var(--ia-text-3);font-size:var(--ia-fs-body-sm);padding:20px;overflow-wrap:anywhere}\n.ia-db-chart-empty p{margin:0;max-width:100%}\n.ia-db-skeleton{height:160px;width:100%;border-radius:12px;background:linear-gradient(180deg,var(--ia-surface-2),var(--ia-surface))}\n.ia-db-secondary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}\n.ia-db-allocation{display:flex;gap:3px;height:18px;border-radius:6px;overflow:hidden;margin:22px 0 18px}\n.ia-db-allocation span{min-width:0}\n.ia-db-allocation-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}\n.ia-db-allocation-item{display:flex;align-items:center;gap:8px;padding:0;text-align:left;font-size:var(--ia-fs-caption);color:var(--ia-text-1);background:none;border:0;min-width:0}\n.ia-db-allocation-item i{width:8px;height:8px;border-radius:2px;flex:none}\n.ia-db-allocation-item>span:first-of-type{min-width:0;overflow-wrap:anywhere}\n.ia-db-allocation-item>span:last-child{margin-left:auto;flex:none;font-variant-numeric:tabular-nums}\n.ia-db-trade{display:flex;align-items:start;gap:10px;padding:13px 0;border-bottom:1px solid var(--ia-border-subtle)}\n.ia-db-trade:last-of-type{border:0}\n.ia-db-trade-label{display:grid;place-items:center;width:30px;height:30px;flex:none;background:var(--ia-surface-2);color:var(--ia-accent-text);border-radius:10px;font-size:var(--ia-fs-caption)}\n.ia-db-trade-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;overflow-wrap:anywhere}\n.ia-db-trade-copy b{font-size:var(--ia-fs-body-sm);font-weight:500}\n.ia-db-trade>.ia-db-muted{white-space:nowrap}\n.ia-db-trade-note{margin-top:10px;font-size:11px}\n.ia-db-activity{margin-top:16px}\n.ia-db-activity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}\n.ia-db-activity-grid b{font-weight:500;font-size:var(--ia-fs-body-sm)}\n.ia-db-activity-grid p{margin:6px 0 0}\n.ia-db-activity-grid ul{margin:6px 0 0;padding-left:18px;color:var(--ia-text-3);font-size:var(--ia-fs-caption);overflow-wrap:anywhere}\n@media(max-width:1100px){.ia-db-workbench{grid-template-columns:215px minmax(0,1fr)}.ia-db-position{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-panel{padding:18px}.ia-db-metric{padding:16px}}\n@media(max-width:860px){.ia-db-workbench{grid-template-columns:1fr}.ia-db-stock-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-watch-foot{display:none}.ia-db-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-secondary{grid-template-columns:1fr}.ia-db-activity-grid{grid-template-columns:1fr 1fr}}\n@media(max-width:500px){.ia-db-panel{padding:14px}.ia-db-stock-row{flex-wrap:wrap}.ia-db-stock{padding:10px}.ia-db-focus-head{flex-wrap:wrap}.ia-db-focus-head h2{font-size:20px}.ia-db-quote strong{font-size:24px}.ia-db-market-picker{width:100%;justify-content:space-between}.ia-db-market-picker button{padding:8px 12px}.ia-db-metric{padding:14px 12px}.ia-db-activity-grid{grid-template-columns:1fr}.ia-db-readout{min-height:66px}.ia-db-allocation-list{gap:10px}.ia-db-panel-head{flex-wrap:wrap}.ia-db-trade{flex-wrap:wrap}}\n@media(max-width:600px){.ia-db-page .ia-page-head{height:auto;min-height:100px;padding:16px;display:block}.ia-db-page .ia-page-title{white-space:nowrap}.ia-db-page .ia-page-status{margin-top:10px;justify-content:flex-start}.ia-db-page .ia-page-content{padding:14px 10px}.ia-db-allocation-list{grid-template-columns:1fr}}\n@media(max-width:420px){.ia-db-metrics,.ia-db-stock-list{grid-template-columns:1fr}.ia-db-quote{align-items:flex-start}.ia-db-position{gap:12px 8px}}\n@media(pointer:coarse){.ia-db-market-picker button,.ia-db-choices button,.ia-db-options label,.ia-db-allocation-item{min-height:44px}.ia-db-date-slider input{min-height:44px}}\n");
+		injectSheet(CSS_ID + "/dashboard", "﻿/* Holdings and price chart share the existing product's colour/type tokens. */\n.ia-db-page{color:var(--ia-text-1)}\n.ia-db-page button,.ia-db-page input{font:inherit}\n.ia-db-page button{cursor:pointer}\n.ia-db-page button:disabled{cursor:default;opacity:.5}\n.ia-db-page button:focus-visible,.ia-db-page input:focus-visible{outline:2px solid var(--ia-accent);outline-offset:3px}\n.ia-db-muted{color:var(--ia-text-3);font-size:var(--ia-fs-caption);line-height:1.55}\n.ia-db-market-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}\n.ia-db-market-picker,.ia-db-choices{display:flex;gap:4px;flex-wrap:wrap}.ia-db-choices{background:#EDF1F7;padding:3px;border-radius:12px}\n.ia-db-market-picker{background:#EDF1F7;padding:4px;border-radius:14px}\n.ia-db-market-picker button,.ia-db-choices button{border:0;background:transparent;color:var(--ia-text-3);border-radius:10px;padding:8px 18px;font-size:var(--ia-fs-body-sm);white-space:nowrap}\n.ia-db-market-picker button[aria-pressed=true]{background:var(--ia-surface);color:var(--ia-accent-text);box-shadow:var(--ia-shadow-xs)}\n.ia-db-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px}\n.ia-db-metric,.ia-db-panel{background:var(--ia-surface);border:1px solid var(--ia-border-subtle);border-radius:var(--ia-r-card);min-width:0;box-shadow:var(--ia-shadow-sm)}\n.ia-db-metric{padding:18px 20px}\n.ia-db-metric-value{font-size:clamp(20px,2.2vw,30px);font-weight:650;line-height:1.25;letter-spacing:-.03em;font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;margin:10px 0 7px;overflow-wrap:anywhere}\n.ia-db-panel{padding:20px}\n.ia-db-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}\n.ia-db-panel-head h3{margin:0;font-size:var(--ia-fs-body);font-weight:600}\n.ia-db-panel-head>span{color:var(--ia-text-3);font-size:var(--ia-fs-caption)}\n.ia-db-workbench{display:grid;grid-template-columns:330px minmax(0,1fr);gap:16px;align-items:stretch}.ia-db-workbench>.ia-db-panel{min-height:0}.ia-db-watch{display:flex;flex-direction:column}\n.ia-db-stock-list{display:flex;flex-direction:column;gap:8px}\n.ia-db-stock{width:100%;text-align:left;background:transparent;color:var(--ia-text-1);border:1px solid transparent;border-radius:16px;padding:13px 12px;transition:background-color var(--ia-dur-fast)}\n.ia-db-stock:hover{background:var(--ia-surface-2)}\n.ia-db-stock[aria-pressed=true]{background:color-mix(in srgb,var(--ia-viz-1) 8%,var(--ia-surface));border-color:var(--ia-viz-1)}\n.ia-db-stock-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}\n.ia-db-stock-row b{font-size:var(--ia-fs-body-sm);font-weight:500;min-width:0;overflow-wrap:anywhere}\n.ia-db-stock-row .ia-num{flex:none;font-variant-numeric:tabular-nums;font-size:var(--ia-fs-body-sm)}\n.ia-db-stock-row .ia-trend{font-size:var(--ia-fs-caption)}\n.ia-db-spark,.ia-db-spark-empty{height:38px;margin:9px 0 5px;width:100%}\n.ia-db-spark svg{display:block;width:100%;height:38px}\n.ia-db-spark-empty{display:flex;align-items:center;color:var(--ia-text-3);font-size:var(--ia-fs-caption)}\n.ia-db-stock-date{font-size:11px;color:var(--ia-text-3);display:block}\n.ia-db-watch-foot{margin-top:16px;font-size:var(--ia-fs-caption);color:var(--ia-text-3)}\n.ia-db-focus-head{display:flex;justify-content:space-between;align-items:start;gap:16px;margin-bottom:16px}\n.ia-db-focus-head h2{font-size:var(--ia-fs-h3);font-weight:600;margin:0 0 4px;overflow-wrap:anywhere}\n.ia-db-quote{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}\n.ia-db-quote strong{font-size:clamp(22px,2.4vw,32px);font-family:var(--ia-font-num);font-variant-numeric:tabular-nums;line-height:1.3}\n.ia-db-quote .ia-trend{font-size:var(--ia-fs-caption)}\n.ia-db-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--ia-border-subtle)}\n.ia-db-choices button{padding:6px 10px;font-size:var(--ia-fs-caption)}\n.ia-db-choices button[aria-pressed=true]{background:var(--ia-surface-2);color:var(--ia-accent-text)}\n.ia-db-chart{min-width:0}\n.ia-db-readout{min-height:52px;padding:12px 0 8px;display:flex;align-items:baseline;gap:5px 10px;flex-wrap:wrap;font-size:var(--ia-fs-caption);color:var(--ia-text-3);font-variant-numeric:tabular-nums}\n.ia-db-readout b{font-weight:500;color:var(--ia-text-2)}\n.ia-db-main-chart{display:block;width:100%;touch-action:pan-y}\n.ia-db-main-chart text{fill:var(--ia-text-3);font-family:var(--ia-font-num);font-size:11px}\n.ia-db-grid{stroke:var(--ia-border-subtle);stroke-width:1}\n.ia-db-area{fill:var(--ia-viz-1);opacity:.07}\n.ia-db-price-line{stroke:var(--ia-viz-1)}\n.ia-db-ma{stroke:var(--ia-viz-2)}\n.ia-db-cost{stroke:var(--ia-viz-3);stroke-width:1.2}\n.ia-db-volume{fill:var(--ia-viz-1);opacity:.22}\n.ia-db-guide{stroke:var(--ia-text-3);stroke-width:1;stroke-dasharray:3 4;pointer-events:none}\n.ia-db-trade-mark circle{fill:var(--ia-surface);stroke:var(--ia-viz-1);stroke-width:2}\n.ia-db-date-slider{display:flex;align-items:center;gap:12px;margin:3px 0 10px;font-size:var(--ia-fs-caption);color:var(--ia-text-3)}\n.ia-db-date-slider>span{white-space:nowrap}\n.ia-db-date-slider input{width:100%;min-width:0;accent-color:var(--ia-viz-1)}\n.ia-db-options{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;font-size:var(--ia-fs-caption);color:var(--ia-text-2);margin:12px 0}\n.ia-db-options label{display:flex;gap:5px;align-items:center;cursor:pointer}\n.ia-db-options input{accent-color:var(--ia-viz-1)}\n.ia-db-provenance{display:flex;flex-direction:column;gap:4px;color:var(--ia-text-3);font-size:11px;line-height:1.6;overflow-wrap:anywhere}\n.ia-db-data-warning{color:var(--ia-warn-text)}\n.ia-db-position{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--ia-border-subtle)}\n.ia-db-position strong{display:block;margin-top:5px;font-size:var(--ia-fs-body-sm);font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}\n.ia-db-position-date{margin-top:12px;font-size:11px}\n.ia-db-chart-empty{min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;color:var(--ia-text-3);font-size:var(--ia-fs-body-sm);padding:20px;overflow-wrap:anywhere}\n.ia-db-chart-empty p{margin:0;max-width:100%}\n.ia-db-skeleton{height:160px;width:100%;border-radius:12px;background:linear-gradient(180deg,var(--ia-surface-2),var(--ia-surface))}\n.ia-db-secondary{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.18fr);gap:16px;margin-top:16px}\n.ia-db-allocation{display:flex;gap:3px;height:18px;border-radius:6px;overflow:hidden;margin:22px 0 18px}\n.ia-db-allocation span{min-width:0}\n.ia-db-allocation-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}\n.ia-db-allocation-item{display:flex;align-items:center;gap:8px;padding:0;text-align:left;font-size:var(--ia-fs-caption);color:var(--ia-text-1);background:none;border:0;min-width:0}\n.ia-db-allocation-item i{width:8px;height:8px;border-radius:2px;flex:none}\n.ia-db-allocation-item>span:first-of-type{min-width:0;overflow-wrap:anywhere}\n.ia-db-allocation-item>span:last-child{margin-left:auto;flex:none;font-variant-numeric:tabular-nums}\n.ia-db-trade{display:flex;align-items:start;gap:10px;padding:13px 0;border-bottom:1px solid var(--ia-border-subtle)}\n.ia-db-trade:last-of-type{border:0}\n.ia-db-trade-label{display:grid;place-items:center;width:30px;height:30px;flex:none;background:var(--ia-surface-2);color:var(--ia-accent-text);border-radius:10px;font-size:var(--ia-fs-caption)}\n.ia-db-trade-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px;overflow-wrap:anywhere}\n.ia-db-trade-copy b{font-size:var(--ia-fs-body-sm);font-weight:500}\n.ia-db-trade>.ia-db-muted{white-space:nowrap}\n.ia-db-trade-note{margin-top:10px;font-size:11px}\n.ia-db-activity{margin-top:16px}\n.ia-db-activity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}\n.ia-db-activity-grid b{font-weight:500;font-size:var(--ia-fs-body-sm)}\n.ia-db-activity-grid p{margin:6px 0 0}\n.ia-db-activity-grid ul{margin:6px 0 0;padding-left:18px;color:var(--ia-text-3);font-size:var(--ia-fs-caption);overflow-wrap:anywhere}\n@media(max-width:1100px){.ia-db-workbench{grid-template-columns:215px minmax(0,1fr)}.ia-db-position{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-panel{padding:18px}.ia-db-metric{padding:16px}}\n@media(max-width:860px){.ia-db-workbench{grid-template-columns:1fr}.ia-db-stock-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-watch-foot{display:none}.ia-db-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-db-secondary{grid-template-columns:1fr}.ia-db-activity-grid{grid-template-columns:1fr 1fr}}\n@media(max-width:500px){.ia-db-panel{padding:14px}.ia-db-stock-row{flex-wrap:wrap}.ia-db-stock{padding:10px}.ia-db-focus-head{flex-wrap:wrap}.ia-db-focus-head h2{font-size:20px}.ia-db-quote strong{font-size:24px}.ia-db-market-picker{width:100%;justify-content:space-between}.ia-db-market-picker button{padding:8px 12px}.ia-db-metric{padding:14px 12px}.ia-db-activity-grid{grid-template-columns:1fr}.ia-db-readout{min-height:66px}.ia-db-allocation-list{gap:10px}.ia-db-panel-head{flex-wrap:wrap}.ia-db-trade{flex-wrap:wrap}}\n@media(max-width:600px){.ia-db-page .ia-page-head{height:auto;min-height:100px;padding:16px;display:block}.ia-db-page .ia-page-title{white-space:nowrap}.ia-db-page .ia-page-status{margin-top:10px;justify-content:flex-start}.ia-db-page .ia-page-content{padding:14px 10px}.ia-db-allocation-list{grid-template-columns:1fr}}\n@media(max-width:420px){.ia-db-metrics,.ia-db-stock-list{grid-template-columns:1fr}.ia-db-quote{align-items:flex-start}.ia-db-position{gap:12px 8px}}\n@media(pointer:coarse){.ia-db-market-picker button,.ia-db-choices button,.ia-db-options label,.ia-db-allocation-item{min-height:44px}.ia-db-date-slider input{min-height:44px}}\n/* Sliding segmented control + chart draw-in. The thumb is rendered by the\n   component; these rules only position it and neutralise the old \"active\n   button paints itself\" styling that would hide the thumb. */\n.ia-db-market-picker,.ia-db-choices{position:relative}\n.ia-db-market-picker>.ia-seg-thumb{top:4px;bottom:4px;border-radius:10px}\n.ia-db-choices>.ia-seg-thumb{top:3px;bottom:3px;border-radius:9px}\n.ia-db-market-picker>button,.ia-db-choices>button{position:relative;z-index:1}\n.ia-db-market-picker>button[aria-pressed=true],.ia-db-choices>button[aria-pressed=true]{background:transparent!important;box-shadow:none!important;color:var(--ia-accent-text)}\n.ia-db-price-line{stroke-dasharray:1;stroke-dashoffset:1;animation:ia-db-draw 1.1s cubic-bezier(.4,0,.2,1) .12s forwards}\n.ia-db-area{animation:ia-db-area-in .9s ease .2s backwards}\n@keyframes ia-db-draw{to{stroke-dashoffset:0}}\n@keyframes ia-db-area-in{from{opacity:0}to{opacity:1}}\n@media(prefers-reduced-motion:reduce){.ia-db-price-line,.ia-db-area{animation:none!important;stroke-dasharray:none;stroke-dashoffset:0}}\n\n/* ── status band: equity + stats + market switch (demo layout) ─────────── */\n.ia-db-band{display:grid;grid-template-columns:minmax(228px,auto) minmax(0,1fr) auto;gap:26px;align-items:center;padding:18px 22px;border:1px solid var(--ia-border-subtle);border-radius:var(--ia-r-card);background:var(--ia-surface);box-shadow:var(--ia-shadow-sm);margin-bottom:16px}\n.ia-db-band-main{min-width:0}\n.ia-db-band-label{display:block;font-size:12px;line-height:18px;color:var(--ia-text-3)}\n.ia-db-band-equity{font-size:30px;font-weight:650;line-height:1.25;letter-spacing:-.02em;margin-top:2px}\n.ia-db-band-sub{margin-top:4px;font-size:12px;line-height:18px;color:var(--ia-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ia-db-band-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));min-width:0}\n.ia-db-band-stat{padding:2px 20px;border-left:1px solid var(--ia-border-subtle);min-width:0}\n.ia-db-band-stat:first-child{border-left:0;padding-left:0}\n.ia-db-band-stat b{display:block;margin:3px 0 2px;font-size:18px;font-weight:600;line-height:1.35;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ia-db-band-detail{display:block;font-size:11px;line-height:16px;color:var(--ia-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ia-db-band-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}\n.ia-db-primary{white-space:nowrap}\n@media(max-width:1280px){.ia-db-band{grid-template-columns:minmax(200px,auto) minmax(0,1fr);gap:18px}.ia-db-band-actions{grid-column:1 / -1;justify-content:flex-start}}\n@media(max-width:860px){.ia-db-band{grid-template-columns:1fr;gap:14px}.ia-db-band-stats{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:14px}.ia-db-band-stat{padding:0}.ia-db-band-stat:nth-child(odd){border-left:0}}\n\n/* ── holdings meta · chart code chips · round timeline ────────────────── */\n.ia-db-stock-meta{display:block;margin-top:2px;font-size:11px;line-height:16px;color:var(--ia-text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.ia-db-chart-chips{display:flex;gap:5px;margin-right:12px}\n.ia-db-chart-chips button{border:1px solid var(--ia-border-subtle);background:var(--ia-surface);color:var(--ia-text-3);border-radius:var(--ia-r-full);padding:3px 10px;font-size:12px;line-height:18px}\n.ia-db-chart-chips button[aria-pressed=true]{background:color-mix(in srgb,var(--ia-viz-1) 10%,var(--ia-surface));border-color:color-mix(in srgb,var(--ia-viz-1) 45%,var(--ia-border-subtle));color:var(--ia-accent-text);font-weight:600}\n.ia-db-timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}\n.ia-db-timeline li{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 8px;border-top:1px solid var(--ia-border-subtle);font-size:var(--ia-fs-caption)}\n.ia-db-timeline li:first-child{border-top:0}\n.ia-db-timeline li[data-current=true]{background:color-mix(in srgb,var(--ia-viz-1) 7%,var(--ia-surface));border-radius:10px}\n.ia-db-timeline .ia-num{color:var(--ia-text-3);font-size:12px;font-variant-numeric:tabular-nums}\n.ia-db-timeline-copy{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.ia-db-trade-label[data-side=buy]{background:color-mix(in srgb,var(--ia-viz-1) 12%,var(--ia-surface));color:var(--ia-accent-text)}\n.ia-db-trade-label[data-side=sell]{background:color-mix(in srgb,var(--ia-ok) 14%,var(--ia-surface));color:var(--ia-ok-text)}\n");
 		/* DASHBOARD:END */
 
 		// The workflow board. Each band carries the engine stages it covers, so the
@@ -1525,7 +1644,7 @@ window.__ModuleLoader__.load({
 						children: [
 							react_jsx_runtime.jsx("div", { className: "ia-context-label", children: "分析流程" }),
 							react_jsx_runtime.jsx("span", { className: "ia-context-chip", children: analysis ? "当前：" + analysisStageLabel(analysis.current_stage) : "当前：尚无轮次" }),
-							react_jsx_runtime.jsx("p", { className: "ia-context-note", children: analysis ? "多角色 Agent " + analysisTaskCounts(analysis).completed + "/" + (analysis.expected_agents ?? 0) + "，证据 " + (analysis.evidence_count ?? 0) + " 条。" : "完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。" }),
+							react_jsx_runtime.jsx("p", { className: "ia-context-note", children: analysis ? "多角色 Agent " + analysisTaskCounts(analysis).completed + "/" + Math.max(Number(analysis.expected_agents ?? 0), analysisTaskCounts(analysis).total) + "，证据 " + (analysis.evidence_count ?? 0) + " 条。" : "完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。" }),
 							react_jsx_runtime.jsx("button", { className: "ia-elev ia-elev-md ia-context-link", type: "button", onClick: onOpenWorkflow, children: "查看完整分析流程" })
 						]
 					}),
@@ -1536,6 +1655,44 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "下一轮" }), react_jsx_runtime.jsx("b", { children: nextRun ? marketName[nextRun[0]] + " · " + String(nextRun[1]).replace("T", " ").slice(0, 16) : "-" })] }),
 							react_jsx_runtime.jsxs("div", { className: "ia-context-row", children: [react_jsx_runtime.jsx("span", { children: "最近报告" }), react_jsx_runtime.jsx("b", { children: reports[0]?.file ?? "暂无" })] })
 						]
+					})
+				]
+			});
+		}
+
+		// ── assistant status strip (demo layout): trading mode / strategy / risk /
+		// current round / evidence count, with the context panel behind a button. ──
+		function AssistantStatusStrip({ contextOpen, onToggleContext }) {
+			const summaryState = useInvestmentSummary(5000);
+			const summary = summaryState.data ?? {};
+			const status = summary.status ?? {};
+			const control = status.control ?? {};
+			const mandate = status.mandate ?? {};
+			const analysis = summary.analysis ?? null;
+			const engineError = summaryState.error || status.error || "";
+			const market = engineError ? "未连接" : "模拟交易";
+			const risk = engineError ? "未知" : control.kill_switch ? "紧急停止" : control.paused ? "已暂停" : "正常";
+			const riskKind = engineError || control.kill_switch ? "danger" : control.paused ? "warn" : "ok";
+			const round = analysis ? analysisStatusLabel(analysis.status) : "尚无轮次";
+			const evidence = analysis?.evidence_count ?? 0;
+			return react_jsx_runtime.jsxs("div", {
+				className: "ia-assist-strip",
+				children: [
+					react_jsx_runtime.jsxs("span", { className: "ia-assist-item", children: [react_jsx_runtime.jsx("i", { className: "ia-dot", "data-kind": engineError ? "danger" : "ok" }), market] }),
+					react_jsx_runtime.jsx("span", { className: "ia-assist-sep" }),
+					react_jsx_runtime.jsxs("span", { className: "ia-assist-item", children: ["策略 ", react_jsx_runtime.jsx("b", { children: mandate.display_name ?? mandate.profile ?? "-" })] }),
+					react_jsx_runtime.jsx("span", { className: "ia-assist-sep" }),
+					react_jsx_runtime.jsxs("span", { className: "ia-assist-item", children: [react_jsx_runtime.jsx("i", { className: "ia-dot", "data-kind": riskKind }), "风控 ", react_jsx_runtime.jsx("b", { children: risk })] }),
+					react_jsx_runtime.jsx("span", { className: "ia-assist-sep" }),
+					react_jsx_runtime.jsxs("span", { className: "ia-assist-item", children: ["当前轮次 ", react_jsx_runtime.jsx("b", { children: round })] }),
+					react_jsx_runtime.jsx("span", { className: "ia-assist-sep" }),
+					react_jsx_runtime.jsxs("span", { className: "ia-assist-item", children: ["证据 ", react_jsx_runtime.jsx("b", { children: String(evidence) })] }),
+					react_jsx_runtime.jsx("button", {
+						type: "button",
+						className: "ia-assist-ctx",
+						"aria-pressed": contextOpen,
+						onClick: onToggleContext,
+						children: "上下文"
 					})
 				]
 			});
@@ -1552,6 +1709,8 @@ window.__ModuleLoader__.load({
 		// reports index).  A v1 record simply carries fewer fields.
 		const ANALYSIS_MARKETS = [["cn", "A股"], ["hk", "港股"], ["us", "美股"], ["etf", "ETF"]];
 		const MAX_ANALYSIS_SYMBOLS = 40;
+		// A screening result older than this is re-run before a new analysis round.
+		const SCREENING_TTL_MINUTES = 30;
 		const ANALYSIS_PENDING_KEY = "ia.analysis.pending";
 		const ANALYSIS_POLL_RUNNING_MS = 2000;
 		const ANALYSIS_POLL_IDLE_MS = 8000;
@@ -1573,8 +1732,10 @@ window.__ModuleLoader__.load({
 		}
 		function analysisStatusKind(status) {
 			const key = String(status ?? "");
-			if (key === "completed") return "ok";
-			if (key === "failed") return "danger";
+			// A round that finished and is waiting for approval is a success state,
+			// not a warning: keep the chip and the page header in the same colour.
+			if (key === "completed" || key === "ready_for_execution") return "ok";
+			if (key === "failed" || key === "cancelled") return "danger";
 			return "warn";
 		}
 		function isAnalysisTerminal(status) {
@@ -1667,7 +1828,7 @@ window.__ModuleLoader__.load({
 			const done = Number(row.agents_done ?? 0);
 			const failed = Number(row.agents_failed ?? 0);
 			if (total > 0 || done > 0 || failed > 0) parts.push("子任务 " + done + "/" + total + (failed > 0 ? " · 失败 " + failed : ""));
-			if (row.result_digest) parts.push(JSON.stringify(row.result_digest).slice(0, 140));
+			if (typeof row.result_digest === "string" && row.result_digest.trim()) parts.push(row.result_digest.trim().slice(0, 140));
 			return parts.join(" · ");
 		}
 		function stageFraction(row) {
@@ -1684,19 +1845,44 @@ window.__ModuleLoader__.load({
 			return status === "running" ? 0.35 : 0;
 		}
 
-		function StageDot({ status, fraction }) {
-			// A circular progress ring replaces the static ✓ / ↻ / × glyph. The
-			// glyph told you a state but not how far along it was, and mid-stage
-			// progress was invisible. An SVG ring driven by stroke-dashoffset also
-			// animates without touching layout, so a stage row never reflows while
-			// it advances.
-			const size = 24;
-			const stroke = 2.5;
+		const STAGE_ETA_SECONDS = {
+			preparing: 120,
+			resuming: 45,
+			base_research: 300,
+			research_debate: 210,
+			portfolio_draft: 40,
+			risk_review: 95,
+			final_decision: 45,
+			execution: 30
+		};
+
+		function StageDot({ status, fraction, startedAt, stage }) {
+			// A circular progress ring replaces the static ✓ / ↻ / × glyph. A
+			// running stage eases forward on an estimated clock instead of spinning:
+			// constant rotation reads as anxiety, and a hard-coded 35% reads as a
+			// lie. Once the stage reports real sub-task counts those take over.
+			const size = 50;
+			const stroke = 3.5;
 			const radius = (size - stroke) / 2;
 			const circumference = 2 * Math.PI * radius;
-			const value = Math.max(0, Math.min(1, Number(fraction) || 0));
 			const kind = String(status ?? "");
-			const stateKind = kind === "completed" ? "ok" : kind === "failed" || kind === "cancelled" ? "danger" : kind === "running" ? "accent" : "idle";
+			const running = kind === "running";
+			const [, setTick] = react.useState(0);
+			react.useEffect(() => {
+				if (!running) return undefined;
+				const timer = setInterval(() => setTick((value) => value + 1), 1000);
+				return () => clearInterval(timer);
+			}, [running]);
+			const actual = Math.max(0, Math.min(1, Number(fraction) || 0));
+			let value = actual;
+			if (running && actual <= 0) {
+				const startedMs = Date.parse(String(startedAt ?? ""));
+				const elapsed = Number.isFinite(startedMs) ? Math.max(0, (Date.now() - startedMs) / 1000) : 0;
+				const eta = Math.max(20, Number(STAGE_ETA_SECONDS[String(stage ?? "")]) || 120);
+				// Asymptotic: eases out and never claims completion before it happens.
+				value = Math.min(0.94, 0.92 * (1 - Math.exp(-elapsed / eta)));
+			}
+			const stateKind = kind === "completed" ? "ok" : kind === "failed" || kind === "cancelled" ? "danger" : running ? "accent" : "idle";
 			const strokeColor = stateKind === "ok"
 				? "var(--ia-ok)"
 				: stateKind === "danger"
@@ -1704,13 +1890,15 @@ window.__ModuleLoader__.load({
 					: stateKind === "accent"
 						? "var(--ia-accent)"
 						: "var(--ia-idle)";
-			const label = kind === "completed" ? "已完成" : kind === "running" ? "进行中" : kind === "failed" ? "失败" : kind === "cancelled" ? "已停止" : "未开始";
+			const percent = Math.round(value * 100);
+			const markText = kind === "failed" || kind === "cancelled" ? "×" : running || kind === "completed" || value > 0 ? percent + "%" : "0%";
+			const label = kind === "completed" ? "已完成" : running ? "进行中" : kind === "failed" ? "失败" : kind === "cancelled" ? "已停止" : "未开始";
 			return react_jsx_runtime.jsxs("span", {
 				className: "ia-an-ring",
 				"data-kind": stateKind,
 				"data-status": kind,
 				role: "img",
-				"aria-label": label + (kind === "running" ? " " + Math.round(value * 100) + "%" : ""),
+				"aria-label": label + (running ? " " + percent + "%（预计）" : ""),
 				children: [
 					react_jsx_runtime.jsxs("svg", {
 						width: size, height: size, viewBox: "0 0 " + size + " " + size, "aria-hidden": "true",
@@ -1725,11 +1913,10 @@ window.__ModuleLoader__.load({
 							})
 						]
 					}),
-					react_jsx_runtime.jsx("span", { className: "ia-an-ring-mark", children: kind === "completed" ? "✓" : kind === "failed" ? "×" : kind === "running" ? "" : "·" })
+					react_jsx_runtime.jsx("span", { className: "ia-an-ring-mark", children: markText })
 				]
 			});
 		}
-
 		function RoundProgress({ stages }) {
 			// Round-level progress: completed stages over total stages, plus a
 			// running pulse. Text-only status ("3/5 完成") stays in the header so a
@@ -1958,7 +2145,7 @@ window.__ModuleLoader__.load({
 								children: [
 									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "轮次状态" }), react_jsx_runtime.jsx("b", { children: run ? analysisStatusLabel(run.status) : "-" })] }),
 									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "当前阶段" }), react_jsx_runtime.jsx("b", { children: run ? analysisStageLabel(run.current_stage) : "-" })] }),
-									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "子任务 完成/预期" }), react_jsx_runtime.jsx("b", { children: progress.completed + "/" + (run?.expected_agents ?? 0) + (progress.failed ? " · 失败 " + progress.failed : "") })] }),
+									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "子任务 完成/预期" }), react_jsx_runtime.jsx("b", { children: progress.completed + "/" + Math.max(Number(run?.expected_agents ?? 0), progress.total) + (progress.failed ? " · 失败 " + progress.failed : "") })] }),
 									react_jsx_runtime.jsxs("div", { className: "ia-an-kpi", children: [react_jsx_runtime.jsx("span", { children: "证据条数" }), react_jsx_runtime.jsx("b", { children: run?.evidence_count ?? 0 })] })
 								]
 							}),
@@ -1974,7 +2161,7 @@ window.__ModuleLoader__.load({
 						className: "ia-an-stage",
 						"data-status": String(row.status ?? ""),
 						children: [
-							react_jsx_runtime.jsx(StageDot, { status: row.status, fraction: stageFraction(row) }),
+							react_jsx_runtime.jsx(StageDot, { status: row.status, fraction: stageFraction(row), startedAt: row.started_at ?? run?.started_at, stage: row.stage }),
 							react_jsx_runtime.jsxs("div", { children: [
 								react_jsx_runtime.jsx("div", { className: "ia-an-stage-name", children: analysisStageLabel(row.stage) }),
 								react_jsx_runtime.jsx("div", {
@@ -1985,28 +2172,7 @@ window.__ModuleLoader__.load({
 							react_jsx_runtime.jsx("div", { className: "ia-an-stage-time", children: (row.latest_attempt ? "本次 " : "") + durationOf(row) })
 						]
 					}, row.stage)) }) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: loading ? "正在读取阶段…" : cycleId ? "该轮次尚未写入阶段记录" : "尚未启动分析轮次" }),
-					agents.length > 0 ? react_jsx_runtime.jsx("div", {
-						className: "ia-an-role-groups",
-						children: [...new Set(agents.map(agent => agent.stage))].map(stage => react_jsx_runtime.jsxs("details", {
-							open: agents.some(agent => agent.stage === stage && ["running", "failed"].includes(agent.status)),
-							children: [react_jsx_runtime.jsx("summary", {children: analysisStageLabel(stage) + " · " + agents.filter(agent => agent.stage === stage && agent.status === "completed").length + "/" + agents.filter(agent => agent.stage === stage).length + " 角色完成"}), react_jsx_runtime.jsx("div", {
-						className: "ia-an-agents",
-						children: agents.filter(agent => agent.stage === stage).map((agent) => react_jsx_runtime.jsxs("div", {
-							className: "ia-an-agent",
-							"data-status": String(agent.status ?? ""),
-							children: [
-								react_jsx_runtime.jsxs("div", { className: "ia-an-agent-head", children: [
-									react_jsx_runtime.jsx("span", { className: "ia-an-agent-label", children: String(agent.label ?? "-") }),
-									react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": analysisStatusKind(agent.status), children: analysisStatusLabel(agent.status) })
-								]}),
-								react_jsx_runtime.jsx("div", { className: "ia-an-agent-meta", children: (agent.phase ? String(agent.phase) + " · " : "") + analysisStageLabel(agent.stage) + " · " + durationOf(agent) }),
-								agent.error ? react_jsx_runtime.jsx("div", { className: "ia-an-agent-body", children: String(agent.error) }) : agent.summary ? react_jsx_runtime.jsx("div", { className: "ia-an-agent-body", children: String(agent.summary) }) : null
-							]
-						}, String(agent.stage ?? "") + ":" + String(agent.label ?? "") + ":" + String(agent.seq ?? "")))
-					})]
-						}, stage))
-					}) : null,
-					reportMeta?.round_report ? react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 10 }, children: "轮次报告：" + String(reportMeta.round_report).split(/[\\/]/).pop() + "（" + formatBytes(reportMeta.bytes) + " · " + formatClock(reportMeta.generated_at) + "）" }) : null,
+										reportMeta?.round_report ? react_jsx_runtime.jsx("div", { className: "ia-an-note", style: { marginTop: 10 }, children: "轮次报告：" + String(reportMeta.round_report).split(/[\\/]/).pop() + "（" + formatBytes(reportMeta.bytes) + " · " + formatClock(reportMeta.generated_at) + "）" }) : null,
 					react_jsx_runtime.jsxs("div", {
 						className: "ia-an-log",
 						children: [
@@ -2169,6 +2335,7 @@ window.__ModuleLoader__.load({
 			const [refreshToken, setRefreshToken] = react.useState(0);
 			const [selectedCycleId, setSelectedCycleId] = react.useState("");
 			const [drawerOpen, setDrawerOpen] = react.useState(false);
+			const [screeningCache, setScreeningCache] = react.useState(null);
 			const drawerRef = react.useRef(null);
 			react.useEffect(() => {
 				const drawer = drawerRef.current;
@@ -2176,6 +2343,18 @@ window.__ModuleLoader__.load({
 				if (drawerOpen && !drawer.open) drawer.showModal();
 				else if (!drawerOpen && drawer.open) drawer.close();
 			}, [drawerOpen]);
+			const screeningAgeMinutes = (row) => {
+				const started = Date.parse(String(row?.generated_at ?? row?.audited_at ?? ""));
+				return Number.isFinite(started) ? (Date.now() - started) / 60000 : Infinity;
+			};
+			react.useEffect(() => {
+				if (!drawerOpen) return undefined;
+				let cancelled = false;
+				jsonFetch("/api/investment/analysis?action=screening&market=" + encodeURIComponent(market))
+					.then((payload) => { if (!cancelled) setScreeningCache(payload?.screening ?? null); })
+					.catch(() => { if (!cancelled) setScreeningCache(null); });
+				return () => { cancelled = true; };
+			}, [drawerOpen, market, refreshToken]);
 			const [tab, setTab] = react.useState("process");
 			const history = useAsync(() => jsonFetch("/api/investment/analysis?action=runs&limit=50"), []);
 			const reloadHistory = history.reload;
@@ -2201,7 +2380,10 @@ window.__ModuleLoader__.load({
 			const symbolOverflow = symbolCount > MAX_ANALYSIS_SYMBOLS;
 			const killSwitch = control.kill_switch === true;
 			const engineReachable = !engineError;
-			const screenerRun = [run, ...summaryRuns].find((row) => row && row.market === market && Array.isArray(row.symbols) && row.symbols.length > 0 && String(row.symbols_source ?? "").toLowerCase() === "screening") ?? null;
+			const screenerRun = screeningCache && Array.isArray(screeningCache.selected_symbols) && screeningCache.selected_symbols.length > 0
+				? { cycle_id: String(screeningCache.generated_at ?? "-"), symbols: screeningCache.selected_symbols.map(String), age_minutes: screeningAgeMinutes(screeningCache), generated_at: screeningCache.generated_at }
+				: null;
+			const screeningFresh = Boolean(screenerRun && screenerRun.age_minutes <= SCREENING_TTL_MINUTES);
 			const goalOptions = [];
 			for (const row of [run, ...summaryRuns]) {
 				const value = String(row?.goal_id ?? "");
@@ -2298,13 +2480,47 @@ window.__ModuleLoader__.load({
 				}
 			};
 
-			const handleStart = () => {
+			const handleStart = async () => {
 				if (!canStart) return;
-				// A new click always mints a new cycle_id; the retry action below
-				// deliberately reuses the stored one.
-				submitStart({ cycleId: newAnalysisCycleId(market, label), market, label: label || "manual", symbols, symbolsSource: source, goalId });
+				let picked = symbols;
+				if (source === "screening") {
+					let cache = screeningCache;
+					if (!cache) {
+						try {
+							const payload = await jsonFetch("/api/investment/analysis?action=screening&market=" + encodeURIComponent(market));
+							cache = payload?.screening ?? null;
+							setScreeningCache(cache);
+						} catch { cache = null; }
+					}
+					if (cache && Array.isArray(cache.selected_symbols) && cache.selected_symbols.length > 0) {
+						if (screeningAgeMinutes(cache) > SCREENING_TTL_MINUTES) {
+							setQuickBusy("full");
+							setNotice(null);
+							try {
+								const result = await jsonFetch("/api/investment/analysis?action=screen&market=" + encodeURIComponent(market));
+								const preview = result?.screening ?? {};
+								const fresh = Array.isArray(preview.selected_symbols) ? preview.selected_symbols.map(String) : [];
+								if (fresh.length === 0) {
+									setNotice({ kind: "warn", text: "选股结果已超过 " + SCREENING_TTL_MINUTES + " 分钟，重新选股未选出标的；请手动填写或稍后重试。" });
+									return;
+								}
+								picked = fresh;
+								setSymbolsText(fresh.join(","));
+								setScreeningCache(preview);
+							} catch (error) {
+								setNotice({ kind: "err", text: "自动重新选股失败：" + String(error?.message ?? error) });
+								return;
+							} finally {
+								setQuickBusy("");
+							}
+						} else {
+							picked = cache.selected_symbols.map(String);
+						}
+					}
+				}
+				if (picked.length === 0) return;
+				await submitStart({ cycleId: newAnalysisCycleId(market, label), market, label: label || "manual", symbols: picked, symbolsSource: source, goalId });
 			};
-
 			// ── one-click entries ──────────────────────────────────────────────
 			// ② Screen. The engine's screening endpoint returns a dashboard preview
 			// whose selected list is `selected_symbols` (there is no `candidates`
@@ -2361,22 +2577,21 @@ window.__ModuleLoader__.load({
 				setNotice(null);
 				try {
 					let picked = symbols;
-					let origin = "已填写的标的清单";
-					if (picked.length === 0) {
-						// Prefer the most recent screening round so ① does not re-run a
-						// screening the user just performed.
-						const recent = screenerRun && Array.isArray(screenerRun.symbols) ? screenerRun.symbols.map(String) : [];
-						if (recent.length > 0) {
-							picked = recent;
-							origin = "最近一次选股轮次 " + String(screenerRun.cycle_id ?? "-");
+					// A full pipeline starts from a screening result. Reuse the cache only
+					// while it is younger than the TTL; otherwise re-screen first.
+					if (picked.length === 0 || source === "screening") {
+						if (screeningFresh && screenerRun) {
+							picked = screenerRun.symbols.map(String);
+							setSymbolsText(picked.join(","));
+							setSource("screening");
 						} else {
-							const result = await jsonFetch("/api/investment/analysis?action=screen&market=" + encodeURIComponent(market), { method: "GET" });
+							const result = await jsonFetch("/api/investment/analysis?action=screen&market=" + encodeURIComponent(market));
 							const preview = result?.screening ?? {};
 							picked = Array.isArray(preview.selected_symbols) ? preview.selected_symbols.map(String) : [];
-							origin = "刚刚完成的选股（数据源 " + String(preview?.audit?.source ?? "-") + "）";
 							if (picked.length > 0) {
 								setSymbolsText(picked.join(","));
 								setSource("screening");
+								setScreeningCache(preview);
 							}
 						}
 					}
@@ -2389,7 +2604,7 @@ window.__ModuleLoader__.load({
 						market,
 						label: label || "manual",
 						symbols: picked,
-						symbolsSource: source === "screening" || origin !== "已填写的标的清单" ? "screening" : source,
+						symbolsSource: source === "screening" || picked !== symbols ? "screening" : source,
 						goalId
 					});
 				} catch (error) {
@@ -2434,11 +2649,14 @@ window.__ModuleLoader__.load({
 			const handleLabel = (value) => setLabel(String(value ?? "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 40));
 			const handleSource = (next) => {
 				setSource(next);
-				if (next === "screening" && screenerRun) setSymbolsText((screenerRun.symbols ?? []).join(","));
+				if (next === "screening" && screenerRun) {
+					setSymbolsText((screenerRun.symbols ?? []).join(","));
+					setNotice(screeningFresh ? null : { kind: "warn", text: "最近一次选股已超过 " + SCREENING_TTL_MINUTES + " 分钟，开始分析前会自动重新选股。" });
+				}
 			};
 			const sourceNote = source === "screening"
 				? screenerRun
-					? "来自选股：沿用最近一次选股轮次 " + String(screenerRun.cycle_id ?? "-") + " 的 " + (screenerRun.symbols?.length ?? 0) + " 个候选。"
+					? "来自选股：" + String(screenerRun.generated_at ?? "-").replace("T", " ").slice(0, 16) + " · " + (screenerRun.symbols?.length ?? 0) + " 个候选 · " + (screeningFresh ? "未超过 " + SCREENING_TTL_MINUTES + " 分钟，直接复用" : "已过期，开始分析前会自动重新选股") + "。"
 					: symbolCount ? "来自本次选股：候选已填入下方清单，可直接分析。" : "尚无选股结果，请点击一键筛选股票，或切回手动输入。"
 				: "手动输入：逗号、空格或换行分隔，自动去重，上限 " + MAX_ANALYSIS_SYMBOLS + " 个。";
 
@@ -2605,22 +2823,44 @@ window.__ModuleLoader__.load({
 				]
 			});
 
+			const tabsRef = react.useRef(null);
+			useSegThumb(tabsRef, [tab, watchCycleId]);
+			const stageMarkers = ["ready_for_execution", "completed", "failed", "cancelled"];
+			const stageEntryList = run && run.stages && typeof run.stages === "object"
+				? Object.entries(run.stages).filter(([key, value]) => !stageMarkers.includes(key) && value && typeof value === "object")
+				: [];
+			const stageDoneCount = stageEntryList.filter(([, value]) => String(value.status ?? "") === "completed").length;
+			const evidenceCount = Number(run?.evidence_count ?? 0);
+			const runChipKind = engineError || run?.status === "failed" ? "danger" : run ? (["completed", "ready_for_execution"].includes(run.status) ? "ok" : "warn") : "";
+
 			return h("div", { className: "ia-page ia-research-page" },
 				h(PageHeader, { title: "投资研究", subtitle: "股票研究、分析过程与历史报告", status: engineError ? "投资引擎不可达" : run ? analysisStatusLabel(run.status) : "尚无研究轮次", statusKind: engineError || run?.status === "failed" ? "error" : ["completed", "ready_for_execution"].includes(run?.status) ? "ok" : "warn" }),
 				h("div", { className: "ia-page-content" },
-					h("div", { className: "ia-research-toolbar" }, h("span", { className: "ia-an-note" }, "分析生成建议，交易需另行批准"), h("button", { type: "button", className: "ia-an-btn ia-elev ia-elev-lg", onClick: () => { if (!symbolsText && run?.market) setMarket(run.market); setDrawerOpen(true); } }, "＋ 新建研究")),
 					engineError ? h("div", { className: "ia-notice", "data-kind": "err" }, "引擎暂不可达：" + engineError) : null,
 					h("div", { className: "ia-research-grid" },
-						h("aside", { className: "ia-an-panel ia-research-history" }, h("div", { className: "ia-an-panel-head" }, h("h3", null, "研究记录"), h("button", { className: "ia-an-btn", type: "button", onClick: refreshAll }, "刷新")),
-							history.error ? h("div", { className: "ia-notice", "data-kind": "err" }, "历史读取失败：" + history.error) : null,
-							h("div", { className: "ia-research-rounds" }, ...historyRows.map(row => h("button", { key: row.cycle_id, className: "ia-an-report-item", "data-active": row.cycle_id === watchCycleId, "aria-pressed": row.cycle_id === watchCycleId, type: "button", onClick: () => selectRound(row.cycle_id) }, h("div", { className: "ia-an-report-title" }, (marketName[row.market] ?? row.market) + " · " + (row.label || "股票研究")), h("div", { className: "ia-an-report-meta" }, formatClock(row.started_at)), h("div", { className: "ia-an-report-meta" }, analysisStatusLabel(row.status) + " · " + (row.symbols?.length ?? 0) + " 个标的")))),
-							!historyRows.length ? h("div", { className: "ia-empty" }, history.loading ? "正在读取研究记录…" : "还没有研究，点击新建研究开始") : null),
+						h("aside", { className: "ia-research-side" },
+							h("section", { className: "ia-an-panel ia-research-actions" },
+								h("div", { className: "ia-an-panel-head" }, h("h3", null, "研究操作")),
+								h("div", { className: "ia-research-chips" },
+									h("span", { className: "ia-chip", "data-kind": runChipKind }, run ? analysisStatusLabel(run.status) : "尚无轮次"),
+									run ? h("span", { className: "ia-chip" }, stageDoneCount + "/" + stageEntryList.length + " 阶段") : null,
+									run ? h("span", { className: "ia-chip" }, evidenceCount + " 条证据") : null),
+								h("div", { className: "ia-research-action-btns" },
+									h("button", { type: "button", className: "ia-an-btn ia-elev ia-elev-lg ia-research-primary", onClick: () => { if (!symbolsText && run?.market) setMarket(run.market); setDrawerOpen(true); } }, "＋ 新建研究"),
+									h("button", { className: "ia-an-btn", type: "button", disabled: !canStop, onClick: handleStop }, "停止"),
+									h("button", { className: "ia-an-btn", type: "button", disabled: !canRetry, onClick: handleRetry }, "续跑")),
+								h("div", { className: "ia-an-note", style: { marginTop: 10 } }, "分析生成建议，交易需另行批准。")),
+							h("section", { className: "ia-an-panel ia-research-history" }, h("div", { className: "ia-an-panel-head" }, h("h3", null, "研究记录"), h("button", { className: "ia-an-btn", type: "button", onClick: refreshAll }, "刷新")),
+								history.error ? h("div", { className: "ia-notice", "data-kind": "err" }, "历史读取失败：" + history.error) : null,
+								h("div", { className: "ia-research-rounds" }, ...historyRows.map(row => h("button", { key: row.cycle_id, className: "ia-an-report-item", "data-active": row.cycle_id === watchCycleId, "aria-pressed": row.cycle_id === watchCycleId, type: "button", onClick: () => selectRound(row.cycle_id) }, h("div", { className: "ia-an-report-title" }, (marketName[row.market] ?? row.market) + " · " + (row.label || "股票研究")), h("div", { className: "ia-an-report-meta" }, formatClock(row.started_at)), h("div", { className: "ia-an-report-meta" }, analysisStatusLabel(row.status) + " · " + (row.symbols?.length ?? 0) + " 个标的")))),
+								!historyRows.length ? h("div", { className: "ia-empty" }, history.loading ? "正在读取研究记录…" : "还没有研究，点击新建研究开始") : null)),
 						h("main", { className: "ia-research-workspace" },
-							h("div", { className: "ia-research-heading" }, h("div", null, h("h2", null, run ? (marketName[run.market] ?? run.market) + " · " + (run.label || "股票研究") : "研究工作区"), h("div", { className: "ia-an-note" }, run ? (run.symbols ?? []).join(" · ") || "等待选股" : "选择左侧记录，或新建研究")),
-								h("div", { className: "ia-research-controls" }, h("button", { className: "ia-an-btn", type: "button", disabled: !canStop, onClick: handleStop }, "停止研究"), h("button", { className: "ia-an-btn", type: "button", disabled: !canRetry, onClick: handleRetry }, "从检查点续跑"))),
+							h("div", { className: "ia-research-heading" }, h("div", null, h("h2", null, run ? (marketName[run.market] ?? run.market) + " · " + (run.label || "股票研究") : "研究工作区"), h("div", { className: "ia-an-note" }, run ? (run.symbols ?? []).join(" · ") || "等待选股" : "选择左侧记录，或新建研究"))),
 							run?.error ? h("div", { className: "ia-notice", "data-kind": "err" }, "研究已停止：" + run.error + "。已保存 " + Object.keys(run.checkpoints ?? {}).length + " 个阶段；续跑需要手动操作。") : null,
 							notice ? h("div", { className: "ia-notice", "data-kind": notice.kind, "aria-live": "polite" }, notice.text) : null,
-							h("div", { className: "ia-research-tabs", role: "tablist", "aria-label": "研究内容" }, ...[["report", "研究报告"], ["process", "研究过程"], ["evidence", "阶段证据"]].map(([value, name]) => h("button", { id: "ia-research-tab-" + value, className: "ia-an-btn", type: "button", role: "tab", "aria-selected": tab === value, "aria-controls": "ia-research-content", onClick: () => setTab(value), key: value }, name))),
+							h("div", { ref: tabsRef, className: "ia-research-tabs ia-seg ia-tabs", role: "tablist", "aria-label": "研究内容" },
+								h("span", { className: "ia-seg-thumb", "aria-hidden": "true" }),
+								...[["report", "研究报告"], ["process", "研究过程"], ["evidence", "阶段证据"]].map(([value, name]) => h("button", { id: "ia-research-tab-" + value, className: "ia-an-btn ia-research-tab", type: "button", role: "tab", "aria-selected": tab === value, "aria-controls": "ia-research-content", onClick: () => setTab(value), key: value }, name))),
 							h("div", { id: "ia-research-content", role: "tabpanel", "aria-labelledby": "ia-research-tab-" + tab },
 								tab === "report" ? h(AnalysisReportPanel, { embedded: true, refreshToken, highlightCycleId: watchCycleId }) : tab === "evidence" ? h(AnalysisEvidencePanel, { key: watchCycleId, cycleId: watchCycleId, run }) : h(AnalysisPipelineView, { run, loading: runState.loading, error: runState.error, cycleId: watchCycleId }))))),
 				h("dialog", { ref: drawerRef, className: "ia-an-drawer", "aria-label": "新建研究", onCancel: () => setDrawerOpen(false) }, h("div", { className: "ia-an-panel-head" }, h("h2", null, "新建研究"), h("button", { className: "ia-an-btn", type: "button", onClick: () => setDrawerOpen(false) }, "关闭")), drawerOpen ? renderStartPanel() : null));
@@ -3012,6 +3252,11 @@ window.__ModuleLoader__.load({
 			const rows = react.useSyncExternalStore(sectionsSource.subscribe, sectionsSource.getSnapshot, sectionsSource.getSnapshot);
 			const [activeId, setActiveId] = react.useState(undefined);
 			const active = rows.find((row) => row.id === activeId)?.id ?? rows[0]?.id;
+			const jump = (row) => {
+				setActiveId(row.id);
+				const el = document.getElementById("ia-set-" + row.id);
+				if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+			};
 			return react_jsx_runtime.jsxs("div", {
 				className: "ia-settings",
 				children: [
@@ -3021,13 +3266,18 @@ window.__ModuleLoader__.load({
 							key: row.id,
 							type: "button",
 							"data-active": row.id === active,
-							onClick: () => setActiveId(row.id),
+							onClick: () => jump(row),
 							children: row.label
 						}, row.id))
 					}),
-					react_jsx_runtime.jsx("div", {
+					react_jsx_runtime.jsxs("div", {
 						className: "ia-settings-content",
-						children: active !== undefined ? renderSlot("settings.section", { close: () => {} }, { only: active }) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: "暂无设置项" })
+						children: rows.length ? rows.map((row) => react_jsx_runtime.jsxs("section", {
+							key: row.id,
+							id: "ia-set-" + row.id,
+							className: "ia-set-section",
+							children: renderSlot("settings.section", { close: () => {} }, { only: row.id })
+						}, row.id)) : react_jsx_runtime.jsx("div", { className: "ia-empty", children: "暂无设置项" })
 					})
 				]
 			});
@@ -3186,7 +3436,7 @@ window.__ModuleLoader__.load({
 			const state = useStore((value) => value);
 			const page = state?.page ?? "assistant";
 			const detailsOpen = state?.detailsOpen === true;
-			const contextOpen = state?.contextOpen !== false;
+			const contextOpen = state?.contextOpen === true;
 			// Third element is a Lucide icon key (see ICON_SVG); the visible label
 			// stays text so the smoke assertions and screen readers are unaffected.
 			// 分析流程 is no longer a destination: its board (the pipeline diagram,
@@ -3194,7 +3444,7 @@ window.__ModuleLoader__.load({
 			// where the action that starts a round already is. Keeping a second page
 			// that only displayed the same round was the duplication.
 			const navigation = [
-				["dashboard", "layoutDashboard", "Dashboard"],
+				["dashboard", "layoutDashboard", "总览"],
 				["assistant", "messageSquare", "投资助手"],
 				["analyze", "radar", "投资研究"],
 				["settings", "settings", "设置"]
@@ -3229,19 +3479,23 @@ window.__ModuleLoader__.load({
 					}),
 					react_jsx_runtime.jsx("div", {
 						className: "ia-body",
-						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, { onOpenAnalysis: () => actions.setPage("analyze") }) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs(react_jsx_runtime.Fragment, {
+						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, { onOpenAnalysis: () => actions.setPage("analyze") }) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs("div", {
+							className: "ia-assist",
 							children: [
-								renderSlot("sidebar", { collapsed: false, width: 250 }),
-								react_jsx_runtime.jsx("div", { className: "ia-center", children: renderSlot("conversation", {}) }),
-								detailsOpen ? react_jsx_runtime.jsx("div", { className: "ia-details", children: renderSlot("details", {}) }) : contextOpen ? react_jsx_runtime.jsx(AssistantContext, {
-									onClose: () => actions.setContextOpen(false),
-									onOpenWorkflow: () => actions.setPage("analyze")
-								}) : react_jsx_runtime.jsx("button", {
-									className: "ia-iconbtn ia-context-reopen",
-									type: "button",
-									title: "展开投资上下文",
-									onClick: () => actions.setContextOpen(true),
-									children: "‹"
+								react_jsx_runtime.jsx(AssistantStatusStrip, { contextOpen, onToggleContext: () => actions.setContextOpen(!contextOpen) }),
+								react_jsx_runtime.jsxs("div", {
+									className: "ia-assist-body",
+									children: [
+										renderSlot("sidebar", { collapsed: false, width: 250 }),
+										react_jsx_runtime.jsx("div", { className: "ia-center", children: renderSlot("conversation", {}) }),
+										detailsOpen ? react_jsx_runtime.jsx("div", { className: "ia-details", children: renderSlot("details", {}) }) : contextOpen ? react_jsx_runtime.jsx("div", {
+											className: "ia-ctx-drawer",
+											children: react_jsx_runtime.jsx(AssistantContext, {
+												onClose: () => actions.setContextOpen(false),
+												onOpenWorkflow: () => actions.setPage("analyze")
+											})
+										}) : null
+									]
 								})
 							]
 						})
@@ -3473,7 +3727,7 @@ window.__ModuleLoader__.load({
 					init: () => ({
 						page: "assistant",
 						detailsOpen: false,
-						contextOpen: true
+						contextOpen: false
 					}),
 					actions: {
 						setPage: (draft, page) => {

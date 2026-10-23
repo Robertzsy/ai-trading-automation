@@ -113,7 +113,18 @@ def _error_payload(symbol: str, exc: Exception, *, adjusted: Optional[bool]) -> 
 
 
 def snapshot(symbol: str, *, timeout: int = 45) -> Dict[str, Any]:
-    return _run_node(["snapshot", symbol], timeout=timeout)
+    payload = _run_node(["snapshot", symbol], timeout=timeout)
+    # The Node/Tencent snapshot frequently loses amount/PE (and derives a bogus
+    # 52-week low). Fill those gaps from the optional keyed sources; a missing
+    # key or quota leaves the payload untouched and records the gap instead.
+    try:
+        from engine.data.external_quotes import enrich_snapshot
+
+        if isinstance(payload, dict):
+            payload = enrich_snapshot(symbol, payload)
+    except Exception as exc:  # noqa: BLE001 - enrichment must never break a snapshot
+        logger.warning("snapshot enrichment skipped for %s: %s", symbol, exc)
+    return payload
 
 
 def search(keyword: str, *, timeout: int = 30) -> List[Dict[str, Any]]:

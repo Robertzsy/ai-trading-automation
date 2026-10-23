@@ -2,7 +2,7 @@
 ; Build: ISCC.exe installer\AiTradingAutomation.iss
 
 #define MyAppName "AI Trading Automation"
-#define MyAppVersion "2.2.1"
+#define MyAppVersion "2.3.0"
 #define MyAppExeName "AiTradingAutomation.Desktop.exe"
 #define MyAppPublisher "AI Trading Automation Contributors"
 

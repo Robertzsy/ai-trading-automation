@@ -185,7 +185,7 @@ function DashboardPriceChart({history,holding,market,period,type,options,trades}
   } else {
     const path=dbPath(bars,x,y);
     svg.push(dbH('path',{key:'area',d:path+' L'+right+','+bottom+' L'+left+','+bottom+' Z',className:'ia-db-area'}),
-      dbH('path',{key:'line',d:path,className:'ia-db-price-line',fill:'none',strokeWidth:2.2,strokeLinejoin:'round'}));
+      dbH('path',{key:'line',d:path,className:'ia-db-price-line',pathLength:1,fill:'none',strokeWidth:2.2,strokeLinejoin:'round'}));
   }
   if(options.ma) {
     const start=ma.findIndex(row=>row.ma!==null);
@@ -237,6 +237,13 @@ function ProductDashboard({onOpenAnalysis}={}) {
   const summaryState=useInvestmentSummary(10000),summary=summaryState.data ?? {},status=summary.status ?? {};
   const [market,setMarket]=react.useState('cn'),[selection,setSelection]=react.useState({}),[period,setPeriod]=react.useState('quarter'),[type,setType]=react.useState('line');
   const [options,setOptions]=react.useState({cost:true,volume:true,trades:true,ma:false});
+  // Sliding segmented controls: the thumb lives in the container and follows the
+  // active button, so switching market / period / chart type animates instead of
+  // flashing a new page.
+  const marketRef=react.useRef(null),periodRef=react.useRef(null),typeRef=react.useRef(null);
+  useSegThumb(marketRef,[market]);
+  useSegThumb(periodRef,[period]);
+  useSegThumb(typeRef,[type]);
   const account=dbAccount(summary.portfolios?.[market],market),holdings=account?.holdings ?? [];
   const holding=holdings.find(item=>item.code===selection[market]) ?? holdings[0] ?? null;
   const histories=useDashboardHistories(market,holdings.map(item=>item.code),holding?.code);
@@ -261,51 +268,82 @@ function ProductDashboard({onOpenAnalysis}={}) {
   const errorState=(message,retry)=>dbH('div',{className:'ia-db-chart-empty',role:'status'},icon('alertTriangle',22),dbH('p',null,message),retry?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:retry},'重新加载'):null);
   const allocation=account?.equity>0 && account.value!==null && account.cash>=0 ? [...holdings.map((item,i)=>({name:item.name,code:item.code,value:item.value,opacity:.45+.15*(i%4)})),{name:'现金',value:account.cash,opacity:1}] : [];
   const colors=item=>item.code?'var(--ia-viz-1)':'var(--ia-border-strong)';
+  const nextCycle = status.markets?.[market]?.next_cycle;
+  const equityText = account?.equity > 0 ? dbMoney(account.equity, currency, 0) : '—';
+  const pnlText = account?.pnl === null || account?.pnl === undefined ? '—' : (account.pnl > 0 ? '+' : '') + dbMoney(account.pnl, currency, 0);
+  const pnlRate = account?.equity > 0 && Number.isFinite(account.pnl) ? (account.pnl / (account.equity - account.pnl)) * 100 : null;
+  const usageText = account?.equity > 0 && account.value !== null ? ((account.value / account.equity) * 100).toFixed(1) + '%' : '—';
+  const runs = Array.isArray(summary.analysisRuns) ? summary.analysisRuns : [];
+  const metricChip = (label, value, detail) => dbH('div', { className: 'ia-db-band-stat', key: label },
+    dbH('span', { className: 'ia-db-band-label' }, label),
+    dbH('b', { className: 'ia-num' }, value),
+    detail ? dbH('span', { className: 'ia-db-band-detail' }, detail) : null);
   return dbH('div',{className:'ia-page ia-db-page','data-red-up':market!=='us'},
     dbH(PageHeader,{title:'投资总览',subtitle:'从组合到个股，看清每一次变化',status:summaryState.loading?'正在连接投资引擎':'模拟交易 · 风控'+riskLabel,statusKind:engineError?'error':status.control?.kill_switch || status.control?.paused?'warn':'ok'}),
     dbH('div',{className:'ia-page-content'},
       engineError?dbH('div',{className:'ia-notice','data-kind':'err',role:'alert'},'引擎暂不可达：'+engineError):null,
-      dbH('div',{className:'ia-db-market-row'},dbH('div',{className:'ia-db-market-picker','aria-label':'查看市场'},dbMarkets.map(key=>dbH('button',{key,type:'button','aria-pressed':market===key,onClick:()=>setMarket(key)},marketName[key]))),
-        dbH('span',{className:'ia-db-muted'},'各市场按币种独立展示')),
-      dbH('div',{className:'ia-db-metrics'},metrics.map(([label,value,detail])=>dbH('div',{className:'ia-db-metric',key:label},dbH('div',{className:'ia-db-muted'},label),dbH('div',{className:'ia-db-metric-value'},value),dbH('div',{className:'ia-db-muted'},detail)))),
+      dbH('section',{className:'ia-db-band'},
+        dbH('div',{className:'ia-db-band-main'},
+          dbH('span',{className:'ia-db-band-label'},'账户权益'),
+          dbH('div',{className:'ia-db-band-equity ia-num'},equityText),
+          dbH('div',{className:'ia-db-band-sub'},'现金 '+dbMoney(account?.cash,currency,0)+' · 市值 '+dbMoney(account?.value,currency,0))),
+        dbH('div',{className:'ia-db-band-stats'},
+          metricChip('持仓浮动盈亏',pnlText,pnlRate===null?null:(pnlRate>0?'+':'')+pnlRate.toFixed(2)+'%'),
+          metricChip('资金使用率',usageText,account?.cash!==null && account?.equity>0?'现金占比 '+(account.cash/account.equity*100).toFixed(1)+'%':'等待账户数据'),
+          metricChip('持有标的',account?holdings.length+' 只':'—',marketName[market]+' · 独立模拟账户'),
+          metricChip('下一轮',nextCycle?String(nextCycle).replace('T',' ').slice(5,16):'—',status.operation_mode==='automatic'?'自动运行':'手动运行')),
+        dbH('div',{className:'ia-db-band-actions'},
+          dbH('div',{ref:marketRef,className:'ia-db-market-picker ia-seg','aria-label':'查看市场'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),dbMarkets.map(key=>dbH('button',{key,type:'button','aria-pressed':market===key,onClick:()=>setMarket(key)},marketName[key]))),
+          onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev ia-elev-lg ia-db-primary',onClick:onOpenAnalysis},'＋ 新建研究'):null)),
       dbH('div',{className:'ia-db-workbench'},
-        dbH('section',{className:'ia-db-panel ia-db-watch'},panelHead('我的持仓',account?holdings.length+' 只':''),
+        dbH('section',{className:'ia-db-panel ia-db-watch'},panelHead('我的持仓',account?holdings.length+' 只 · 市值 '+dbMoney(account.value,currency,0):''),
           holdings.length?dbH('div',{className:'ia-db-stock-list'},holdings.map(item=>{
             const stockHistory=histories.items[item.code],rows=stockHistory?.data?.bars ?? [],latest=rows.at(-1),previous=rows.at(-2);
             const change=previous?(latest.close/previous.close-1)*100:null;
             return dbH('button',{type:'button',className:'ia-db-stock',key:item.code,'aria-pressed':holding?.code===item.code,'aria-label':'查看'+item.name+'的走势',onClick:()=>choose(item.code)},
               dbH('div',{className:'ia-db-stock-row'},dbH('b',null,item.name),dbH('span',{className:'ia-num'},dbMoney(latest?.close ?? item.price))),
               dbH('div',{className:'ia-db-stock-row'},dbH('span',{className:'ia-db-muted'},item.code),dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(change)},dbSigned(change))),
-              dbH(DashboardSparkline,{history:stockHistory,name:item.name}),dbH('span',{className:'ia-db-stock-date'},latest?latest.date+' 收盘':'账户记录价 · 更新时间未知'));
+              dbH(DashboardSparkline,{history:stockHistory,name:item.name}),
+              dbH('span',{className:'ia-db-stock-meta ia-num'},dbMoney(item.shares,'',0)+' 股 · 成本 '+dbMoney(item.cost,currency)+' · 盈亏 '+((item.pnl>0?'+':'')+dbMoney(item.pnl,currency))));
           })):dbH('div',{className:'ia-empty'},summaryState.loading?'正在读取持仓…':account?'暂无持仓':'账户数据暂不可用'),
-          holdings.length?dbH('div',{className:'ia-db-watch-foot'},'近1个月日线 · 点击查看详情'):null),
+          holdings.length?dbH('div',{className:'ia-db-watch-foot'},'近1个月日线 · 点击切换右侧走势'):null),
         dbH('section',{className:'ia-db-panel ia-db-focus'},holding?dbH(react.Fragment,null,
-          dbH('div',{className:'ia-db-focus-head'},dbH('div',{'aria-live':'polite'},dbH('h2',null,holding.name),dbH('div',{className:'ia-db-muted'},holding.code+' · '+marketName[market]+' · 日线历史')),
-            dbH('div',{className:'ia-db-quote'},dbH('span',{className:'ia-db-muted'},'最近收盘'),dbH('strong',null,dbMoney(current?.close,currency)),
-              dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(rangeChange)},dbPeriodNames[period]+' '+dbSigned(rangeChange)))),
-          dbH('div',{className:'ia-db-toolbar'},dbH('div',{className:'ia-db-choices','aria-label':'时间范围'},Object.entries(dbPeriodNames).map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':period===key,onClick:()=>setPeriod(key)},label))),
-            dbH('div',{className:'ia-db-choices','aria-label':'图表类型'},[['line','走势线'],['candle','K 线']].map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':(canCandle?type:'line')===key,disabled:key==='candle'&&!canCandle,title:key==='candle'&&!canCandle?'当前来源没有完整的开高低收数据':undefined,onClick:()=>setType(key)},label)))),
+          dbH('div',{className:'ia-db-focus-head'},
+            dbH('div',{'aria-live':'polite'},dbH('h2',null,'价格走势'),
+              dbH('div',{className:'ia-db-muted'},holding.name+' · '+holding.code+' · '+dbPeriodNames[period])),
+            dbH('div',{className:'ia-db-quote'},
+              holdings.length>1?dbH('div',{className:'ia-db-chart-chips'},holdings.map(item=>dbH('button',{key:item.code,type:'button','aria-pressed':holding.code===item.code,onClick:()=>choose(item.code)},item.code))):null,
+              dbH('strong',null,dbMoney(current?.close,currency)),
+              dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(rangeChange)},dbSigned(rangeChange)))),
+          dbH('div',{className:'ia-db-toolbar'},
+            dbH('div',{ref:periodRef,className:'ia-db-choices ia-seg','aria-label':'时间范围'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),Object.entries(dbPeriodNames).map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':period===key,onClick:()=>setPeriod(key)},label))),
+            dbH('div',{ref:typeRef,className:'ia-db-choices ia-seg','aria-label':'图表类型'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),[['line','走势线'],['candle','K 线']].map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':(canCandle?type:'line')===key,disabled:key==='candle'&&!canCandle,title:key==='candle'&&!canCandle?'当前来源没有完整的开高低收数据':undefined,onClick:()=>setType(key)},label))),
+            dbH('div',{className:'ia-db-options'},[['cost','成本线',canCost],['volume','成交量',canVolume],['trades','买卖日期',!!trades.length],['ma','MA20',!!history && history.bars.length>=20]].map(([key,label,enabled])=>dbH('label',{key},dbH('input',{type:'checkbox',checked:options[key],disabled:!enabled,onChange:event=>setOptions(previous=>({...previous,[key]:event.target.checked}))}),label)))),
           selected?.error?errorState(selected.error,()=>histories.retry(holding.code)):!history?dbH('div',{className:'ia-db-chart-empty','aria-busy':true,role:'status'},dbH('div',{className:'ia-db-skeleton'}),'正在加载历史行情…'):history.bars.length<2?errorState('暂时没有足够的历史行情',()=>histories.retry(holding.code)):
             dbH(DashboardPriceChart,{key:market+':'+holding.code,history,holding,market,period,type,options:{...options,volume:options.volume&&canVolume,cost:options.cost&&canCost},trades}),
-          dbH('div',{className:'ia-db-options'},[['cost','成本线',canCost],['volume','成交量',canVolume],['trades','买卖日期',!!trades.length],['ma','MA20',!!history && history.bars.length>=20]].map(([key,label,enabled])=>dbH('label',{key},dbH('input',{type:'checkbox',checked:options[key],disabled:!enabled,onChange:event=>setOptions(previous=>({...previous,[key]:event.target.checked}))}),label))),
-          history?dbH('div',{className:'ia-db-provenance'},dbH('span',null,'来源 '+(history.source || '未提供')+' · '+(history.adjusted===true?'前复权':history.adjusted===false?'不复权':'复权状态未知')+' · 最后交易日 '+(current?.date || '—')),
-            age>7?dbH('span',{className:'ia-db-data-warning'},'历史行情距今 '+age+' 天，请留意数据日期'):null,
-            history.degraded || history.adjusted!==true || history.warnings.length?dbH('span',{className:'ia-db-data-warning',role:'status'},'行情提示：'+(history.warnings.join('；') || (history.degraded?'已使用备用行情来源':'复权状态未经确认'))):null):null,
           dbH('div',{className:'ia-db-position'},[['持有数量',dbMoney(holding.shares,'',0)+' 股'],['当前持仓成本',dbMoney(holding.cost,currency)],['账户记录估值',dbMoney(holding.price,currency)],['持仓浮动盈亏',(holding.pnl>0?'+':'')+dbMoney(holding.pnl,currency)]].map(([label,value])=>dbH('div',{key:label},dbH('span',{className:'ia-db-muted'},label),dbH('strong',null,value)))),
-          dbH('div',{className:'ia-db-muted ia-db-position-date'},'账户估值时间：'+(holding.lastPriceAt?String(holding.lastPriceAt).replace('T',' '):'未记录')+' · 图表显示历史收盘价')):errorState(account?'选中一只持仓即可查看走势':'等待账户数据'))),
+          history?dbH('div',{className:'ia-db-provenance'},dbH('span',null,'来源 '+(history.source || '未提供')+' · 最后交易日 '+(current?.date || '—')),age>7?dbH('span',{className:'ia-db-data-warning'},' · 行情距今 '+age+' 天'):null,
+            history.degraded || history.adjusted!==true || history.warnings.length?dbH('span',{className:'ia-db-data-warning',role:'status'},' · 行情提示：'+(history.warnings.join('；') || (history.degraded?'已使用备用行情来源':'复权状态未经确认'))):null):null):dbH(react.Fragment,null,dbH('div',{className:'ia-db-focus-head'},dbH('div',null,dbH('h2',null,'价格走势'),dbH('div',{className:'ia-db-muted'},account?'选择左侧持仓查看走势':'等待账户数据'))),dbH('div',{className:'ia-db-chart-empty','data-kind':'empty',role:'status'},dbH('p',null,account?'选中一只持仓即可查看走势':'账户数据暂不可用'))))),
       dbH('div',{className:'ia-db-secondary'},
+        dbH('section',{className:'ia-db-panel'},panelHead('轮次时间线','最近 '+(runs.length?Math.min(runs.length,5):0)+' 轮'),
+          runs.length?dbH('ul',{className:'ia-db-timeline'},runs.slice(0,5).map((run,index)=>dbH('li',{key:String(run.cycle_id ?? run.id ?? index),'data-current':index===0},
+            dbH('b',{className:'ia-num'},String(run.started_at ?? run.created_at ?? '').replace('T',' ').slice(5,16)),
+            dbH('span',{className:'ia-db-timeline-copy'},(marketName[run.market] ?? run.market ?? '-')+' · '+(run.label || '股票研究')),
+            dbH('span',{className:'ia-chip','data-kind':analysisStatusKind(run.status)},analysisStatusLabel(run.status))))):dbH('div',{className:'ia-empty'},'暂无历史轮次')),
         dbH('section',{className:'ia-db-panel'},panelHead('组合分布','本市场 · 含现金'),allocation.length?dbH(react.Fragment,null,
           dbH('div',{className:'ia-db-allocation',role:'img','aria-label':marketName[market]+'资产占比'},allocation.map(item=>dbH('span',{key:item.code || 'cash',style:{flex:item.value,background:colors(item),opacity:item.opacity},title:item.name+' '+(item.value/account.equity*100).toFixed(1)+'%'}))),
           dbH('div',{className:'ia-db-allocation-list'},allocation.map(item=>dbH(item.code?'button':'div',{key:item.code || 'cash',className:'ia-db-allocation-item',...(item.code?{type:'button',onClick:()=>choose(item.code),'aria-label':'查看'+item.name+'的走势'}:{})},
             dbH('i',{style:{background:colors(item),opacity:item.opacity},'aria-hidden':true}),dbH('span',null,item.name),dbH('span',{className:'ia-db-muted'},(item.value/account.equity*100).toFixed(1)+'%'))))):dbH('div',{className:'ia-empty'},'暂无可展示的资产分布')),
-        dbH('section',{className:'ia-db-panel'},panelHead('所选股票的交易记录','模拟成交'),trades.length?dbH('div',{className:'ia-db-ledger'},trades.slice(-5).reverse().map((trade,i)=>dbH('div',{className:'ia-db-trade',key:trade.id || trade.date+':'+i},
-          dbH('span',{className:'ia-db-trade-label'},trade.action==='BUY'?'买':'卖'),dbH('div',{className:'ia-db-trade-copy'},dbH('b',null,holding.name+' · '+(trade.action==='BUY'?'买入':'卖出')),dbH('span',{className:'ia-db-muted'},trade.date.replace('T',' ').slice(0,16)+' · 成交价 '+dbMoney(trade.price,currency))),dbH('span',{className:'ia-db-muted'},dbMoney(trade.shares,'',0)+' 股'))),
-          dbH('div',{className:'ia-db-muted ia-db-trade-note'},'图表标记对应成交日期，成交价以记录为准')):dbH('div',{className:'ia-empty'},holding?'该股票暂无模拟成交记录':'选中持仓后查看成交记录'))),
+        dbH('section',{className:'ia-db-panel'},panelHead('交易记录','近 5 笔 · 模拟成交'),trades.length?dbH('div',{className:'ia-db-ledger'},trades.slice(-5).reverse().map((trade,i)=>dbH('div',{className:'ia-db-trade',key:trade.id || trade.date+':'+i},
+          dbH('span',{className:'ia-db-trade-label','data-side':trade.action==='BUY'?'buy':'sell'},trade.action==='BUY'?'买入':'卖出'),
+          dbH('div',{className:'ia-db-trade-copy'},dbH('b',null,holding.name),dbH('span',{className:'ia-db-muted'},trade.date.replace('T',' ').slice(5,16)+' · '+dbMoney(trade.shares,'',0)+' 股 @ '+dbMoney(trade.price,currency))),
+          dbH('span',{className:'ia-db-muted ia-num'},dbMoney(trade.shares*trade.price,currency))))):dbH('div',{className:'ia-empty'},holding?'该股票暂无模拟成交记录':'选中持仓后查看成交记录'))),
       dbH('section',{className:'ia-db-panel ia-db-activity'},panelHead('运行与研究',status.operation_mode==='automatic'?'自动运行':'手动运行'),
         dbH('div',{className:'ia-db-activity-grid'},dbH('div',null,dbH('b',null,'风控'+riskLabel),dbH('p',{className:'ia-db-muted'},'策略：'+(status.mandate?.display_name ?? status.mandate?.profile ?? '—'))),
-          dbH('div',null,dbH('b',null,marketName[market]+' 下一轮'),dbH('p',{className:'ia-db-muted'},String(status.markets?.[market]?.next_cycle ?? '尚未安排').replace('T',' ').slice(0,16))),
+          dbH('div',null,dbH('b',null,marketName[market]+' 下一轮'),dbH('p',{className:'ia-db-muted'},String(nextCycle ?? '尚未安排').replace('T',' ').slice(0,16))),
           dbH('div',null,dbH('b',null,'最近轮次报告'),reports.length?dbH('ul',null,reports.slice(0,3).map(report=>dbH('li',{key:report.file},report.file))):dbH('p',{className:'ia-db-muted'},'暂无轮次报告'))),
-        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+analysisTaskCounts(summary.analysis).completed+'/'+(summary.analysis.expected_agents ?? 0)):null,
+        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+analysisTaskCounts(summary.analysis).completed+'/'+Math.max(Number(summary.analysis.expected_agents ?? 0),analysisTaskCounts(summary.analysis).total)):null,
         onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:onOpenAnalysis},'打开分析流程与报告'):null),
       typeof summary.macro?.content==='string' && summary.macro.content?dbH('section',{className:'ia-card ia-news',style:{marginTop:14}},panelHead('市场早报','每交易日 08:00 采集'),dbH('div',{className:'ia-news-body'},renderMarkdown(summary.macro.content))):null));
+
 }

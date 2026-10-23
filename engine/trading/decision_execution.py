@@ -75,8 +75,11 @@ def _normalize_decisions(raw: Any) -> List[Dict[str, Any]]:
         if not symbol:
             raise ValueError(f"decisions[{index}] 缺少 symbol")
         action = str(item.get("action", "")).strip().upper()
-        if action not in {"BUY", "SELL", "HOLD"}:
-            raise ValueError(f"decisions[{index}] action 必须是 BUY、SELL 或 HOLD")
+        if action == "WATCH":
+            # WATCH is an analysis state, not an executable order.
+            action = "HOLD"
+        elif action not in {"BUY", "SELL", "HOLD"}:
+            raise ValueError(f"decisions[{index}] action 必须是 BUY、SELL、HOLD 或 WATCH")
         target_weight = item.get("target_weight", 0)
         try:
             target_weight = float(target_weight)

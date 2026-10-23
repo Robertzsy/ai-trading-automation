@@ -14,15 +14,34 @@ from engine.config import cfg
 
 
 def _snapshot_loader(symbols: Sequence[str], limit: int) -> tuple[Dict[str, Any], Dict[str, str]]:
+    """Fetch a snapshot for EVERY requested symbol, with ``limit`` workers.
+
+    The second argument is the concurrency budget (``market_data_workers``),
+    not a row count: slicing here silently scored only the first few candidates
+    and made the factor ranking meaningless. Order is preserved so callers can
+    still reason about the candidate list deterministically.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
     from engine.data import fetcher
+
+    ordered = [str(symbol) for symbol in symbols if str(symbol)]
+    workers = max(1, int(limit or 1))
+
+    def load(symbol: str):
+        try:
+            return symbol, fetcher.snapshot(symbol), None
+        except Exception as exc:  # noqa: BLE001 - one failing symbol must not kill the run
+            return symbol, None, str(exc)[:200]
 
     snapshots: Dict[str, Any] = {}
     errors: Dict[str, str] = {}
-    for symbol in symbols[: max(0, limit)]:
-        try:
-            snapshots[str(symbol)] = fetcher.snapshot(str(symbol))
-        except Exception as exc:  # noqa: BLE001 - one failing symbol must not kill the run
-            errors[str(symbol)] = str(exc)[:200]
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for symbol, payload, error in pool.map(load, ordered):
+            if error is not None:
+                errors[symbol] = error
+            elif payload is not None:
+                snapshots[symbol] = payload
     return snapshots, errors
 
 
@@ -31,6 +50,7 @@ def run_screening_preview(
     *,
     symbols: Optional[Sequence[str]] = None,
     now: Optional[datetime] = None,
+    conditions: Optional[Sequence[Mapping[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Run a screening pass and return the dashboard-ready preview."""
     from engine.portfolio import account as account_store
@@ -54,6 +74,7 @@ def run_screening_preview(
         autonomous_config=dict(cfg.autonomous),
         snapshot_loader=_snapshot_loader,
         now=now,
+        conditions=conditions,
     )
     return {
         "market": normalized,
