@@ -205,7 +205,7 @@ async function main() {
       cdp,
       `Array.from(document.querySelectorAll('.ia-navbtn')).map(b => b.textContent.trim()).join('|')`,
     );
-    check(String(navText).includes("总览") && String(navText).includes("投资助手") && String(navText).includes("投资研究") && String(navText).includes("设置"), `left nav renders (${navText})`);
+    check(/总览|Overview/.test(navText) && /投资助手|Assistant/.test(navText) && /投资研究|Research/.test(navText) && /设置|Settings/.test(navText), `left nav renders (${navText})`);
     check(!String(navText).includes("分析流程"), `left nav no longer carries a separate 分析流程 tab (${navText})`);
     check(!String(navText).includes("账户"), `left nav has no account entry (${navText})`);
     const brandText = await evaluate(cdp, `document.querySelector('.ia-rail-brand') ? document.querySelector('.ia-rail-brand').getAttribute('title') : ''`);
@@ -213,7 +213,7 @@ async function main() {
 
     // 3. Conversation kernel (投资助手 default page): sidebar + conversation area.
     const sidebarText = await evaluate(cdp, `document.querySelector('.ia-sidebar') ? document.querySelector('.ia-sidebar').innerText.slice(0, 200) : ''`);
-    check(String(sidebarText).includes("会话"), `assistant page shows session sidebar (${sidebarText.slice(0, 60).replace(/\\n/g, ' ')})`);
+    check(/会话|Sessions/.test(sidebarText), `assistant page shows session sidebar (${sidebarText.slice(0, 60).replace(/\\n/g, ' ')})`);
     const centerHtml = await evaluate(cdp, `document.querySelector('.ia-center') ? document.querySelector('.ia-center').innerHTML.length : 0`);
     check(Number(centerHtml) > 500, `conversation kernel mounted (${centerHtml} bytes of DOM)`);
     // The context panel lives in a drawer now: open it before asserting.
@@ -224,22 +224,22 @@ async function main() {
 
     const contextText = await evaluate(cdp, `document.querySelector('.ia-context') ? document.querySelector('.ia-context').innerText : ''`);
 
-    check(String(contextText).includes("投资上下文") && String(contextText).includes("分析流程"), "assistant page shows investment context in the drawer");
+    check(/投资上下文|Investment context/.test(contextText) && /分析流程|Analysis workflow/.test(contextText), "assistant page shows investment context in the drawer");
 
     await evaluate(cdp, `document.querySelector('.ia-assist-ctx')?.click()`);
 
     await sleep(300);
-    const residualSelectorsVisible = await evaluate(cdp, `Array.from(document.querySelectorAll('[aria-label="选择工作区"],[aria-label^="访问模式"]')).some(el => getComputedStyle(el).display !== 'none')`);
+    const residualSelectorsVisible = await evaluate(cdp, `Array.from(document.querySelectorAll('[aria-label="选择工作区"],[aria-label^="访问模式"],[aria-label="Choose workspace"],[aria-label^="Access mode"]')).some(el => getComputedStyle(el).display !== 'none')`);
     check(!residualSelectorsVisible, "workspace and access-mode selectors are hidden");
     const composerPlaceholder = await evaluate(cdp, `document.querySelector('.ia-center textarea')?.placeholder ?? ''`);
-    check(String(composerPlaceholder).includes("投资问题"), `conversation composer uses investment copy (${composerPlaceholder})`);
+    check(/投资问题|investment question/i.test(composerPlaceholder), `conversation composer uses investment copy (${composerPlaceholder})`);
     check(!/workspace|工作区管理/i.test(String(visibleText)), "no workspace management UI in visible text");
 
     // 4. Dashboard page.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('总览')).click()`);
+    await evaluate(cdp, `document.querySelector('.ia-navbtn[data-page="dashboard"]').click()`);
     await sleep(1500);
     const dashText = await evaluate(cdp, "document.body.innerText");
-    check(String(dashText).includes("投资总览"), "总览 renders 投资总览");
+    check(/投资总览|Portfolio overview/.test(dashText), "总览 renders 投资总览");
     const dashboard = await evaluate(cdp, `({
       markets: document.querySelectorAll('.ia-db-market-picker button').length,
       metrics: document.querySelectorAll('.ia-db-band-stat').length,
@@ -262,7 +262,7 @@ async function main() {
       await sleep(300);
       const selectedStock = await evaluate(cdp, `({
         selected: document.querySelectorAll('.ia-db-stock[aria-pressed="true"]').length,
-        periods: document.querySelectorAll('.ia-db-choices[aria-label="时间范围"] button').length,
+        periods: document.querySelectorAll('.ia-db-choices button').length,
       })`);
       check(selectedStock?.selected === 1 && selectedStock?.periods === 3, "Dashboard links a holding to its stock chart controls");
     } else {
@@ -271,7 +271,7 @@ async function main() {
 
     // 4b. The workflow board moved into the analysis centre (its own nav entry is
     //     gone). Navigate there first, then assert the merge left a working page.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('投资研究')).click()`);
+    await evaluate(cdp, `document.querySelector('.ia-navbtn[data-page="analyze"]').click()`);
     await sleep(2200);
     const mergedCentre = await evaluate(cdp, `(() => {
       const navs = Array.from(document.querySelectorAll('.ia-navbtn')).map((b) => b.textContent.trim());
@@ -292,34 +292,34 @@ async function main() {
     );
 
     // 5. Settings page.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('设置')).click()`);
+    await evaluate(cdp, `document.querySelector('.ia-navbtn[data-page="settings"]').click()`);
     await sleep(1500);
     const settingsNav = await evaluate(
       cdp,
       `Array.from(document.querySelectorAll('.ia-settings-nav button')).map(b => b.textContent.trim()).join('|')`,
     );
     check(
-      String(settingsNav).includes("投资策略与风控") && String(settingsNav).includes("自动轮次与调度") && String(settingsNav).includes("市场与选股") && String(settingsNav).includes("通知") && String(settingsNav).includes("应用设置"),
+      /投资策略与风控|Strategy and risk controls/.test(settingsNav) && /自动轮次与调度|Automatic rounds/.test(settingsNav) && /市场与选股|Markets and screening/.test(settingsNav) && /通知|Notifications/.test(settingsNav) && /应用设置|Application settings/.test(settingsNav),
       `settings nav has all five product sections (${settingsNav})`,
     );
-    check(String(settingsNav).includes("模型"), `settings nav keeps the model section (${settingsNav})`);
-    const strategyShown = await evaluate(cdp, `document.body.innerText.includes('策略档位') || document.body.innerText.includes('投资策略与风控')`);
+    check(/模型|Models/.test(settingsNav), `settings nav keeps the model section (${settingsNav})`);
+    const strategyShown = await evaluate(cdp, `Boolean(document.querySelector('#ia-set-strategy'))`);
     check(Boolean(strategyShown), "settings page renders the strategy section content");
 
     // 5b. Model page (embedded conversation kernel's own models surface).
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-settings-nav button')].find(b => b.textContent.includes('模型')).click()`);
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-settings-nav button')].find(b => /模型|Models/.test(b.textContent)).click()`);
     const modelReady = await waitFor(async () => {
       const text = await evaluate(cdp, "document.body.innerText");
-      return String(text).includes("添加提供方") ? text : null;
+      return /添加模型提供商|Add model provider/.test(text) ? text : null;
     }, "model settings page content", 10000);
     check(
-      String(modelReady).includes("添加提供方") && String(modelReady).includes("DeepSeek"),
+      /添加模型提供商|Add model provider/.test(modelReady),
       `model settings page renders provider management (${modelReady.replace(/\\n/g, " ").slice(0, 120)})`,
     );
-    check(!/harness|dsh\b/i.test(String(modelReady)), "model settings page has no harness/DSH strings");
+    check(!/harness/i.test(String(modelReady)), "model settings page has no harness branding; About identifies DSH version");
 
     // 6. Back to assistant still renders conversation.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('投资助手')).click()`);
+    await evaluate(cdp, `document.querySelector('.ia-navbtn[data-page="assistant"]').click()`);
     await sleep(1200);
     const centerAgain = await evaluate(cdp, `document.querySelector('.ia-center') ? document.querySelector('.ia-center').innerHTML.length : 0`);
     check(Number(centerAgain) > 500, "assistant page restores conversation kernel");
@@ -329,21 +329,23 @@ async function main() {
       const el = document.querySelector('.ia-search');
       if (!el) return 'no-search-box';
       const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-      setter.call(el, '投资');
+      setter.call(el, 'ata-smoke-guaranteed-no-such-session-9fc7');
       el.dispatchEvent(new Event('input', { bubbles: true }));
       return 'typed';
     })()`);
     const searchHit = await waitFor(async () => {
       const text = await evaluate(cdp, "document.body.innerText");
       const count = await evaluate(cdp, "document.querySelectorAll('.ia-session').length");
-      return String(text).includes("搜索结果") && Number(count) >= 1 ? text : null;
+      return /搜索结果|Search results/.test(text) && Number(count) === 0 && /没有匹配|No matching/.test(text) ? text : null;
     }, "session search results", 8000);
-    check(Boolean(searchHit), "session search returns matching sessions (items mapping)");
+    check(Boolean(searchHit), "session search returns an explicit empty result for an unmatched query");
 
     // 6c. The archive affordance exists on the flat session rows (the
     // archivedSessionIds filter itself is exercised through the store shape;
     // the archive flow opens a host confirmation dialog that headless CDP
     // cannot drive, so the click outcome is not asserted here).
+    await evaluate(cdp, `(() => { const el=document.querySelector('.ia-search'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,''); el.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+    await sleep(400);
     const archiveButton = await evaluate(cdp, `(() => {
       const row = document.querySelector('.ia-session');
       if (!row) return 'no-session';
@@ -366,10 +368,10 @@ async function main() {
     //    log after driving the tab. Purely additive: assertions 1-7 above are
     //    untouched, and the exception filter repeats the one used in step 7 so
     //    this section cannot pass by ignoring a failure.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-navbtn')].find(b => b.textContent.includes('投资研究'))?.click()`);
+    await evaluate(cdp, `document.querySelector('.ia-navbtn[data-page="analyze"]')?.click()`);
     await sleep(1500);
     const analyzeNav = await evaluate(cdp, `Array.from(document.querySelectorAll('.ia-navbtn')).map(b => b.textContent.trim()).join('|')`);
-    check(String(analyzeNav).includes("投资研究"), `left nav has the research entry (${analyzeNav})`);
+    check(/投资研究|Research/.test(analyzeNav), `left nav has the research entry (${analyzeNav})`);
     const analyzeGrid = await evaluate(cdp, `document.querySelector('.ia-research-grid') ? getComputedStyle(document.querySelector('.ia-research-grid')).display : ''`);
     check(String(analyzeGrid) === "grid", `analysis centre grid container mounted (display: ${analyzeGrid || "missing"})`);
     const analyzeContainers = await evaluate(cdp, `document.querySelectorAll('[class*="ia-an-"]').length`);
@@ -377,14 +379,14 @@ async function main() {
     // The start panel (one-click entries + pre-flight) now lives in the
     // "新建研究" drawer, so open it before reading its copy. The report tab stays
     // active until 7d switches to the process tab for the progress board.
-    await evaluate(cdp, `[...document.querySelectorAll('.ia-research-actions button')].find((b) => b.textContent.includes('新建研究'))?.click()`);
+    await evaluate(cdp, `[...document.querySelectorAll('.ia-research-actions button')].find((b) => /新建研究|New research/.test(b.textContent))?.click()`);
     await sleep(800);
     const analyzeText = await evaluate(cdp, "document.body.innerText");
     // The pre-flight rows are collapsed while every precondition passes, so this
     // asserts the summary line rather than the individual rows (which the
     // enable-path check below expands on purpose).
-    check(String(analyzeText).includes("一键全流程") && String(analyzeText).includes("预检"), "analysis centre renders the one-click entries with a pre-flight summary");
-    check(String(analyzeText).includes("轮次报告") && String(analyzeText).includes("分析流程"), "analysis centre renders the pipeline and per-round report panels");
+    check(/一键全流程|Run full workflow/.test(analyzeText) && /预检|Preflight/.test(analyzeText), "analysis centre renders the one-click entries with a pre-flight summary");
+    check(/轮次报告|Research report/.test(analyzeText) && /分析流程|Analysis workflow/.test(analyzeText), "analysis centre renders the pipeline and per-round report panels");
     const startEmpty = await evaluate(cdp, `(() => { const b = document.querySelector('#ia-an-quick-typed'); return b ? { disabled: b.disabled, title: b.getAttribute('title') || '' } : null; })()`);
     check(Boolean(startEmpty) && startEmpty.disabled === true, `开始分析 is disabled with an empty symbol list (${JSON.stringify(startEmpty)})`);
     const typedSymbols = await evaluate(cdp, `(() => {

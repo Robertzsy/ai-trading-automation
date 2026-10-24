@@ -17,6 +17,7 @@ import yaml
 
 from engine.atomic_write import write_text_atomic
 from engine.config import cfg
+from engine.localization import LocalizedError
 
 _lock = threading.RLock()
 
@@ -26,14 +27,14 @@ _TIME_RE = re.compile(r"^(\d{2}):(\d{2})$")
 
 def _boolean(value: Any) -> bool:
     if not isinstance(value, bool):
-        raise ValueError("必须是布尔值")
+        raise LocalizedError("config.boolean")
     return value
 
 
 def _enum(*choices: str) -> Callable[[Any], str]:
     def validate(value: Any) -> str:
         if not isinstance(value, str) or value not in choices:
-            raise ValueError("必须是 " + "、".join(choices) + " 之一")
+            raise LocalizedError("config.choice", choices="、".join(choices))
         return value
 
     return validate
@@ -42,7 +43,7 @@ def _enum(*choices: str) -> Callable[[Any], str]:
 def _integer(minimum: int, maximum: int) -> Callable[[Any], int]:
     def validate(value: Any) -> int:
         if isinstance(value, bool) or not isinstance(value, int) or not minimum <= value <= maximum:
-            raise ValueError(f"必须是 {minimum}-{maximum} 的整数")
+            raise LocalizedError("config.integer", minimum=minimum, maximum=maximum)
         return value
 
     return validate
@@ -50,34 +51,34 @@ def _integer(minimum: int, maximum: int) -> Callable[[Any], int]:
 
 def _time(value: Any) -> str:
     if not isinstance(value, str):
-        raise ValueError("必须是 HH:MM 时间字符串")
+        raise LocalizedError("config.time_type")
     match = _TIME_RE.fullmatch(value.strip())
     if match is None or int(match.group(1)) > 23 or int(match.group(2)) > 59:
-        raise ValueError("必须是有效的 HH:MM 时间")
+        raise LocalizedError("config.time")
     return value.strip()
 
 
 def _time_list(value: Any) -> list[str]:
     if not isinstance(value, list) or len(value) > 12:
-        raise ValueError("必须是不超过 12 项的 HH:MM 时间列表")
+        raise LocalizedError("config.time_list")
     result = [_time(item) for item in value]
     if len(set(result)) != len(result):
-        raise ValueError("时间列表不能重复")
+        raise LocalizedError("config.duplicate_time")
     return result
 
 
 def _market_list(value: Any) -> list[str]:
     if not isinstance(value, list) or not value:
-        raise ValueError("至少启用一个市场")
+        raise LocalizedError("config.empty_markets")
     result = [str(item).strip().lower() for item in value]
     if any(item not in _MARKETS for item in result) or len(set(result)) != len(result):
-        raise ValueError("市场列表只能包含不重复的 cn、hk、us、etf")
+        raise LocalizedError("config.markets")
     return result
 
 
 def _channels(value: Any) -> list[str]:
     if not isinstance(value, list) or any(item != "webhook" for item in value) or len(set(value)) != len(value):
-        raise ValueError("通知渠道只能包含 webhook")
+        raise LocalizedError("config.channels")
     return list(value)
 
 
@@ -85,6 +86,8 @@ def _channels(value: Any) -> list[str]:
 # section whitelist.  Adding a new control requires adding its path and
 # validator here first.
 _PATH_VALIDATORS: Dict[str, Callable[[Any], Any]] = {
+    "ui.language": _enum("zh", "en"),  # resolved native/Host locale mirror
+    "research.output_language": _enum("follow-ui", "zh", "en"),
     "autonomous.operation_mode": _enum("manual", "automatic"),
     "autonomous.enabled": _boolean,
     "schedule.macro_daily_time": _time,
@@ -126,23 +129,23 @@ def apply_config_changes(changes: Any) -> Dict[str, Any]:
     the runtime config; a failed validation leaves the file untouched.
     """
     if not isinstance(changes, Mapping) or not changes:
-        raise ValueError("changes 必须是非空对象")
+        raise LocalizedError("config.changes")
     with _lock:
         normalized: Dict[str, Any] = {}
         for raw_path, value in changes.items():
             path = str(raw_path).strip()
             parts = [part for part in path.split(".") if part]
             if not parts:
-                raise ValueError(f"无效配置路径: {path}")
+                raise LocalizedError("config.path", path=path)
             if path == "trading.mode" or path.startswith("trading.mode."):
-                raise ValueError(f"禁止修改的配置路径: {path}")
+                raise LocalizedError("config.forbidden", path=path)
             validator = _PATH_VALIDATORS.get(path)
             if validator is None:
-                raise ValueError(f"不允许修改的配置路径: {path}")
+                raise LocalizedError("config.unsupported", path=path)
             try:
                 normalized[path] = validator(value)
             except ValueError as exc:
-                raise ValueError(f"配置 {path} {exc}") from exc
+                raise LocalizedError("config.value", path=path, error=str(exc)) from exc
 
         config_path = Path(cfg._path)
         document = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}

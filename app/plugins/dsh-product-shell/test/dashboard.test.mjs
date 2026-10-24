@@ -7,7 +7,7 @@ import {createHistoryHandler,historySymbol} from '../lib/market-history.js';
 function dashboard(fetcher=async()=>({ok:true,data:[]})) {
   const client=readFileSync(new URL('../lib/client.js',import.meta.url),'utf8');
   const code=client.split('/* DASHBOARD:START */')[1].split('/* DASHBOARD:END */')[0];
-  const context=vm.createContext({react:{createElement:()=>{}},jsonFetch:fetcher,injectSheet:()=>{},CSS_ID:'test',AbortSignal,Date});
+  const context=vm.createContext({tr:key=>JSON.parse(readFileSync(new URL("../../../locales/product.json",import.meta.url),"utf8"))[key].zh,localeTag:()=>"zh-CN",react:{createElement:()=>{}},jsonFetch:fetcher,injectSheet:()=>{},CSS_ID:'test',AbortSignal,Date});
   vm.runInContext(code+'\nthis.db={dbHistory,dbAccount,dbWindow,dbTrades,dbCode,dbLoadHistory};',context);
   return context.db;
 }

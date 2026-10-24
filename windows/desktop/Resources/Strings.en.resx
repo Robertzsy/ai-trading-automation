@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="Open_main_window" xml:space="preserve">
+    <value>Open main window</value>
+  </data>
+  <data name="Start_services" xml:space="preserve">
+    <value>Start services</value>
+  </data>
+  <data name="Pause_investing" xml:space="preserve">
+    <value>Pause investing</value>
+  </data>
+  <data name="View_logs" xml:space="preserve">
+    <value>View logs</value>
+  </data>
+  <data name="Start_with_Windows" xml:space="preserve">
+    <value>Start with Windows</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+  <data name="AI_Trading_Automation_Automated_paper_investing" xml:space="preserve">
+    <value>AI Trading Automation - Automated paper investing</value>
+  </data>
+  <data name="Minimized_to_the_system_tray_Background_investing_continues" xml:space="preserve">
+    <value>Minimized to the system tray. Background investing continues.</value>
+  </data>
+  <data name="Start_with_Windows_enabled" xml:space="preserve">
+    <value>Start with Windows enabled.</value>
+  </data>
+  <data name="Start_with_Windows_disabled" xml:space="preserve">
+    <value>Start with Windows disabled.</value>
+  </data>
+  <data name="Startup_failed" xml:space="preserve">
+    <value>Startup failed: </value>
+  </data>
+  <data name="n_nDiagnostic_log_TEMP_ia_desktop_boot_log" xml:space="preserve">
+    <value>
+
+Diagnostic log: %TEMP%\ia-desktop-boot.log</value>
+  </data>
+  <data name="WebView2_environment_creation_timed_out_45_seconds_Restart_the_app_if_this_" xml:space="preserve">
+    <value>WebView2 environment creation timed out (45 seconds). Restart the app; if this persists, install WebView2 Runtime.</value>
+  </data>
+  <data name="WebView2_initialization_timed_out_45_seconds_Restart_the_app_if_this_persis" xml:space="preserve">
+    <value>WebView2 initialization timed out (45 seconds). Restart the app; if this persists, install WebView2 Runtime.</value>
+  </data>
+  <data name="Investment_engine_Running" xml:space="preserve">
+    <value>Investment engine: ● Running</value>
+  </data>
+  <data name="Investment_engine_Stopped" xml:space="preserve">
+    <value>Investment engine: Stopped</value>
+  </data>
+  <data name="Chat_service_Running" xml:space="preserve">
+    <value>Chat service: ● Running</value>
+  </data>
+  <data name="Chat_service_Stopped" xml:space="preserve">
+    <value>Chat service: Stopped</value>
+  </data>
+  <data name="Mode" xml:space="preserve">
+    <value>Mode: </value>
+  </data>
+  <data name="Strategy" xml:space="preserve">
+    <value>Strategy: </value>
+  </data>
+  <data name="Round" xml:space="preserve">
+    <value>Round: </value>
+  </data>
+  <data name="Risk" xml:space="preserve">
+    <value>Risk: </value>
+  </data>
+  <data name="Risk_Normal" xml:space="preserve">
+    <value>Risk: Normal</value>
+  </data>
+  <data name="Chat_service_Disconnected" xml:space="preserve">
+    <value>Chat service: Disconnected</value>
+  </data>
+  <data name="Risk_Unknown" xml:space="preserve">
+    <value>Risk: Unknown</value>
+  </data>
+  <data name="What_should_AI_Trading_Automation_do_after_closing_this_window_n_n" xml:space="preserve">
+    <value>What should AI Trading Automation do after closing this window?
+
+</value>
+  </data>
+  <data name="Yes_Minimize_to_tray_hide_the_window_and_continue_in_the_background_recomme" xml:space="preserve">
+    <value>Yes - Minimize to tray: hide the window and continue in the background (recommended)
+</value>
+  </data>
+  <data name="No_Stop_all_background_services_and_exit_n" xml:space="preserve">
+    <value>No - Stop all background services and exit
+</value>
+  </data>
+  <data name="Cancel_Keep_this_window_open" xml:space="preserve">
+    <value>Cancel - Keep this window open</value>
+  </data>
+  <data name="Could_not_change_the_Windows_startup_setting" xml:space="preserve">
+    <value>Could not change the Windows startup setting: </value>
+  </data>
+  <data name="pythonw_exe_was_not_found_Complete_installation_or_initialization_first" xml:space="preserve">
+    <value>pythonw.exe was not found. Complete installation or initialization first.</value>
+  </data>
+  <data name="node_exe_was_not_found_Node_js_22_19_required_Complete_installation_or_init" xml:space="preserve">
+    <value>node.exe was not found (Node.js 22.19+ required). Complete installation or initialization first.</value>
+  </data>
+  <data name="Investment_engine_or_chat_service_did_not_become_ready_within_60_seconds_Ch" xml:space="preserve">
+    <value>Investment engine or chat service did not become ready within 60 seconds. Check the logs.</value>
+  </data>
+  <data name="DSH_was_not_found_app_node_modules_deepseek_ai_dsh_Complete_installation_fi" xml:space="preserve">
+    <value>DSH was not found (app/node_modules/@deepseek-ai/dsh). Complete installation first.</value>
+  </data>
+  <data name="Paused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Emergency_stop" xml:space="preserve">
+    <value>Emergency stop</value>
+  </data>
+  <data name="Investment_engine_Starting" xml:space="preserve">
+    <value>Investment engine: Starting…</value>
+  </data>
+  <data name="Chat_service_Starting" xml:space="preserve">
+    <value>Chat service: Starting…</value>
+  </data>
+  <data name="Risk_Starting" xml:space="preserve">
+    <value>Risk: Starting…</value>
+  </data>
+  <data name="Mode2" xml:space="preserve">
+    <value>Mode: -</value>
+  </data>
+  <data name="Strategy2" xml:space="preserve">
+    <value>Strategy: -</value>
+  </data>
+  <data name="Round2" xml:space="preserve">
+    <value>Round: -</value>
+  </data>
+</root>

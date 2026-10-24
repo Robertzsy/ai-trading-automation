@@ -1,10 +1,24 @@
 """Encrypted record updates use an engine-owned compare-and-set boundary."""
 from concurrent.futures import ThreadPoolExecutor
 import json
+import sys
 
 import pytest
 
 from engine import paths, secret_store
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="native Windows DPAPI")
+def test_native_dpapi_record_roundtrip_in_isolated_data_directory(monkeypatch, tmp_path):
+    monkeypatch.setattr(paths, "data_root", lambda: tmp_path)
+    key = "upgrade-fixture/record"
+    record = {"kind": "grant", "payload": {"access_token": "synthetic-upgrade-token"}}
+    revision = secret_store.read_credential_record(key)["revision"]
+    assert secret_store.write_credential_record(key, record, revision)
+    assert secret_store.read_credential_record(key)["record"] == record
+    assert "synthetic-upgrade-token" not in (tmp_path / "secrets.enc").read_text(encoding="utf-8")
+    assert secret_store.write_credential_record(key, None, secret_store.read_credential_record(key)["revision"])
+    assert secret_store.read_credential_record(key)["record"] is None
 
 
 @pytest.fixture

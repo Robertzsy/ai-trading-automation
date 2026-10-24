@@ -61,7 +61,7 @@ const mdH = (type, props, ...children) => react.createElement(type, props, ...ch
 
 const MD_MAX_DEPTH = 6;
 const MD_MAX_CHARS = 500000;
-const MD_TRUNCATED = "\n\n（内容过长，已截断显示）";
+const mdTruncated = () => tr("ui.content.is.too.long.display.truncated");
 const MD_BREAK = /(?: {2,}|\\)$/;
 // "\u0060" is the backtick, spelled this way so this file stays free of the one
 // character that would terminate a template literal.
@@ -357,7 +357,7 @@ const renderMarkdown = (text) => {
     if (text === null || text === undefined) return null;
     let source = typeof text === "string" ? text : String(text);
     if (source.trim() === "") return null;
-    if (source.length > MD_MAX_CHARS) source = source.slice(0, MD_MAX_CHARS) + MD_TRUNCATED;
+    if (source.length > MD_MAX_CHARS) source = source.slice(0, MD_MAX_CHARS) + mdTruncated();
     source = source.replace(/\r\n?/g, "\n");
     return mdH("div", { className: "ia-md" }, ...mdBlocks(source.split("\n"), 0));
   } catch (error) {

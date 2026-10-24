@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def _default_config_path() -> Path:
     p = os.getenv("CONFIG_PATH")
-    return Path(p) if p else config_dir() / "config.yaml"
+    return (Path(p) if Path(p).is_absolute() else data_root() / p) if p else config_dir() / "config.yaml"
 
 # ── load env ────────────────────────────────────────
 loaded = load_dotenv(data_root() / ".env") or load_dotenv(ROOT / ".env.example") or None

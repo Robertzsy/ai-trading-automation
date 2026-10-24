@@ -6,6 +6,7 @@ observations and SUMMARISES them. It never changes thresholds, prompts or code.
 """
 
 from __future__ import annotations
+from engine.localization import message, current_language, render_with_language, render_in_run_language, output_language
 
 import json
 import re
@@ -18,11 +19,11 @@ from engine import paths
 
 _REASON_BUCKETS = {
     "confidence": re.compile(r"置信度|confidence|min_confidence", re.I),
-    "data_gap": re.compile(r"amount=0|流动性|数据缺口|缺失|degraded|无第二行情源", re.I),
-    "price_zone": re.compile(r"赔率|价位|买区|追多|阻力|支撑", re.I),
-    "trend": re.compile(r"空头排列|均线|趋势未修复|MA\d{2,3}", re.I),
-    "fundamental": re.compile(r"毛利|净利|营收|现金流|估值", re.I),
-    "risk_limit": re.compile(r"max_|硬边界|风控|仓位上限|最小现金", re.I),
+    "data_gap": re.compile(r"amount=0|流动性|数据缺口|缺失|degraded|无第二行情源|missing|data gap|liquidity|unavailable", re.I),
+    "price_zone": re.compile(r"赔率|价位|买区|追多|阻力|支撑|risk.reward|price.zone|entry.zone|resistance|support", re.I),
+    "trend": re.compile(r"空头排列|均线|趋势未修复|MA\d{2,3}|moving.average|bearish.alignment|unrepaired.trend", re.I),
+    "fundamental": re.compile(r"毛利|净利|营收|现金流|估值|gross.margin|net.income|revenue|cash.flow|valuation", re.I),
+    "risk_limit": re.compile(r"max_|硬边界|风控|仓位上限|最小现金|risk.limit|position.limit|cash.reserve", re.I),
 }
 
 
@@ -273,95 +274,52 @@ def metrics(days: int = 7, *, min_confidence: Optional[float] = None) -> Dict[st
     }
 
 
-def recommendations(data: Dict[str, Any], limit: int = 3) -> List[str]:
+@render_with_language
+def recommendations(data: Dict[str, Any], limit: int=3) -> List[str]:
     """Turn the aggregated metrics into at most ``limit`` actionable suggestions.
 
     These are proposals only: applying any of them requires explicit user
     confirmation (see notes/SELF_OPTIMIZATION_POLICY.zh.md).
     """
     out: List[str] = []
-    quality = data.get("data_quality") or {}
-    gap_rate = quality.get("gap_rate")
+    quality = data.get('data_quality') or {}
+    gap_rate = quality.get('gap_rate')
     if isinstance(gap_rate, (int, float)) and gap_rate > 0:
-        out.append(
-            "数据源：仍有 "
-            + str(round(gap_rate * 100, 1))
-            + "% 的快照缺少 amount/pe（"
-            + str(quality.get("with_remaining_gaps"))
-            + "/"
-            + str(quality.get("snapshots"))
-            + "），先补齐这些标的的数据，再判断置信度是否需要调整。"
-        )
-    confidence = data.get("confidence") or {}
-    share = confidence.get("below_threshold_share")
+        out.append(message('cycle.data.sources') + str(round(gap_rate * 100, 1)) + message('cycle.of.snapshots.lack.amount.pe') + str(quality.get('with_remaining_gaps')) + '/' + str(quality.get('snapshots')) + message('cycle.fill.these.data.gaps.before.evaluating.confidence.adjustments'))
+    confidence = data.get('confidence') or {}
+    share = confidence.get('below_threshold_share')
     if isinstance(share, (int, float)) and share >= 0.5:
-        out.append(
-            "置信度："
-            + str(confidence.get("below_threshold"))
-            + "/"
-            + str(confidence.get("count"))
-            + " 个决策低于 "
-            + str(confidence.get("threshold"))
-            + "；若数据缺口已清零仍如此，再评估角色校准或策略档位，不要先放宽风控。"
-        )
-    screening = data.get("screening_age_minutes") or {}
-    if (screening.get("stale_rounds") or 0) > 0:
-        out.append(
-            "选股新鲜度：有 "
-            + str(screening.get("stale_rounds"))
-            + " 轮使用的选股结果超过 30 分钟，确认这些轮次是否绕过了自动重新选股。"
-        )
-    buckets = data.get("hold_reason_buckets") or {}
+        out.append(message('cycle.confidence') + str(confidence.get('below_threshold')) + '/' + str(confidence.get('count')) + message('cycle.decisions.below') + str(confidence.get('threshold')) + message('cycle.if.gaps.are.already.resolved.assess.role.calibration.or.strategy.profiles.d'))
+    screening = data.get('screening_age_minutes') or {}
+    if (screening.get('stale_rounds') or 0) > 0:
+        out.append(message('cycle.screening.freshness') + str(screening.get('stale_rounds')) + message('cycle.rounds.used.screening.older.than.30.minutes.check.whether.automatic.screeni'))
+    buckets = data.get('hold_reason_buckets') or {}
     if len(out) < limit and buckets:
         top = next(iter(buckets))
-        if top in {"price_zone", "trend"}:
-            out.append("选股时点：HOLD 原因以 " + top + " 为主，优先调整候选池/入场时点，而不是放宽风控。")
+        if top in {'price_zone', 'trend'}:
+            out.append(message('cycle.entry.timing.main.hold.reason.category.is') + top + message('cycle.adjust.candidates.and.entry.timing.before.relaxing.risk.controls'))
     return out[:limit]
 
 
-def weekly_summary(days: int = 7) -> str:
+@render_with_language
+def weekly_summary(days: int=7) -> str:
     """Render a markdown review of the last ``days`` rounds (no model calls)."""
     rows = _load(days)
     if not rows:
-        return "# 自优化周报\n\n最近 " + str(days) + " 天没有已完成的轮次记录。\n"
+        return message('cycle.optimization.feedback.the.last') + str(days) + message('cycle.days.contain.no.completed.rounds')
     data = metrics(days)
-    confidence = data["confidence"]
-    lines = [
-        "# 自优化周报（近 " + str(days) + " 天）",
-        "",
-        "- 轮次：" + str(data["rounds"]),
-        "- 决策数：" + str(data["decisions"]) + "，其中 BUY " + str(data["buys"])
-        + "，成交 " + str(data["fills"]) + "，拒绝 " + str(data["rejected"])
-        + "，执行率 " + ("-" if data["execution_rate"] is None else str(data["execution_rate"])),
-        "- 平均置信度：" + ("-" if confidence["avg"] is None else str(confidence["avg"]))
-        + "（" + str(confidence["below_threshold"]) + "/" + str(confidence["count"])
-        + " 低于 " + str(confidence["threshold"]) + "）",
-        "- HOLD 原因分布：" + ("、".join(f"{k} {v}" for k, v in data["hold_reason_buckets"].items()) or "-"),
-        "- 选股新鲜度（开始时）：平均 "
-        + ("-" if data["screening_age_minutes"]["avg"] is None else str(data["screening_age_minutes"]["avg"]) + " 分钟")
-        + "，过期轮次 " + str(data["screening_age_minutes"]["stale_rounds"]),
-        "- 数据缺口率：" + (
-            "-" if data["data_quality"]["gap_rate"] is None
-            else str(data["data_quality"]["gap_rate"]) + "（快照 " + str(data["data_quality"]["snapshots"])
-            + "，仍有缺口 " + str(data["data_quality"]["with_remaining_gaps"]) + "）"
-        ),
-        "",
-        "## 逐轮",
-    ]
+    confidence = data['confidence']
+    lines = [message('cycle.optimization.feedback.last') + str(days) + message('cycle.days'), '', message('cycle.rounds') + str(data['rounds']), message('cycle.decisions') + str(data['decisions']) + message('cycle.including.buy') + str(data['buys']) + message('cycle.fills') + str(data['fills']) + message('cycle.rejected') + str(data['rejected']) + message('cycle.execution.rate') + ('-' if data['execution_rate'] is None else str(data['execution_rate'])), message('cycle.average.confidence') + ('-' if confidence['avg'] is None else str(confidence['avg'])) + '（' + str(confidence['below_threshold']) + '/' + str(confidence['count']) + message('cycle.below') + str(confidence['threshold']) + '）', message('cycle.hold.reasons') + ('、'.join((f'{k} {v}' for k, v in data['hold_reason_buckets'].items())) or '-'), message('cycle.screening.age.at.start.average') + ('-' if data['screening_age_minutes']['avg'] is None else str(data['screening_age_minutes']['avg']) + message('cycle.minutes')) + message('cycle.stale.rounds') + str(data['screening_age_minutes']['stale_rounds']), message('cycle.data.gap.rate') + ('-' if data['data_quality']['gap_rate'] is None else str(data['data_quality']['gap_rate']) + message('cycle.snapshots') + str(data['data_quality']['snapshots']) + message('cycle.remaining.gaps') + str(data['data_quality']['with_remaining_gaps']) + '）'), '', message('cycle.by.round')]
     for row in rows:
-        lines.append(
-            "- " + str(row.get("cycle_id")) + " · " + str(row.get("market")) + " · "
-            + str(row.get("status")) + " · 证据 " + str(row.get("evidence_count"))
-            + " · " + ",".join(sorted(set(row.get("hold_reason_buckets") or [])))
-        )
+        lines.append('- ' + str(row.get('cycle_id')) + ' · ' + str(row.get('market')) + ' · ' + str(row.get('status')) + message('cycle.evidence') + str(row.get('evidence_count')) + ' · ' + ','.join(sorted(set(row.get('hold_reason_buckets') or []))))
     advice = recommendations(data)
-    lines += ["", "## 建议（需人工确认后才实施）"]
+    lines += ['', message('cycle.recommendations.require.manual.approval.before.implementation')]
     if advice:
-        lines += [str(index + 1) + ". " + item for index, item in enumerate(advice)]
+        lines += [str(index + 1) + '. ' + item for index, item in enumerate(advice)]
     else:
-        lines.append("暂无需要调整的项；继续积累轮次数据。")
-    lines.append("")
-    return "\n".join(lines)
+        lines.append(message('cycle.no.adjustments.suggested.continue.collecting.round.data'))
+    lines.append('')
+    return '\n'.join(lines)
 
 
 if __name__ == "__main__":

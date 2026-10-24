@@ -1,0 +1,974 @@
+{
+  "report.h": {
+    "zh": " 时 ",
+    "en": " h "
+  },
+  "report.min": {
+    "zh": " 分",
+    "en": " min"
+  },
+  "report.preparing.data": {
+    "zh": "准备数据",
+    "en": "Preparing data"
+  },
+  "report.restoring.checkpoints": {
+    "zh": "恢复检查点",
+    "en": "Restoring checkpoints"
+  },
+  "report.four.base.research.roles": {
+    "zh": "四类基础研究",
+    "en": "Four base research roles"
+  },
+  "report.bull.bear.debate.and.research.review": {
+    "zh": "多空辩论与研究裁决",
+    "en": "Bull/bear debate and research review"
+  },
+  "report.portfolio.draft": {
+    "zh": "组合草案",
+    "en": "Portfolio draft"
+  },
+  "report.risk.debate.and.review": {
+    "zh": "风险辩论与裁决",
+    "en": "Risk debate and review"
+  },
+  "report.final.portfolio.decision": {
+    "zh": "最终组合决策",
+    "en": "Final portfolio decision"
+  },
+  "report.hard.risk.checks.and.paper.execution": {
+    "zh": "硬风控与模拟执行",
+    "en": "Hard risk checks and paper execution"
+  },
+  "report.awaiting.approval": {
+    "zh": "等待批准",
+    "en": "Awaiting approval"
+  },
+  "report.completed": {
+    "zh": "已完成",
+    "en": "Completed"
+  },
+  "report.failed": {
+    "zh": "失败",
+    "en": "Failed"
+  },
+  "report.stopped": {
+    "zh": "已停止",
+    "en": "Stopped"
+  },
+  "report.running": {
+    "zh": "运行中",
+    "en": "Running"
+  },
+  "report.waiting": {
+    "zh": "等待中",
+    "en": "Waiting"
+  },
+  "report.stage.status.started.ended.duration.tasks": {
+    "zh": "| 阶段 | 状态 | 开始 | 结束 | 耗时 | 子任务 |",
+    "en": "| Stage | Status | Started | Ended | Duration | Tasks |"
+  },
+  "report.task.stage.status.duration.result.summary": {
+    "zh": "| 子任务 | 阶段 | 状态 | 耗时 | 结果摘要 |",
+    "en": "| Task | Stage | Status | Duration | Result summary |"
+  },
+  "report.buy.increase": {
+    "zh": "买入/加仓",
+    "en": "Buy / increase"
+  },
+  "report.sell.reduce": {
+    "zh": "卖出/减仓",
+    "en": "Sell / reduce"
+  },
+  "report.hold.wait": {
+    "zh": "观望/继续持有",
+    "en": "Hold / wait"
+  },
+  "report.security.recommendation.target.weight.confidence.rationale.evidence": {
+    "zh": "| 标的 | 建议 | 目标权重 | 置信度 | 依据 | 引用证据 |",
+    "en": "| Security | Recommendation | Target weight | Confidence | Rationale | Evidence |"
+  },
+  "report.1.decision.summary": {
+    "zh": "## 一、决策摘要",
+    "en": "## 1. Decision summary"
+  },
+  "report.security.rating.confidence.target.weight.conclusion": {
+    "zh": "| 标的 | 评级 | 置信度 | 目标权重 | 一句话结论 |",
+    "en": "| Security | Rating | Confidence | Target weight | Conclusion |"
+  },
+  "report.1.context.and.data.basis": {
+    "zh": "## 一、上下文与数据口径",
+    "en": "## 1. Context and data basis"
+  },
+  "report.1.previous.decisions": {
+    "zh": "## 一、历史决策参考",
+    "en": "## 1. Previous decisions"
+  },
+  "report.the.latest.previous.decision.for.each.security.local.feedback.records.for.c": {
+    "zh": "同一标的在本轮之前最近一次的决策（来自本地反馈记录，仅用于对比，不参与本轮判断）：",
+    "en": "The latest previous decision for each security (local feedback records, for comparison only; excluded from this round's judgment):"
+  },
+  "report.security.previous.round.action.confidence.time": {
+    "zh": "| 标的 | 上次轮次 | 决策 | 置信度 | 时间 |",
+    "en": "| Security | Previous round | Action | Confidence | Time |"
+  },
+  "report.6.research.arguments.and.complete.facts": {
+    "zh": "## 六、研究论据与完整事实",
+    "en": "## 6. Research arguments and complete facts"
+  },
+  "report.facts.are.expanded.from.original.fields.each.role.s.arguments.countereviden": {
+    "zh": "事实由程序按原始字段展开；各角色的判断、反证与失效条件完整保留。新闻节选未自动视为已核验原文。",
+    "en": "Facts are expanded from original fields. Each role's arguments, counterevidence and invalidation conditions are retained. News excerpts are not automatically verified original sources."
+  },
+  "report.shared.facts.each.id.expanded.once": {
+    "zh": "### 共享事实（每个编号展开一次）",
+    "en": "### Shared facts (each ID expanded once)"
+  },
+  "report.conclusion": {
+    "zh": "结论",
+    "en": "Conclusion"
+  },
+  "report.stance": {
+    "zh": "倾向",
+    "en": "Stance"
+  },
+  "report.confidence": {
+    "zh": "置信度",
+    "en": "Confidence"
+  },
+  "report.risks.gaps": {
+    "zh": "风险/缺口",
+    "en": "Risks / gaps"
+  },
+  "report.data.quality": {
+    "zh": "数据质量",
+    "en": "Data quality"
+  },
+  "report.argument": {
+    "zh": "论证",
+    "en": "Argument"
+  },
+  "report.research.verdict": {
+    "zh": "研究裁决",
+    "en": "Research verdict"
+  },
+  "report.decision.rationale": {
+    "zh": "决策理由",
+    "en": "Decision rationale"
+  },
+  "report.unresolved.risks": {
+    "zh": "未解决风险",
+    "en": "Unresolved risks"
+  },
+  "report.risk.assessment": {
+    "zh": "风险判断",
+    "en": "Risk assessment"
+  },
+  "report.approved": {
+    "zh": "是否通过",
+    "en": "Approved"
+  },
+  "report.required.adjustments": {
+    "zh": "修订要求",
+    "en": "Required adjustments"
+  },
+  "report.decisions": {
+    "zh": "决策清单",
+    "en": "Decisions"
+  },
+  "report.cash.allocation": {
+    "zh": "现金安排",
+    "en": "Cash allocation"
+  },
+  "report.evidence.references": {
+    "zh": "引用证据",
+    "en": "Evidence references"
+  },
+  "report.target.weight": {
+    "zh": "目标权重",
+    "en": "Target weight"
+  },
+  "report.action": {
+    "zh": "行动",
+    "en": "Action"
+  },
+  "report.analysis.complete.awaiting.approval": {
+    "zh": "分析完成，等待批准",
+    "en": "Analysis complete, awaiting approval"
+  },
+  "report.this.round.is.simulated.research.and.paper.trading.not.investment.advice": {
+    "zh": "本轮为模拟研究与纸面交易，不构成投资建议。",
+    "en": "This round is simulated research and paper trading, not investment advice."
+  },
+  "report.s": {
+    "zh": " 秒",
+    "en": " s"
+  },
+  "report.min.2": {
+    "zh": " 分 ",
+    "en": " min "
+  },
+  "report.round.goals.and.progress": {
+    "zh": "、本轮目标与完成度",
+    "en": ". Round goals and progress"
+  },
+  "report.this.round.has.not.yet.been.evaluated.goal.evaluation.is.recorded.asynchron": {
+    "zh": "- 本轮尚未评估（目标评估在轮次终态后异步写入）。",
+    "en": "- This round has not yet been evaluated (goal evaluation is recorded asynchronously after the round ends)."
+  },
+  "report.sub.goal.priority.metric.target.actual.met": {
+    "zh": "| 子目标 | 优先级 | 指标 | 目标 | 实测 | 是否达成 |",
+    "en": "| Sub-goal | Priority | Metric | Target | Actual | Met |"
+  },
+  "report.stage.timeline": {
+    "zh": "、阶段时间线",
+    "en": ". Stage timeline"
+  },
+  "report.task.details": {
+    "zh": "、子任务明细",
+    "en": ". Task details"
+  },
+  "report.research.conclusions.by.security": {
+    "zh": "、研究结论（逐标的）",
+    "en": ". Research conclusions by security"
+  },
+  "report.securities.researched": {
+    "zh": "- 研究标的：",
+    "en": "- Securities researched: "
+  },
+  "report.buy": {
+    "zh": " 只；买入 ",
+    "en": "; BUY "
+  },
+  "report.sell": {
+    "zh": " / 卖出 ",
+    "en": " / SELL "
+  },
+  "report.hold": {
+    "zh": " / 观望 ",
+    "en": " / HOLD "
+  },
+  "report.average.confidence": {
+    "zh": "；平均置信度：",
+    "en": "; average confidence: "
+  },
+  "report.screening.generated.at": {
+    "zh": "- 选股：生成于 ",
+    "en": "- Screening: generated at "
+  },
+  "report.source": {
+    "zh": "，来源 ",
+    "en": ", source "
+  },
+  "report.candidates": {
+    "zh": "，候选 ",
+    "en": ", candidates "
+  },
+  "report.securities": {
+    "zh": " 只",
+    "en": " securities"
+  },
+  "report.data.quality.no.telemetry.records.for.this.round": {
+    "zh": "- 数据质量：本轮无遥测记录",
+    "en": "- Data quality: no telemetry records for this round"
+  },
+  "report.data.basis.prices.and.financials.are.public.snapshots.at.collection.time.so": {
+    "zh": "- 数据口径：行情与财务为抓取时点的公开数据快照，不同来源可能存在口径/时点差异；缺失字段会在证据中标注。",
+    "en": "- Data basis: prices and financials are public snapshots at collection time. Sources may differ in scope and timing; evidence identifies missing fields."
+  },
+  "report.reproducibility.llm.outputs.are.nondeterministic.identical.inputs.may.produ": {
+    "zh": "- 复现说明：LLM 输出具有非确定性，相同输入不保证完全相同的结论或置信度。",
+    "en": "- Reproducibility: LLM outputs are nondeterministic. Identical inputs may produce different conclusions or confidence levels."
+  },
+  "report.risks.and.degradation": {
+    "zh": "、风险与降级",
+    "en": ". Risks and degradation"
+  },
+  "report.appendix.latest.log.entries": {
+    "zh": "## 附：日志尾部（最近 ",
+    "en": "## Appendix: latest log entries ("
+  },
+  "report.entries": {
+    "zh": " 条）",
+    "en": " entries)"
+  },
+  "report.analysis.round.report": {
+    "zh": " 分析轮次报告 · ",
+    "en": " analysis round report · "
+  },
+  "report.round.status": {
+    "zh": "> 轮次状态：",
+    "en": "> Round status: "
+  },
+  "report.stages": {
+    "zh": "> 阶段：",
+    "en": "> Stages: "
+  },
+  "report.complete": {
+    "zh": " 完成  ",
+    "en": " complete  "
+  },
+  "report.duration": {
+    "zh": "> 耗时：",
+    "en": "> Duration: "
+  },
+  "report.tasks": {
+    "zh": "> 子任务：",
+    "en": "> Tasks: "
+  },
+  "report.completed.2": {
+    "zh": " 完成 / ",
+    "en": " completed / "
+  },
+  "report.failed.total": {
+    "zh": " 失败 / 共 ",
+    "en": " failed / total "
+  },
+  "report.evidence": {
+    "zh": "> 证据：",
+    "en": "> Evidence: "
+  },
+  "report.items": {
+    "zh": " 条  ",
+    "en": " items  "
+  },
+  "report.securities.2": {
+    "zh": "> 标的：",
+    "en": "> Securities: "
+  },
+  "report.security.source": {
+    "zh": "> 标的来源：",
+    "en": "> Security source: "
+  },
+  "report.this.is.an.analysis.round.submit.false.it.does.not.change.accounts.to.execu": {
+    "zh": "本轮为分析轮次（`submit=false`）。分析不会改变任何账户；如需执行，请在界面显式批准后",
+    "en": "This is an analysis round (`submit=false`). It does not change accounts. To execute, explicitly approve in the interface, then"
+  },
+  "report.analysis.round.report.generated.at": {
+    "zh": " 分析轮次报告\n\n> 生成时间：",
+    "en": " analysis round report\n\n> Generated at: "
+  },
+  "report.mode.manual.fixed.workflow": {
+    "zh": "  | 模式：手动/固定分析流程\n\n",
+    "en": "  | Mode: manual / fixed workflow\n\n"
+  },
+  "report.provide.cycle.id.or.file": {
+    "zh": "必须提供 cycle_id 或 file",
+    "en": "Provide cycle_id or file"
+  },
+  "report.invalid.report.filename": {
+    "zh": "非法的报告文件名",
+    "en": "Invalid report filename"
+  },
+  "report.invalid.report.path": {
+    "zh": "非法的报告路径",
+    "en": "Invalid report path"
+  },
+  "report.overall.goal": {
+    "zh": "- **总目标**：",
+    "en": "- **Overall goal**: "
+  },
+  "report.goal.status": {
+    "zh": "- **目标状态**：",
+    "en": "- **Goal status**: "
+  },
+  "report.weighted.progress": {
+    "zh": "- **加权完成度**：",
+    "en": "- **Weighted progress**: "
+  },
+  "report.deviations": {
+    "zh": "**偏离项**：",
+    "en": "**Deviations**:"
+  },
+  "report.next.round.focus": {
+    "zh": "**下一轮优化方向**：",
+    "en": "**Next round focus**:"
+  },
+  "report.failed.2": {
+    "zh": "（失败 ",
+    "en": " (failed "
+  },
+  "report.items.2": {
+    "zh": " 条",
+    "en": " items"
+  },
+  "report.buy.2": {
+    "zh": "买入",
+    "en": "Buy"
+  },
+  "report.watch.zero.weight": {
+    "zh": "观察（0 权重）",
+    "en": "Watch (zero weight)"
+  },
+  "report.sell.2": {
+    "zh": "卖出",
+    "en": "Sell"
+  },
+  "report.hold.wait.2": {
+    "zh": "持有/观望",
+    "en": "Hold / wait"
+  },
+  "report.age.at.start": {
+    "zh": "，启动时已 ",
+    "en": ", age at start "
+  },
+  "report.minutes": {
+    "zh": " 分钟",
+    "en": " minutes"
+  },
+  "report.screening.was.older.than.the.30.minute.ttl.at.round.start.candidates.may.be": {
+    "zh": "- ⚠️ 该轮使用的选股结果在启动时已超过 30 分钟 TTL，候选池可能过期。",
+    "en": "- ⚠️ Screening was older than the 30-minute TTL at round start; candidates may be stale."
+  },
+  "report.data.quality.snapshots": {
+    "zh": "- 数据质量：快照 ",
+    "en": "- Data quality: snapshots "
+  },
+  "report.remaining.gaps": {
+    "zh": " 个；仍有缺口 ",
+    "en": "; remaining gaps "
+  },
+  "report.gap.rate": {
+    "zh": " 个；缺口率 ",
+    "en": "; gap rate "
+  },
+  "report.supplemental.sources": {
+    "zh": "；补数来源 ",
+    "en": "; supplemental sources "
+  },
+  "report.round.error": {
+    "zh": "- **轮次错误**：",
+    "en": "- **Round error**: "
+  },
+  "report.failed.tasks": {
+    "zh": "- **失败子任务 ",
+    "en": "- **Failed tasks: "
+  },
+  "report.": {
+    "zh": " 个**：",
+    "en": "**:"
+  },
+  "report.this.report.executed.no.trades": {
+    "zh": "、本报告未执行交易",
+    "en": ". This report executed no trades"
+  },
+  "report.submit.the.same.cycle.id": {
+    "zh": "用同一 cycle_id（`",
+    "en": "submit the same cycle_id (`"
+  },
+  "report.the.engine.verifies.decision.fingerprints.and.hard.risk.limits": {
+    "zh": "`）提交，引擎将校验决策指纹与硬风控边界。",
+    "en": "`). The engine verifies decision fingerprints and hard risk limits."
+  },
+  "report.appendix.untruncated.stage.outputs": {
+    "zh": "## 附：未截断阶段产物",
+    "en": "## Appendix: untruncated stage outputs"
+  },
+  "report.report.file.does.not.exist": {
+    "zh": "报告文件不存在: ",
+    "en": "Report file does not exist: "
+  },
+  "report.completed.3": {
+    "zh": "完成",
+    "en": "Completed"
+  },
+  "report.degradation": {
+    "zh": "- **降级说明**：",
+    "en": "- **Degradation**: "
+  },
+  "report.complete.stage.results.before.the.workflow.s.1600.character.truncation.are.": {
+    "zh": "完整阶段结果（未经过工作流 1600 字符截断）保存在 `<runtime>/",
+    "en": "Complete stage results (before the workflow's 1600-character truncation) are stored at `<runtime>/"
+  },
+  "report.untitled": {
+    "zh": "(未命名)",
+    "en": "(Untitled)"
+  },
+  "report.deadline": {
+    "zh": "- **期限**：",
+    "en": "- **Deadline**: "
+  },
+  "report.source.2": {
+    "zh": "来源：",
+    "en": "Source: "
+  },
+  "report.screened.within.the.workflow": {
+    "zh": "(由流程内部选股)",
+    "en": "(Screened within the workflow)"
+  },
+  "report.unavailable": {
+    "zh": "不可得",
+    "en": "Unavailable"
+  },
+  "report.yes": {
+    "zh": "是",
+    "en": "Yes"
+  },
+  "report.no": {
+    "zh": "否",
+    "en": "No"
+  },
+  "report.citation.validation.failed.stage.rejected": {
+    "zh": "**引用校验失败：该阶段未通过（",
+    "en": "**Citation validation failed: stage rejected ("
+  },
+  "report.no.reason.supplied": {
+    "zh": "未提供原因",
+    "en": "No reason supplied"
+  },
+  "report.evidence.2": {
+    "zh": "证据：",
+    "en": "Evidence: "
+  },
+  "report.counterevidence.objections": {
+    "zh": "反证/异议：",
+    "en": "Counterevidence / objections: "
+  },
+  "report.invalidation.conditions": {
+    "zh": "失效条件：",
+    "en": "Invalidation conditions: "
+  },
+  "report.argument.2": {
+    "zh": "**论据 ",
+    "en": "**Argument "
+  },
+  "report.additional.evidence.model.supplied.not.automatically.verified": {
+    "zh": "**补查证据（模型提交，未自动核验）**",
+    "en": "**Additional evidence (model supplied; not automatically verified)**"
+  },
+  "report.not.supplied": {
+    "zh": "未提供",
+    "en": "Not supplied"
+  },
+  "report.mainland.china": {
+    "zh": "A 股",
+    "en": "Mainland China"
+  },
+  "report.hong.kong": {
+    "zh": "港股",
+    "en": "Hong Kong"
+  },
+  "report.united.states": {
+    "zh": "美股",
+    "en": "United States"
+  },
+  "report.analysis.risk.checks.and.paper.execution.completed": {
+    "zh": "已完成分析、风控与模拟执行",
+    "en": "Analysis, risk checks and paper execution completed"
+  },
+  "report.analysis.and.risk.checks.completed.no.executable.orders": {
+    "zh": "已完成分析与风控，本轮没有可执行订单",
+    "en": "Analysis and risk checks completed; no executable orders"
+  },
+  "report.runtime.safety.pause.no.paper.orders.submitted": {
+    "zh": "运行时安全暂停，未提交模拟订单",
+    "en": "Runtime safety pause; no paper orders submitted"
+  },
+  "report.autonomous.investing.is.disabled": {
+    "zh": "自主投资总开关未启用",
+    "en": "Autonomous investing is disabled"
+  },
+  "report.blocked.by.safety.limits": {
+    "zh": "被安全边界阻止",
+    "en": "Blocked by safety limits"
+  },
+  "report.investment.workflow.error": {
+    "zh": "投资流程发生错误",
+    "en": "Investment workflow error"
+  },
+  "report.this.round.is.simulated.research.and.paper.trading.not.investment.advice.2": {
+    "zh": "\n本轮为模拟研究与纸面交易，不构成投资建议。",
+    "en": "\nThis round is simulated research and paper trading, not investment advice."
+  },
+  "report.complete.investment.round": {
+    "zh": "完整投资轮次",
+    "en": " complete investment round"
+  },
+  "report.execution.status": {
+    "zh": "- **投资执行状态**：",
+    "en": "- **Execution status**: "
+  },
+  "report.simulated.fills": {
+    "zh": "- **模拟成交数**：",
+    "en": "- **Simulated fills**: "
+  },
+  "report.report.status": {
+    "zh": "- **报告状态**：",
+    "en": "- **Report status**: "
+  },
+  "report.strategy.mandate": {
+    "zh": "- **策略授权书**：",
+    "en": "- **Strategy mandate**: "
+  },
+  "report.reason": {
+    "zh": "- **原因**：",
+    "en": "- **Reason**: "
+  },
+  "report.full.report": {
+    "zh": "- **完整报告**：`",
+    "en": "- **Full report**: `"
+  },
+  "report.report.delivery": {
+    "zh": "- **报告推送**：",
+    "en": "- **Report delivery**: "
+  },
+  "report.delivery.notes": {
+    "zh": "- **推送说明**：",
+    "en": "- **Delivery notes**: "
+  },
+  "report.unknown": {
+    "zh": "未知",
+    "en": "Unknown"
+  },
+  "report.webhook.notifications.are.not.enabled": {
+    "zh": "没有启用 webhook 通知渠道",
+    "en": "Webhook notifications are not enabled"
+  },
+  "report.no.notification.webhook.address.configured": {
+    "zh": "未配置通知 webhook 地址",
+    "en": "No notification Webhook address configured"
+  },
+  "report.invalid.notification.webhook.address": {
+    "zh": "通知 webhook 地址无效",
+    "en": "Invalid notification Webhook address"
+  },
+  "cycle.startup.catch.up": {
+    "zh": "启动补跑",
+    "en": "Startup catch-up"
+  },
+  "cycle.generated.at": {
+    "zh": "\n\n> 生成时间：",
+    "en": "\n\n> Generated at: "
+  },
+  "cycle.mode": {
+    "zh": "  | 模式：",
+    "en": "  | Mode: "
+  },
+  "cycle.manual.round": {
+    "zh": "手动整轮",
+    "en": "Manual round"
+  },
+  "cycle.automatic.schedule": {
+    "zh": "全自动定时",
+    "en": "Automatic schedule"
+  },
+  "cycle.hold.wait": {
+    "zh": "观望/继续持有",
+    "en": "Hold / wait"
+  },
+  "cycle.buy.increase": {
+    "zh": "买入/加仓",
+    "en": "Buy / increase"
+  },
+  "cycle.sell.reduce": {
+    "zh": "卖出/减仓",
+    "en": "Sell / reduce"
+  },
+  "cycle.round.mandate": {
+    "zh": "## 本轮投资授权书",
+    "en": "## Round mandate"
+  },
+  "cycle.final.decisions.by.security": {
+    "zh": "## 逐标的最终决策",
+    "en": "## Final decisions by security"
+  },
+  "cycle.security.role.decision.confidence.rationale": {
+    "zh": "| 标的 | 身份 | 决策 | 置信度 | 依据 |",
+    "en": "| Security | Role | Decision | Confidence | Rationale |"
+  },
+  "cycle.no.valid.securities.insufficient.screening.or.price.data": {
+    "zh": "| - | - | 本轮无有效标的 | - | 筛选或行情数据不足 |",
+    "en": "| - | - | No valid securities | - | Insufficient screening or price data |"
+  },
+  "cycle.paper.execution.results": {
+    "zh": "## 模拟执行结果",
+    "en": "## Paper execution results"
+  },
+  "cycle.no.simulated.fills.in.this.round": {
+    "zh": "- 本轮没有产生模拟成交。",
+    "en": "- No simulated fills in this round."
+  },
+  "cycle.no.mandate.snapshot.recorded.for.this.round": {
+    "zh": "- 本轮未记录策略授权书快照。",
+    "en": "- No mandate snapshot recorded for this round."
+  },
+  "cycle.round.candidate": {
+    "zh": "本轮候选",
+    "en": "Round candidate"
+  },
+  "cycle.existing.holding": {
+    "zh": "已有持仓",
+    "en": "Existing holding"
+  },
+  "cycle.no.rationale.supplied": {
+    "zh": "未提供依据",
+    "en": "No rationale supplied"
+  },
+  "cycle.research.failed.excluded": {
+    "zh": "研究失败/已排除",
+    "en": "Research failed / excluded"
+  },
+  "cycle.no.decision": {
+    "zh": "未形成决策",
+    "en": "No decision"
+  },
+  "cycle.analysis.was.blocked.or.failed.no.decision.was.generated.for.this.security": {
+    "zh": "分析链被阻断或失败，未生成该标的决策",
+    "en": "Analysis was blocked or failed; no decision was generated for this security"
+  },
+  "cycle.rejected.order": {
+    "zh": "- 被拒订单：",
+    "en": "- Rejected order: "
+  },
+  "cycle.reason": {
+    "zh": "，原因：",
+    "en": ", reason: "
+  },
+  "cycle.strategy": {
+    "zh": "- 策略：",
+    "en": "- Strategy: "
+  },
+  "cycle.objective": {
+    "zh": "- 目标：",
+    "en": "- Objective: "
+  },
+  "cycle.version": {
+    "zh": "- 版本：",
+    "en": "- Version: "
+  },
+  "cycle.per.security.research.failed.excluded.from.portfolio.decisions": {
+    "zh": "逐标的研究失败，未进入组合决策",
+    "en": "Per-security research failed; excluded from portfolio decisions"
+  },
+  "cycle.filled": {
+    "zh": "- 已成交：",
+    "en": "- Filled: "
+  },
+  "cycle.shares.price": {
+    "zh": " 股，成交价 ",
+    "en": " shares, price "
+  },
+  "cycle.research.universe": {
+    "zh": "分析池",
+    "en": "Research universe"
+  },
+  "cycle.unknown": {
+    "zh": "未知",
+    "en": "Unknown"
+  },
+  "cycle.not.recorded": {
+    "zh": "未记录",
+    "en": "Not recorded"
+  },
+  "cycle.round.completed": {
+    "zh": " 轮次执行完成。",
+    "en": " round completed."
+  },
+  "cycle.autonomous.analysis.was.not.run": {
+    "zh": "本轮未执行自主投资分析：",
+    "en": "Autonomous analysis was not run: "
+  },
+  "cycle.autonomous.analysis.failed": {
+    "zh": "本轮自主投资分析失败：",
+    "en": "Autonomous analysis failed: "
+  },
+  "cycle.runner.not.ready": {
+    "zh": "执行器未就绪",
+    "en": "Runner not ready"
+  },
+  "cycle.unknown.error": {
+    "zh": "未知错误",
+    "en": "Unknown error"
+  },
+  "cycle.fill.these.data.gaps.before.evaluating.confidence.adjustments": {
+    "zh": "），先补齐这些标的的数据，再判断置信度是否需要调整。",
+    "en": "). Fill these data gaps before evaluating confidence adjustments."
+  },
+  "cycle.if.gaps.are.already.resolved.assess.role.calibration.or.strategy.profiles.d": {
+    "zh": "；若数据缺口已清零仍如此，再评估角色校准或策略档位，不要先放宽风控。",
+    "en": ". If gaps are already resolved, assess role calibration or strategy profiles; do not relax risk controls first."
+  },
+  "cycle.rounds.used.screening.older.than.30.minutes.check.whether.automatic.screeni": {
+    "zh": " 轮使用的选股结果超过 30 分钟，确认这些轮次是否绕过了自动重新选股。",
+    "en": " rounds used screening older than 30 minutes. Check whether automatic screening refresh was bypassed."
+  },
+  "cycle.screening.freshness": {
+    "zh": "选股新鲜度：有 ",
+    "en": "Screening freshness: "
+  },
+  "cycle.adjust.candidates.and.entry.timing.before.relaxing.risk.controls": {
+    "zh": " 为主，优先调整候选池/入场时点，而不是放宽风控。",
+    "en": ". Adjust candidates and entry timing before relaxing risk controls."
+  },
+  "cycle.decisions.below": {
+    "zh": " 个决策低于 ",
+    "en": " decisions below "
+  },
+  "cycle.entry.timing.main.hold.reason.category.is": {
+    "zh": "选股时点：HOLD 原因以 ",
+    "en": "Entry timing: main HOLD reason category is "
+  },
+  "cycle.of.snapshots.lack.amount.pe": {
+    "zh": "% 的快照缺少 amount/pe（",
+    "en": "% of snapshots lack amount/pe ("
+  },
+  "cycle.data.sources": {
+    "zh": "数据源：仍有 ",
+    "en": "Data sources: "
+  },
+  "cycle.confidence": {
+    "zh": "置信度：",
+    "en": "Confidence: "
+  },
+  "cycle.by.round": {
+    "zh": "## 逐轮",
+    "en": "## By round"
+  },
+  "cycle.recommendations.require.manual.approval.before.implementation": {
+    "zh": "## 建议（需人工确认后才实施）",
+    "en": "## Recommendations (require manual approval before implementation)"
+  },
+  "cycle.days.contain.no.completed.rounds": {
+    "zh": " 天没有已完成的轮次记录。\n",
+    "en": " days contain no completed rounds.\n"
+  },
+  "cycle.days": {
+    "zh": " 天）",
+    "en": " days)"
+  },
+  "cycle.rounds": {
+    "zh": "- 轮次：",
+    "en": "- Rounds: "
+  },
+  "cycle.hold.reasons": {
+    "zh": "- HOLD 原因分布：",
+    "en": "- HOLD reasons: "
+  },
+  "cycle.data.gap.rate": {
+    "zh": "- 数据缺口率：",
+    "en": "- Data gap rate: "
+  },
+  "cycle.no.adjustments.suggested.continue.collecting.round.data": {
+    "zh": "暂无需要调整的项；继续积累轮次数据。",
+    "en": "No adjustments suggested; continue collecting round data."
+  },
+  "cycle.optimization.feedback.the.last": {
+    "zh": "# 自优化周报\n\n最近 ",
+    "en": "# Optimization feedback\n\nThe last "
+  },
+  "cycle.optimization.feedback.last": {
+    "zh": "# 自优化周报（近 ",
+    "en": "# Optimization feedback (last "
+  },
+  "cycle.execution.rate": {
+    "zh": "，执行率 ",
+    "en": ", execution rate "
+  },
+  "cycle.stale.rounds": {
+    "zh": "，过期轮次 ",
+    "en": ", stale rounds "
+  },
+  "cycle.below": {
+    "zh": " 低于 ",
+    "en": " below "
+  },
+  "cycle.screening.age.at.start.average": {
+    "zh": "- 选股新鲜度（开始时）：平均 ",
+    "en": "- Screening age at start: average "
+  },
+  "cycle.rejected": {
+    "zh": "，拒绝 ",
+    "en": ", rejected "
+  },
+  "cycle.minutes": {
+    "zh": " 分钟",
+    "en": " minutes"
+  },
+  "cycle.remaining.gaps": {
+    "zh": "，仍有缺口 ",
+    "en": ", remaining gaps "
+  },
+  "cycle.evidence": {
+    "zh": " · 证据 ",
+    "en": " · Evidence "
+  },
+  "cycle.fills": {
+    "zh": "，成交 ",
+    "en": ", fills "
+  },
+  "cycle.snapshots": {
+    "zh": "（快照 ",
+    "en": " (snapshots "
+  },
+  "cycle.including.buy": {
+    "zh": "，其中 BUY ",
+    "en": ", including BUY "
+  },
+  "cycle.average.confidence": {
+    "zh": "- 平均置信度：",
+    "en": "- Average confidence: "
+  },
+  "cycle.decisions": {
+    "zh": "- 决策数：",
+    "en": "- Decisions: "
+  },
+  "config.boolean": {
+    "zh": "必须是布尔值",
+    "en": "Must be a boolean"
+  },
+  "config.choice": {
+    "zh": "必须是 {choices} 之一",
+    "en": "Must be one of: {choices}"
+  },
+  "config.integer": {
+    "zh": "必须是 {minimum}-{maximum} 的整数",
+    "en": "Must be an integer from {minimum} to {maximum}"
+  },
+  "config.time_type": {
+    "zh": "必须是 HH:MM 时间字符串",
+    "en": "Must be an HH:MM time string"
+  },
+  "config.time": {
+    "zh": "必须是有效的 HH:MM 时间",
+    "en": "Must be a valid HH:MM time"
+  },
+  "config.time_list": {
+    "zh": "必须是不超过 12 项的 HH:MM 时间列表",
+    "en": "Must be a list of up to 12 HH:MM times"
+  },
+  "config.duplicate_time": {
+    "zh": "时间列表不能重复",
+    "en": "Time entries must be unique"
+  },
+  "config.empty_markets": {
+    "zh": "至少启用一个市场",
+    "en": "Enable at least one market"
+  },
+  "config.markets": {
+    "zh": "市场列表只能包含不重复的 cn、hk、us、etf",
+    "en": "Markets must be unique values from cn, hk, us and etf"
+  },
+  "config.channels": {
+    "zh": "通知渠道只能包含 webhook",
+    "en": "The only supported notification channel is webhook"
+  },
+  "config.changes": {
+    "zh": "changes 必须是非空对象",
+    "en": "changes must be a nonempty object"
+  },
+  "config.path": {
+    "zh": "无效配置路径: {path}",
+    "en": "Invalid configuration path: {path}"
+  },
+  "config.forbidden": {
+    "zh": "禁止修改的配置路径: {path}",
+    "en": "Configuration path cannot be changed: {path}"
+  },
+  "config.unsupported": {
+    "zh": "不允许修改的配置路径: {path}",
+    "en": "Configuration path is not editable: {path}"
+  },
+  "config.value": {
+    "zh": "配置 {path} {error}",
+    "en": "Configuration {path}: {error}"
+  }
+}

@@ -124,7 +124,7 @@ def test_product_profile_preserves_settings_on_force_and_backs_up_known_legacy(t
     patch = home / "profiles/investment-web/cordis.patch.yml"
     patch.write_text(legacy, encoding="utf-8")
     dsh_home.seed_dsh_home(app, home, force=True)
-    assert patch.read_text(encoding="utf-8") == "[]\n"
+    assert "preference: zh" in patch.read_text(encoding="utf-8")
     assert patch.with_name("cordis.patch.yml.pre-0.2.1").read_text(encoding="utf-8") == legacy
     settings = "- id: llm\n  config:\n    model: selected-model\n"
     patch.write_text(settings, encoding="utf-8")

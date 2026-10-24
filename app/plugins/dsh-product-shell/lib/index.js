@@ -13,7 +13,8 @@
  */
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { createHistoryHandler } from "./market-history.js";
 
 export const name = "@ai-trading-automation/dsh-product-shell";
@@ -62,6 +63,11 @@ async function readBody(req, limit = 1_000_000) {
 }
 
 export function apply(ctx) {
+  const require = createRequire(import.meta.url);
+  const dshEntry = require.resolve("@deepseek-ai/dsh/package.json");
+  const runtime = {dsh:JSON.parse(readFileSync(dshEntry,"utf8")).version};
+  try { runtime.sourceCommit = JSON.parse(readFileSync(join(process.env.AI_TRADING_AUTOMATION_ROOT ?? process.cwd(), "release-source.json"), "utf8")).commit; }
+  catch { runtime.sourceCommit = "development"; }
   // Fixed product workspace (idempotent by path; the record survives reboots).
   const home = process.env.DSH_HOME || join(homedir(), ".dsh");
   ctx.effect(() => {
@@ -135,6 +141,8 @@ export function apply(ctx) {
             analysis: analysis?.analysis ?? null,
             analysisRuns: analysisRuns?.runs ?? [],
             engine: engineBase(),
+            runtime,
+            health: await engineFetch("/api/health").catch(()=>({})),
           });
         } catch (error) {
           sendJson(res, 500, { ok: false, error: String(error?.message ?? error) });

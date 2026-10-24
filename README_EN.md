@@ -32,6 +32,8 @@ The latest version, **2.3.0**, improves screening relevance and research actiona
 - [Branches and Compatibility](#branches-and-compatibility)
 - [License](#license)
 
+The current source is preparing **2.4.0**: bilingual interface/research output and pinned DSH **0.2.1-rc.3**. Published download links above continue to point to the available 2.3.0 release. See [language support](docs/LANGUAGE_SUPPORT.md), [desktop usage](docs/DESKTOP_USAGE_EN.md) and the [English API overview](docs/ENGINE_API_EN.md).
+
 ## Features
 
 - **Four markets in one app**: unified market data, screening, analysis, and paper accounts for A-shares, Hong Kong stocks, U.S. equities, and ETFs; T+1/T+0, lot sizes, price limits, commission, stamp tax, and slippage rules are built in per market.

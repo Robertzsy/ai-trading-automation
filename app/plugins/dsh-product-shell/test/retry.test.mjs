@@ -23,7 +23,7 @@ test("retry button, browser POST and engine proxy preserve explicit retry and or
     try{
       const api='http://127.0.0.1:'+web.address().port;
       let requested;
-      const context=vm.createContext({setSubmitting(){},setNotice(){},setPending(){},setSelectedCycleId(){},setDrawerOpen(){},writePendingAnalysis:row=>row,refreshAll(){},canRetry:true,pending:null,run:{cycle_id:'failed-original',market:'hk',symbols:['00700'],label:'original',symbols_source:'user'},symbols:['09988'],market:'cn',label:'new-label',source:'screening',goalId:'',jsonFetch:async(path,options)=>{requested=options.body;return (await fetch(api+path,options)).json();}});
+      const context=vm.createContext({tr:key=>JSON.parse(readFileSync(new URL("../../../locales/product.json",import.meta.url),"utf8"))[key].zh,setSubmitting(){},setNotice(){},setPending(){},setSelectedCycleId(){},setDrawerOpen(){},writePendingAnalysis:row=>row,refreshAll(){},canRetry:true,pending:null,run:{cycle_id:'failed-original',market:'hk',symbols:['00700'],label:'original',symbols_source:'user'},symbols:['09988'],market:'cn',label:'new-label',source:'screening',goalId:'',jsonFetch:async(path,options)=>{requested=options.body;return (await fetch(api+path,options)).json();}});
       vm.runInContext(submitCode+retryCode+'this.retry=handleRetry; this.start=submitStart;',context);
       context.retry();
       for(let i=0;i<50&&!received.length;i++)await new Promise(resolve=>setTimeout(resolve,5));

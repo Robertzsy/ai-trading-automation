@@ -1,0 +1,2062 @@
+{
+  "ui.content.is.too.long.display.truncated": {
+    "zh": "\n\n（内容过长，已截断显示）",
+    "en": "\n\n(Content is too long; display truncated.)"
+  },
+  "ui.mainland.china": {
+    "zh": "A股",
+    "en": "Mainland China"
+  },
+  "ui.hong.kong": {
+    "zh": "港股",
+    "en": "Hong Kong"
+  },
+  "ui.united.states": {
+    "zh": "美股",
+    "en": "United States"
+  },
+  "ui.investment.overview": {
+    "zh": "投资概览",
+    "en": "Investment overview"
+  },
+  "ui.simulated.accounts.paper.trading.public.third.party.market.data.for.research": {
+    "zh": "模拟账户 · 纸面交易 · 行情来自公开第三方接口，仅供研究",
+    "en": "Simulated accounts · Paper trading · Public third-party market data for research"
+  },
+  "ui.engine.unavailable": {
+    "zh": "引擎暂不可达：",
+    "en": "Engine unavailable: "
+  },
+  "ui.system.and.risk.status": {
+    "zh": "系统与风控状态",
+    "en": "System and risk status"
+  },
+  "ui.mode": {
+    "zh": "模式：",
+    "en": "Mode: "
+  },
+  "ui.strategy": {
+    "zh": "策略：",
+    "en": "Strategy: "
+  },
+  "ui.emergency.stop": {
+    "zh": "紧急停止",
+    "en": "Emergency stop"
+  },
+  "ui.paused": {
+    "zh": "已暂停",
+    "en": "Paused"
+  },
+  "ui.risk.controls.active": {
+    "zh": "风控正常",
+    "en": "Risk controls active"
+  },
+  "ui.investment.engine": {
+    "zh": "投资引擎：",
+    "en": "Investment engine: "
+  },
+  "ui.running": {
+    "zh": "运行中",
+    "en": "Running"
+  },
+  "ui.stopped": {
+    "zh": "未运行",
+    "en": "Stopped"
+  },
+  "ui.next.round": {
+    "zh": " 下一轮次",
+    "en": " Next round"
+  },
+  "ui.account.assets": {
+    "zh": "账户资产",
+    "en": "Account assets"
+  },
+  "ui.market": {
+    "zh": "市场",
+    "en": "Market"
+  },
+  "ui.total.assets": {
+    "zh": "总资产",
+    "en": "Total assets"
+  },
+  "ui.cash": {
+    "zh": "现金",
+    "en": "Cash"
+  },
+  "ui.holdings": {
+    "zh": "持仓",
+    "en": "Holdings"
+  },
+  "ui.trades": {
+    "zh": "成交数",
+    "en": "Trades"
+  },
+  "ui.engine.data.unavailable": {
+    "zh": "引擎数据暂不可用",
+    "en": "Engine data unavailable"
+  },
+  "ui.recent.round.reports": {
+    "zh": "最近轮次报告",
+    "en": "Recent round reports"
+  },
+  "ui.no.round.reports.yet": {
+    "zh": "暂无轮次报告",
+    "en": "No round reports yet"
+  },
+  "ui.latest.macro.briefing": {
+    "zh": "最新宏观日报摘要",
+    "en": "Latest macro briefing"
+  },
+  "ui.1.month": {
+    "zh": "近1个月",
+    "en": "1 month"
+  },
+  "ui.3.months": {
+    "zh": "近3个月",
+    "en": "3 months"
+  },
+  "ui.1.year": {
+    "zh": "近1年",
+    "en": "1 year"
+  },
+  "ui.unnamed.security": {
+    "zh": "未命名标的",
+    "en": "Unnamed security"
+  },
+  "ui.price.history.unavailable": {
+    "zh": "历史行情暂不可用",
+    "en": "Price history unavailable"
+  },
+  "ui.invalid.price.history.response": {
+    "zh": "行情返回格式异常",
+    "en": "Invalid price history response"
+  },
+  "ui.some.invalid.prices.were.skipped": {
+    "zh": "部分无效行情已跳过",
+    "en": "Some invalid prices were skipped"
+  },
+  "ui.chart.unavailable": {
+    "zh": "走势暂不可用",
+    "en": "Chart unavailable"
+  },
+  "ui.insufficient.history": {
+    "zh": "历史数据不足",
+    "en": "Insufficient history"
+  },
+  "ui.loading.chart": {
+    "zh": "正在加载走势…",
+    "en": "Loading chart…"
+  },
+  "ui.daily.prices.over.the.past.month": {
+    "zh": "近一个月日线走势",
+    "en": "Daily prices over the past month"
+  },
+  "ui.at.least.two.trading.days.are.required": {
+    "zh": "历史数据不足，至少需要两个交易日",
+    "en": "At least two trading days are required"
+  },
+  "ui.current.cost": {
+    "zh": "当前成本 ",
+    "en": "Current cost "
+  },
+  "ui.volume": {
+    "zh": "成交量",
+    "en": "Volume"
+  },
+  "ui.buy.sell": {
+    "zh": "买/卖",
+    "en": "Buy/Sell"
+  },
+  "ui.b": {
+    "zh": "买",
+    "en": "B"
+  },
+  "ui.s": {
+    "zh": "卖",
+    "en": "S"
+  },
+  "ui.buy": {
+    "zh": "买入",
+    "en": "Buy"
+  },
+  "ui.sell": {
+    "zh": "卖出",
+    "en": "Sell"
+  },
+  "ui.shares.fill.price": {
+    "zh": " 股 · 成交价 ",
+    "en": " shares · Fill price "
+  },
+  "ui.close": {
+    "zh": "收盘 ",
+    "en": "Close "
+  },
+  "ui.open": {
+    "zh": "开 ",
+    "en": "Open "
+  },
+  "ui.high": {
+    "zh": " · 高 ",
+    "en": " · High "
+  },
+  "ui.low": {
+    "zh": " · 低 ",
+    "en": " · Low "
+  },
+  "ui.volume.2": {
+    "zh": "量 ",
+    "en": "Volume "
+  },
+  "ui.daily.price.currency": {
+    "zh": "日线价格，单位",
+    "en": "Daily price, currency "
+  },
+  "ui.view.trading.day": {
+    "zh": "查看交易日",
+    "en": "View trading day "
+  },
+  "ui.close.2": {
+    "zh": "，收盘",
+    "en": ", close "
+  },
+  "ui.unknown": {
+    "zh": "未知",
+    "en": "Unknown"
+  },
+  "ui.normal": {
+    "zh": "正常",
+    "en": "Normal"
+  },
+  "ui.account.equity": {
+    "zh": "账户权益",
+    "en": "Account equity"
+  },
+  "ui.cash.latest.position.valuations": {
+    "zh": "现金 + 最近持仓估值",
+    "en": "Cash + latest position valuations"
+  },
+  "ui.unrealized.p.l": {
+    "zh": "持仓浮动盈亏",
+    "en": "Unrealized P&L"
+  },
+  "ui.calculated.from.recorded.account.prices": {
+    "zh": "按账户记录价格计算",
+    "en": "Calculated from recorded account prices"
+  },
+  "ui.capital.utilization": {
+    "zh": "资金使用率",
+    "en": "Capital utilization"
+  },
+  "ui.cash.share": {
+    "zh": "现金占比 ",
+    "en": "Cash share "
+  },
+  "ui.waiting.for.account.data": {
+    "zh": "等待账户数据",
+    "en": "Waiting for account data"
+  },
+  "ui.securities.held": {
+    "zh": "持有标的",
+    "en": "Securities held"
+  },
+  "ui.securities": {
+    "zh": " 只",
+    "en": " securities"
+  },
+  "ui.separate.simulated.account": {
+    "zh": " · 独立模拟账户",
+    "en": " · Separate simulated account"
+  },
+  "ui.reload": {
+    "zh": "重新加载",
+    "en": "Reload"
+  },
+  "ui.portfolio.overview": {
+    "zh": "投资总览",
+    "en": "Portfolio overview"
+  },
+  "ui.track.changes.across.your.portfolio.and.securities": {
+    "zh": "从组合到个股，看清每一次变化",
+    "en": "Track changes across your portfolio and securities"
+  },
+  "ui.connecting.to.the.investment.engine": {
+    "zh": "正在连接投资引擎",
+    "en": "Connecting to the investment engine"
+  },
+  "ui.paper.trading.risk": {
+    "zh": "模拟交易 · 风控",
+    "en": "Paper trading · Risk "
+  },
+  "ui.cash.2": {
+    "zh": "现金 ",
+    "en": "Cash "
+  },
+  "ui.market.value": {
+    "zh": " · 市值 ",
+    "en": " · Market value "
+  },
+  "ui.next.round.2": {
+    "zh": "下一轮",
+    "en": "Next round"
+  },
+  "ui.automatic": {
+    "zh": "自动运行",
+    "en": "Automatic"
+  },
+  "ui.manual": {
+    "zh": "手动运行",
+    "en": "Manual"
+  },
+  "ui.view.market": {
+    "zh": "查看市场",
+    "en": "View market"
+  },
+  "ui.new.research": {
+    "zh": "＋ 新建研究",
+    "en": "＋ New research"
+  },
+  "ui.my.holdings": {
+    "zh": "我的持仓",
+    "en": "My holdings"
+  },
+  "ui.securities.market.value": {
+    "zh": " 只 · 市值 ",
+    "en": " securities · Market value "
+  },
+  "ui.view": {
+    "zh": "查看",
+    "en": "View "
+  },
+  "ui.price.chart": {
+    "zh": "的走势",
+    "en": " price chart"
+  },
+  "ui.shares.cost": {
+    "zh": " 股 · 成本 ",
+    "en": " shares · Cost "
+  },
+  "ui.p.l": {
+    "zh": " · 盈亏 ",
+    "en": " · P&L "
+  },
+  "ui.loading.holdings": {
+    "zh": "正在读取持仓…",
+    "en": "Loading holdings…"
+  },
+  "ui.no.holdings.yet": {
+    "zh": "暂无持仓",
+    "en": "No holdings yet"
+  },
+  "ui.account.data.unavailable": {
+    "zh": "账户数据暂不可用",
+    "en": "Account data unavailable"
+  },
+  "ui.daily.prices.1.month.select.to.view.chart": {
+    "zh": "近1个月日线 · 点击切换右侧走势",
+    "en": "Daily prices, 1 month · Select to view chart"
+  },
+  "ui.price.chart.2": {
+    "zh": "价格走势",
+    "en": "Price chart"
+  },
+  "ui.time.range": {
+    "zh": "时间范围",
+    "en": "Time range"
+  },
+  "ui.chart.type": {
+    "zh": "图表类型",
+    "en": "Chart type"
+  },
+  "ui.line": {
+    "zh": "走势线",
+    "en": "Line"
+  },
+  "ui.candlestick": {
+    "zh": "K 线",
+    "en": "Candlestick"
+  },
+  "ui.this.source.does.not.provide.complete.ohlc.data": {
+    "zh": "当前来源没有完整的开高低收数据",
+    "en": "This source does not provide complete OHLC data"
+  },
+  "ui.cost.line": {
+    "zh": "成本线",
+    "en": "Cost line"
+  },
+  "ui.trade.dates": {
+    "zh": "买卖日期",
+    "en": "Trade dates"
+  },
+  "ui.loading.price.history": {
+    "zh": "正在加载历史行情…",
+    "en": "Loading price history…"
+  },
+  "ui.not.enough.price.history.yet": {
+    "zh": "暂时没有足够的历史行情",
+    "en": "Not enough price history yet"
+  },
+  "ui.quantity.held": {
+    "zh": "持有数量",
+    "en": "Quantity held"
+  },
+  "ui.shares": {
+    "zh": " 股",
+    "en": " shares"
+  },
+  "ui.current.position.cost": {
+    "zh": "当前持仓成本",
+    "en": "Current position cost"
+  },
+  "ui.recorded.account.valuation": {
+    "zh": "账户记录估值",
+    "en": "Recorded account valuation"
+  },
+  "ui.source": {
+    "zh": "来源 ",
+    "en": "Source "
+  },
+  "ui.not.provided": {
+    "zh": "未提供",
+    "en": "Not provided"
+  },
+  "ui.last.trading.day": {
+    "zh": " · 最后交易日 ",
+    "en": " · Last trading day "
+  },
+  "ui.price.age": {
+    "zh": " · 行情距今 ",
+    "en": " · Price age "
+  },
+  "ui.days": {
+    "zh": " 天",
+    "en": " days"
+  },
+  "ui.price.notes": {
+    "zh": " · 行情提示：",
+    "en": " · Price notes: "
+  },
+  "ui.a.fallback.price.source.was.used": {
+    "zh": "已使用备用行情来源",
+    "en": "A fallback price source was used"
+  },
+  "ui.adjustment.status.is.unconfirmed": {
+    "zh": "复权状态未经确认",
+    "en": "Adjustment status is unconfirmed"
+  },
+  "ui.select.a.holding.on.the.left.to.view.its.chart": {
+    "zh": "选择左侧持仓查看走势",
+    "en": "Select a holding on the left to view its chart"
+  },
+  "ui.select.a.holding.to.view.its.chart": {
+    "zh": "选中一只持仓即可查看走势",
+    "en": "Select a holding to view its chart"
+  },
+  "ui.round.timeline": {
+    "zh": "轮次时间线",
+    "en": "Round timeline"
+  },
+  "ui.latest": {
+    "zh": "最近 ",
+    "en": "Latest "
+  },
+  "ui.rounds": {
+    "zh": " 轮",
+    "en": " rounds"
+  },
+  "ui.security.research": {
+    "zh": "股票研究",
+    "en": "Security research"
+  },
+  "ui.no.previous.rounds": {
+    "zh": "暂无历史轮次",
+    "en": "No previous rounds"
+  },
+  "ui.portfolio.allocation": {
+    "zh": "组合分布",
+    "en": "Portfolio allocation"
+  },
+  "ui.this.market.including.cash": {
+    "zh": "本市场 · 含现金",
+    "en": "This market · Including cash"
+  },
+  "ui.asset.allocation": {
+    "zh": "资产占比",
+    "en": "Asset allocation"
+  },
+  "ui.no.allocation.data.available": {
+    "zh": "暂无可展示的资产分布",
+    "en": "No allocation data available"
+  },
+  "ui.trade.history": {
+    "zh": "交易记录",
+    "en": "Trade history"
+  },
+  "ui.latest.5.simulated.fills": {
+    "zh": "近 5 笔 · 模拟成交",
+    "en": "Latest 5 · Simulated fills"
+  },
+  "ui.shares.2": {
+    "zh": " 股 @ ",
+    "en": " shares @ "
+  },
+  "ui.no.simulated.trades.for.this.security": {
+    "zh": "该股票暂无模拟成交记录",
+    "en": "No simulated trades for this security"
+  },
+  "ui.select.a.holding.to.view.its.trades": {
+    "zh": "选中持仓后查看成交记录",
+    "en": "Select a holding to view its trades"
+  },
+  "ui.operations.and.research": {
+    "zh": "运行与研究",
+    "en": "Operations and research"
+  },
+  "ui.risk": {
+    "zh": "风控",
+    "en": "Risk"
+  },
+  "ui.next.round.3": {
+    "zh": " 下一轮",
+    "en": " Next round"
+  },
+  "ui.not.scheduled": {
+    "zh": "尚未安排",
+    "en": "Not scheduled"
+  },
+  "ui.latest.analysis": {
+    "zh": "最近分析 · ",
+    "en": "Latest analysis · "
+  },
+  "ui.open.analysis.workflow.and.reports": {
+    "zh": "打开分析流程与报告",
+    "en": "Open analysis workflow and reports"
+  },
+  "ui.market.briefing": {
+    "zh": "市场早报",
+    "en": "Market briefing"
+  },
+  "ui.collected.at.08.00.each.trading.day.asia.shanghai": {
+    "zh": "每交易日 08:00 采集",
+    "en": "Collected at 08:00 each trading day (Asia/Shanghai)"
+  },
+  "ui.01.data.preparation": {
+    "zh": "01 · 数据准备",
+    "en": "01 · Data preparation"
+  },
+  "ui.market.status": {
+    "zh": "市场状态",
+    "en": "Market status"
+  },
+  "ui.screen.candidates": {
+    "zh": "筛选候选",
+    "en": "Screen candidates"
+  },
+  "ui.holdings.mandate": {
+    "zh": "持仓 / 授权",
+    "en": "Holdings / mandate"
+  },
+  "ui.02.security.research": {
+    "zh": "02 · 标的研究",
+    "en": "02 · Security research"
+  },
+  "ui.technical.analysis": {
+    "zh": "技术分析",
+    "en": "Technical analysis"
+  },
+  "ui.fundamentals": {
+    "zh": "基本面",
+    "en": "Fundamentals"
+  },
+  "ui.news": {
+    "zh": "新闻",
+    "en": "News"
+  },
+  "ui.sentiment": {
+    "zh": "情绪",
+    "en": "Sentiment"
+  },
+  "ui.four.base.research.roles": {
+    "zh": "四类基础研究",
+    "en": "Four base research roles"
+  },
+  "ui.03.research.review": {
+    "zh": "03 · 研究裁决",
+    "en": "03 · Research review"
+  },
+  "ui.bull.researcher": {
+    "zh": "多方研究员",
+    "en": "Bull researcher"
+  },
+  "ui.bear.researcher": {
+    "zh": "空方研究员",
+    "en": "Bear researcher"
+  },
+  "ui.research.manager": {
+    "zh": "研究经理",
+    "en": "Research manager"
+  },
+  "ui.research.debate.and.security.review": {
+    "zh": "研究辩论与个股裁决",
+    "en": "Research debate and security review"
+  },
+  "ui.04.portfolio.construction": {
+    "zh": "04 · 组合构建",
+    "en": "04 · Portfolio construction"
+  },
+  "ui.security.trader": {
+    "zh": "标的交易员",
+    "en": "Security trader"
+  },
+  "ui.portfolio.manager.draft": {
+    "zh": "组合经理草案",
+    "en": "Portfolio manager draft"
+  },
+  "ui.portfolio.draft": {
+    "zh": "组合草案",
+    "en": "Portfolio draft"
+  },
+  "ui.05.risk.review": {
+    "zh": "05 · 风险裁决",
+    "en": "05 · Risk review"
+  },
+  "ui.aggressive.perspective": {
+    "zh": "激进视角",
+    "en": "Aggressive perspective"
+  },
+  "ui.conservative.perspective": {
+    "zh": "保守视角",
+    "en": "Conservative perspective"
+  },
+  "ui.neutral.perspective": {
+    "zh": "中性视角",
+    "en": "Neutral perspective"
+  },
+  "ui.risk.manager": {
+    "zh": "风险经理",
+    "en": "Risk manager"
+  },
+  "ui.risk.debate": {
+    "zh": "风险辩论",
+    "en": "Risk debate"
+  },
+  "ui.06.decisions.and.execution": {
+    "zh": "06 · 决策执行",
+    "en": "06 · Decisions and execution"
+  },
+  "ui.final.portfolio.decision": {
+    "zh": "最终组合决策",
+    "en": "Final portfolio decision"
+  },
+  "ui.hard.risk.checks": {
+    "zh": "硬风险检查",
+    "en": "Hard risk checks"
+  },
+  "ui.paper.execution.report": {
+    "zh": "模拟执行 / 报告",
+    "en": "Paper execution / report"
+  },
+  "ui.final.decision": {
+    "zh": "最终决策",
+    "en": "Final decision"
+  },
+  "ui.preparing.data": {
+    "zh": "准备数据",
+    "en": "Preparing data"
+  },
+  "ui.restoring.checkpoints": {
+    "zh": "恢复检查点",
+    "en": "Restoring checkpoints"
+  },
+  "ui.bull.bear.debate.and.research.review": {
+    "zh": "多空辩论与研究裁决",
+    "en": "Bull/bear debate and research review"
+  },
+  "ui.risk.debate.and.review": {
+    "zh": "风险辩论与裁决",
+    "en": "Risk debate and review"
+  },
+  "ui.hard.risk.controls.and.paper.execution": {
+    "zh": "硬风控与模拟执行",
+    "en": "Hard risk controls and paper execution"
+  },
+  "ui.awaiting.approval": {
+    "zh": "等待批准",
+    "en": "Awaiting approval"
+  },
+  "ui.completed": {
+    "zh": "已完成",
+    "en": "Completed"
+  },
+  "ui.failed": {
+    "zh": "失败",
+    "en": "Failed"
+  },
+  "ui.stopped.2": {
+    "zh": "已停止",
+    "en": "Stopped"
+  },
+  "ui.not.run.yet": {
+    "zh": "尚未运行",
+    "en": "Not run yet"
+  },
+  "ui.waiting": {
+    "zh": "等待中",
+    "en": "Waiting"
+  },
+  "ui.isolated.roles.and.per.security.research": {
+    "zh": "角色隔离与逐标的研究",
+    "en": "Isolated roles and per-security research"
+  },
+  "ui.evidence.scope.and.citation.checks": {
+    "zh": "证据域与引用校验",
+    "en": "Evidence scope and citation checks"
+  },
+  "ui.failure.handling.and.safe.hold": {
+    "zh": "失败降级与安全 HOLD",
+    "en": "Failure handling and safe HOLD"
+  },
+  "ui.stage.checkpoints.and.recovery": {
+    "zh": "阶段检查点与恢复",
+    "en": "Stage checkpoints and recovery"
+  },
+  "ui.investment.context": {
+    "zh": "投资上下文",
+    "en": "Investment context"
+  },
+  "ui.collapse.context": {
+    "zh": "收起上下文",
+    "en": "Collapse context"
+  },
+  "ui.environment": {
+    "zh": "运行环境",
+    "en": "Environment"
+  },
+  "ui.trading.mode": {
+    "zh": "交易模式",
+    "en": "Trading mode"
+  },
+  "ui.paper.trading": {
+    "zh": "模拟交易",
+    "en": "Paper trading"
+  },
+  "ui.strategy.2": {
+    "zh": "策略",
+    "en": "Strategy"
+  },
+  "ui.autonomous.operation": {
+    "zh": "自主运行",
+    "en": "Autonomous operation"
+  },
+  "ui.enabled": {
+    "zh": "已开启",
+    "en": "Enabled"
+  },
+  "ui.manual.2": {
+    "zh": "手动",
+    "en": "Manual"
+  },
+  "ui.risk.status": {
+    "zh": "风险状态",
+    "en": "Risk status"
+  },
+  "ui.analysis.workflow": {
+    "zh": "分析流程",
+    "en": "Analysis workflow"
+  },
+  "ui.current": {
+    "zh": "当前：",
+    "en": "Current: "
+  },
+  "ui.current.no.rounds.yet": {
+    "zh": "当前：尚无轮次",
+    "en": "Current: no rounds yet"
+  },
+  "ui.research.agents": {
+    "zh": "多角色 Agent ",
+    "en": "Research agents "
+  },
+  "ui.evidence": {
+    "zh": "，证据 ",
+    "en": ", evidence "
+  },
+  "ui.items": {
+    "zh": " 条。",
+    "en": " items."
+  },
+  "ui.live.stages.and.checkpoints.appear.when.a.manual.or.automatic.round.starts": {
+    "zh": "完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。",
+    "en": "Live stages and checkpoints appear when a manual or automatic round starts."
+  },
+  "ui.view.full.analysis.workflow": {
+    "zh": "查看完整分析流程",
+    "en": "View full analysis workflow"
+  },
+  "ui.recent.activity": {
+    "zh": "最近动态",
+    "en": "Recent activity"
+  },
+  "ui.latest.report": {
+    "zh": "最近报告",
+    "en": "Latest report"
+  },
+  "ui.none.yet": {
+    "zh": "暂无",
+    "en": "None yet"
+  },
+  "ui.disconnected": {
+    "zh": "未连接",
+    "en": "Disconnected"
+  },
+  "ui.no.rounds.yet": {
+    "zh": "尚无轮次",
+    "en": "No rounds yet"
+  },
+  "ui.strategy.3": {
+    "zh": "策略 ",
+    "en": "Strategy "
+  },
+  "ui.risk.2": {
+    "zh": "风控 ",
+    "en": "Risk "
+  },
+  "ui.current.round": {
+    "zh": "当前轮次 ",
+    "en": "Current round "
+  },
+  "ui.evidence.2": {
+    "zh": "证据 ",
+    "en": "Evidence "
+  },
+  "ui.context": {
+    "zh": "上下文",
+    "en": "Context"
+  },
+  "ui.queued": {
+    "zh": "排队中",
+    "en": "Queued"
+  },
+  "ui.not.started": {
+    "zh": "未开始",
+    "en": "Not started"
+  },
+  "ui.s.2": {
+    "zh": " 秒",
+    "en": " s"
+  },
+  "ui.min": {
+    "zh": " 分 ",
+    "en": " min "
+  },
+  "ui.h": {
+    "zh": " 时 ",
+    "en": " h "
+  },
+  "ui.min.2": {
+    "zh": " 分",
+    "en": " min"
+  },
+  "ui.tasks": {
+    "zh": "子任务 ",
+    "en": "Tasks "
+  },
+  "ui.failed.2": {
+    "zh": " · 失败 ",
+    "en": " · Failed "
+  },
+  "ui.in.progress": {
+    "zh": "进行中",
+    "en": "In progress"
+  },
+  "ui.estimated": {
+    "zh": "%（预计）",
+    "en": "% (estimated)"
+  },
+  "ui.stages.completed": {
+    "zh": " 阶段完成",
+    "en": " stages completed"
+  },
+  "ui.in.progress.2": {
+    "zh": " · 进行中",
+    "en": " · In progress"
+  },
+  "ui.search.security.name.or.ticker": {
+    "zh": "搜索股票名称或代码",
+    "en": "Search security name or ticker"
+  },
+  "ui.example.tencent.00700.apple": {
+    "zh": "例如：腾讯、00700、Apple",
+    "en": "Example: Tencent, 00700, Apple"
+  },
+  "ui.matching.securities": {
+    "zh": "股票候选",
+    "en": "Matching securities"
+  },
+  "ui.similar.name.please.verify": {
+    "zh": " · 近似名称，请核对",
+    "en": " · Similar name, please verify"
+  },
+  "ui.searching.the.local.directory": {
+    "zh": "正在匹配本地目录…",
+    "en": "Searching the local directory…"
+  },
+  "ui.security.directory.unavailable": {
+    "zh": "股票目录不可用：",
+    "en": "Security directory unavailable: "
+  },
+  "ui.no.local.matches.enter.an.exact.ticker.or.update.the.directory": {
+    "zh": "未找到本地候选，可输入准确代码或手动更新目录。",
+    "en": "No local matches. Enter an exact ticker or update the directory."
+  },
+  "ui.select.a.match.to.add.it.similar.names.are.never.substituted.automatically": {
+    "zh": "点选候选加入清单；近似名称不会自动替换。",
+    "en": "Select a match to add it. Similar names are never substituted automatically."
+  },
+  "ui.local.directory": {
+    "zh": "本地 ",
+    "en": "Local directory: "
+  },
+  "ui.securities.2": {
+    "zh": " 个标的",
+    "en": " securities"
+  },
+  "ui.limited.directory.coverage": {
+    "zh": " · 目录覆盖有限",
+    "en": " · Limited directory coverage"
+  },
+  "ui.local.security.directory": {
+    "zh": "本地股票目录",
+    "en": "Local security directory"
+  },
+  "ui.updating.directory": {
+    "zh": "目录更新中…",
+    "en": "Updating directory…"
+  },
+  "ui.update.directory.online": {
+    "zh": "更新目录（联网）",
+    "en": "Update directory (online)"
+  },
+  "ui.stage.evidence": {
+    "zh": "阶段证据",
+    "en": "Stage evidence"
+  },
+  "ui.complete.saved.stage.materials.verify.unknown.dates.sources.and.valuation.bases.again": {
+    "zh": "已保存的完整阶段材料；未知日期、来源与估值口径请结合报告核对。",
+    "en": "Complete saved stage materials. Verify unknown dates, sources and valuation bases against the report."
+  },
+  "ui.select.stage": {
+    "zh": "选择阶段",
+    "en": "Select stage"
+  },
+  "ui.no.saved.stage.evidence.yet": {
+    "zh": "尚无已保存的阶段证据",
+    "en": "No saved stage evidence yet"
+  },
+  "ui.failed.to.read.evidence": {
+    "zh": "读取证据失败：",
+    "en": "Failed to read evidence: "
+  },
+  "ui.loading.evidence": {
+    "zh": "正在读取证据…",
+    "en": "Loading evidence…"
+  },
+  "ui.expand.original.materials": {
+    "zh": "展开原始材料",
+    "en": "Expand original materials"
+  },
+  "ui.round": {
+    "zh": "轮次 ",
+    "en": "Round "
+  },
+  "ui.failed.to.read.round": {
+    "zh": "读取轮次失败：",
+    "en": "Failed to read round: "
+  },
+  "ui.warnings": {
+    "zh": "警告 ",
+    "en": "Warnings: "
+  },
+  "ui.items.2": {
+    "zh": " 条：",
+    "en": " items: "
+  },
+  "ui.round.status": {
+    "zh": "轮次状态",
+    "en": "Round status"
+  },
+  "ui.current.stage": {
+    "zh": "当前阶段",
+    "en": "Current stage"
+  },
+  "ui.tasks.complete.expected": {
+    "zh": "子任务 完成/预期",
+    "en": "Tasks complete / expected"
+  },
+  "ui.evidence.count": {
+    "zh": "证据条数",
+    "en": "Evidence count"
+  },
+  "ui.label": {
+    "zh": " · 标签 ",
+    "en": " · Label "
+  },
+  "ui.securities.3": {
+    "zh": " · 标的 ",
+    "en": " · Securities "
+  },
+  "ui.items.3": {
+    "zh": " 个",
+    "en": " items"
+  },
+  "ui.no.record.returned.by.the.engine": {
+    "zh": "：引擎尚未返回记录",
+    "en": ": no record returned by the engine"
+  },
+  "ui.no.analysis.round.started": {
+    "zh": "尚未启动分析轮次",
+    "en": "No analysis round started"
+  },
+  "ui.historical.starts": {
+    "zh": "历史启动 ",
+    "en": "Historical starts: "
+  },
+  "ui.including.retries.current.progress.deduplicates.roles.original.timestamps.and.failure": {
+    "zh": " 次（含重试），当前进度按角色去重；原始轮次时间和失败记录保留。",
+    "en": " (including retries). Current progress deduplicates roles; original timestamps and failures are retained."
+  },
+  "ui.this.attempt": {
+    "zh": "本次 ",
+    "en": "This attempt "
+  },
+  "ui.loading.stages": {
+    "zh": "正在读取阶段…",
+    "en": "Loading stages…"
+  },
+  "ui.no.stage.records.saved.for.this.round": {
+    "zh": "该轮次尚未写入阶段记录",
+    "en": "No stage records saved for this round"
+  },
+  "ui.round.report": {
+    "zh": "轮次报告：",
+    "en": "Round report: "
+  },
+  "ui.run.logs": {
+    "zh": "运行日志 · ",
+    "en": "Run logs · "
+  },
+  "ui.entries": {
+    "zh": " 条",
+    "en": " entries"
+  },
+  "ui.showing.latest": {
+    "zh": "（显示最近 ",
+    "en": " (showing latest "
+  },
+  "ui.entries.2": {
+    "zh": " 条）",
+    "en": " entries)"
+  },
+  "ui.collapse.logs": {
+    "zh": "收起日志",
+    "en": "Collapse logs"
+  },
+  "ui.expand.logs": {
+    "zh": "展开日志",
+    "en": "Expand logs"
+  },
+  "ui.no.logs.yet": {
+    "zh": "暂无日志",
+    "en": "No logs yet"
+  },
+  "ui.export.failed": {
+    "zh": "导出失败：",
+    "en": "Export failed: "
+  },
+  "ui.round.reports": {
+    "zh": "轮次报告",
+    "en": "Round reports"
+  },
+  "ui.rounds.2": {
+    "zh": " 个轮次",
+    "en": " rounds"
+  },
+  "ui.filter.reports.by.market": {
+    "zh": "按市场筛选轮次报告",
+    "en": "Filter reports by market"
+  },
+  "ui.all.markets": {
+    "zh": "全部市场",
+    "en": "All markets"
+  },
+  "ui.refreshing": {
+    "zh": "刷新中…",
+    "en": "Refreshing…"
+  },
+  "ui.refresh": {
+    "zh": "刷新",
+    "en": "Refresh"
+  },
+  "ui.report.index.unavailable": {
+    "zh": "报告索引不可用：",
+    "en": "Report index unavailable: "
+  },
+  "ui.duration": {
+    "zh": " · 耗时 ",
+    "en": " · Duration "
+  },
+  "ui.evidence.3": {
+    "zh": " · 证据 ",
+    "en": " · Evidence "
+  },
+  "ui.decisions": {
+    "zh": " · 决策 ",
+    "en": " · Decisions "
+  },
+  "ui.loading.report.index": {
+    "zh": "正在读取报告索引…",
+    "en": "Loading report index…"
+  },
+  "ui.export.md": {
+    "zh": "导出 .md",
+    "en": "Export .md"
+  },
+  "ui.loading.report": {
+    "zh": "正在读取报告正文…",
+    "en": "Loading report…"
+  },
+  "ui.failed.to.read.report": {
+    "zh": "读取报告失败：",
+    "en": "Failed to read report: "
+  },
+  "ui.select.a.round.above.to.read.its.report": {
+    "zh": "选择上方轮次查看报告正文",
+    "en": "Select a round above to read its report"
+  },
+  "ui.valid.tickers": {
+    "zh": "股票代码有效",
+    "en": "Valid tickers"
+  },
+  "ui.please.verify": {
+    "zh": "请核对：",
+    "en": "Please verify: "
+  },
+  "ui.select.security.names.from.the.search.results": {
+    "zh": "；股票名称请从搜索候选选择",
+    "en": "; select security names from the search results"
+  },
+  "ui.recognized": {
+    "zh": "已识别 ",
+    "en": "Recognized "
+  },
+  "ui.no.securities.entered": {
+    "zh": "尚未填写标的",
+    "en": "No securities entered"
+  },
+  "ui.maximum": {
+    "zh": "不超过 ",
+    "en": "Maximum "
+  },
+  "ui.limit.exceeded": {
+    "zh": " · 超出上限",
+    "en": " · Limit exceeded"
+  },
+  "ui.emergency.stop.is.off": {
+    "zh": "风控未紧急停止",
+    "en": "Emergency stop is off"
+  },
+  "ui.emergency.stop.is.active": {
+    "zh": "紧急停止已开启",
+    "en": "Emergency stop is active"
+  },
+  "ui.engine.is.paused.research.may.still.start": {
+    "zh": "引擎已暂停（分析仍可启动）",
+    "en": "Engine is paused (research may still start)"
+  },
+  "ui.no.round.running": {
+    "zh": "无运行中的轮次",
+    "en": "No round running"
+  },
+  "ui.is.running": {
+    "zh": " 正在运行",
+    "en": " is running"
+  },
+  "ui.none": {
+    "zh": "无",
+    "en": "None"
+  },
+  "ui.engine.reachable": {
+    "zh": "引擎可达",
+    "en": "Engine reachable"
+  },
+  "ui.connected.to.the.investment.engine": {
+    "zh": "已连接投资引擎",
+    "en": "Connected to the investment engine"
+  },
+  "ui.unavailable": {
+    "zh": "不可达：",
+    "en": "Unavailable: "
+  },
+  "ui.submitting": {
+    "zh": "正在提交…",
+    "en": "Submitting…"
+  },
+  "ui.verify.tickers.select.security.names.from.the.search.results": {
+    "zh": "请核对股票代码；名称请从搜索候选选择",
+    "en": "Verify tickers; select security names from the search results"
+  },
+  "ui.enter.a.security.list.first": {
+    "zh": "请先填写标的清单",
+    "en": "Enter a security list first"
+  },
+  "ui.security.count.exceeds": {
+    "zh": "标的数量超过 ",
+    "en": "Security count exceeds "
+  },
+  "ui.emergency.stop.is.active.analysis.cannot.start": {
+    "zh": "风控紧急停止已开启，禁止启动分析",
+    "en": "Emergency stop is active; analysis cannot start"
+  },
+  "ui.an.analysis.round.is.already.running": {
+    "zh": "已有分析轮次正在运行",
+    "en": "An analysis round is already running"
+  },
+  "ui.investment.engine.unavailable.analysis.cannot.start": {
+    "zh": "投资引擎不可达：无法启动分析",
+    "en": "Investment engine unavailable: analysis cannot start"
+  },
+  "ui.round.resumed.from.checkpoints.with.the.same.cycle.id": {
+    "zh": "已从检查点恢复该轮次（沿用同一 cycle_id）。",
+    "en": "Round resumed from checkpoints with the same cycle_id."
+  },
+  "ui.this.round.was.interrupted.select.retry.to.resume.explicitly": {
+    "zh": "该轮次已中断，请点击重试以明确续跑。",
+    "en": "This round was interrupted. Select Retry to resume explicitly."
+  },
+  "ui.this.round.is.still.leased.retry.was.deferred.try.again.later": {
+    "zh": "该轮次的租约仍被占用，重试已延后；稍后再试。",
+    "en": "This round is still leased. Retry was deferred; try again later."
+  },
+  "ui.this.cycle.id.already.exists.no.duplicate.round.was.started": {
+    "zh": "该 cycle_id 已存在，引擎未重复启动。",
+    "en": "This cycle_id already exists; no duplicate round was started."
+  },
+  "ui.analysis.started.fetching.live.progress": {
+    "zh": "分析轮次已启动，正在拉取实时进度。",
+    "en": "Analysis started. Fetching live progress."
+  },
+  "ui.start.failed": {
+    "zh": "启动失败：",
+    "en": "Start failed: "
+  },
+  "ui.screening.results.are.older.than": {
+    "zh": "选股结果已超过 ",
+    "en": "Screening results are older than "
+  },
+  "ui.minutes.refreshed.screening.found.no.securities.enter.tickers.manually.or.try.later": {
+    "zh": " 分钟，重新选股未选出标的；请手动填写或稍后重试。",
+    "en": " minutes; refreshed screening found no securities. Enter tickers manually or try later."
+  },
+  "ui.automatic.screening.refresh.failed": {
+    "zh": "自动重新选股失败：",
+    "en": "Automatic screening refresh failed: "
+  },
+  "ui.another.quick.action.is.in.progress": {
+    "zh": "另一个一键操作正在进行…",
+    "en": "Another quick action is in progress…"
+  },
+  "ui.investment.engine.unavailable.action.cannot.run": {
+    "zh": "投资引擎不可达：无法执行",
+    "en": "Investment engine unavailable: action cannot run"
+  },
+  "ui.screening.returned.no.selections.discovered": {
+    "zh": "选股完成但没有选出标的：发现 ",
+    "en": "Screening returned no selections. Discovered "
+  },
+  "ui.securities.candidates": {
+    "zh": " 只、候选 ",
+    "en": " securities, candidates "
+  },
+  "ui.screening.complete.discovered": {
+    "zh": "选股完成：发现 ",
+    "en": "Screening complete: discovered "
+  },
+  "ui.securities.candidates.2": {
+    "zh": " 只 · 候选 ",
+    "en": " securities · Candidates "
+  },
+  "ui.securities.selected": {
+    "zh": " 只 · 选出 ",
+    "en": " securities · Selected "
+  },
+  "ui.securities.source": {
+    "zh": " 只（数据源 ",
+    "en": " securities (source "
+  },
+  "ui.the.security.list.is.populated": {
+    "zh": "）。已填入标的清单。",
+    "en": "). The security list is populated."
+  },
+  "ui.screening.failed": {
+    "zh": "选股失败：",
+    "en": "Screening failed: "
+  },
+  "ui.verify.the.security.list.remove.invalid.names.and.stay.within.the.limit": {
+    "zh": "请先核对股票清单，不能包含无效名称或超过数量上限。",
+    "en": "Verify the security list: remove invalid names and stay within the limit."
+  },
+  "ui.workflow.not.started.screening.returned.no.selections.enter.securities.manually": {
+    "zh": "全流程未启动：选股没有产出标的，请先手动填写标的清单。",
+    "en": "Workflow not started: screening returned no selections. Enter securities manually."
+  },
+  "ui.workflow.start.failed": {
+    "zh": "全流程启动失败：",
+    "en": "Workflow start failed: "
+  },
+  "ui.user.stopped.the.analysis.round.from.the.product.interface": {
+    "zh": "用户在产品壳手动停止分析轮次",
+    "en": "User stopped the analysis round from the product interface"
+  },
+  "ui.stop.requested.for.round": {
+    "zh": "已请求停止轮次 ",
+    "en": "Stop requested for round "
+  },
+  "ui.analysis.only.accounts.are.unaffected": {
+    "zh": "（仅影响分析，不影响账户）。",
+    "en": " (analysis only; accounts are unaffected)."
+  },
+  "ui.stop.failed": {
+    "zh": "停止失败：",
+    "en": "Stop failed: "
+  },
+  "ui.the.latest.screening.is.older.than": {
+    "zh": "最近一次选股已超过 ",
+    "en": "The latest screening is older than "
+  },
+  "ui.minutes.screening.will.refresh.before.analysis.starts": {
+    "zh": " 分钟，开始分析前会自动重新选股。",
+    "en": " minutes. Screening will refresh before analysis starts."
+  },
+  "ui.from.screening": {
+    "zh": "来自选股：",
+    "en": "From screening: "
+  },
+  "ui.candidates": {
+    "zh": " 个候选 · ",
+    "en": " candidates · "
+  },
+  "ui.within": {
+    "zh": "未超过 ",
+    "en": "Within "
+  },
+  "ui.minutes.reuse.directly": {
+    "zh": " 分钟，直接复用",
+    "en": " minutes; reuse directly"
+  },
+  "ui.expired.screening.will.refresh.before.analysis.starts": {
+    "zh": "已过期，开始分析前会自动重新选股",
+    "en": "Expired; screening will refresh before analysis starts"
+  },
+  "ui.from.this.screening.candidates.are.in.the.list.below.ready.to.analyze": {
+    "zh": "来自本次选股：候选已填入下方清单，可直接分析。",
+    "en": "From this screening: candidates are in the list below, ready to analyze."
+  },
+  "ui.no.screening.results.yet.screen.securities.or.switch.to.manual.entry": {
+    "zh": "尚无选股结果，请点击一键筛选股票，或切回手动输入。",
+    "en": "No screening results yet. Screen securities or switch to manual entry."
+  },
+  "ui.manual.entry.separate.with.commas.spaces.or.newlines.duplicates.are.removed.maximum": {
+    "zh": "手动输入：逗号、空格或换行分隔，自动去重，上限 ",
+    "en": "Manual entry: separate with commas, spaces or newlines. Duplicates are removed. Maximum "
+  },
+  "ui.securities.4": {
+    "zh": " 个。",
+    "en": " securities."
+  },
+  "ui.start.analysis": {
+    "zh": "开始分析",
+    "en": "Start analysis"
+  },
+  "ui.not.started.2": {
+    "zh": "未启动",
+    "en": "Not started"
+  },
+  "ui.run.screening.then.the.fixed.analysis.workflow.research.only.no.orders": {
+    "zh": "一键运行全流程：先选股，再对选出的标的跑固定分析流程（只分析，绝不下单）",
+    "en": "Run screening, then the fixed analysis workflow (research only; no orders)"
+  },
+  "ui.starting.workflow": {
+    "zh": "全流程启动中…",
+    "en": "Starting workflow…"
+  },
+  "ui.run.full.workflow": {
+    "zh": "一键全流程",
+    "en": "Run full workflow"
+  },
+  "ui.scan.the.market.for.liquidity.and.factor.candidates.then.populate.the.security.list": {
+    "zh": "一键筛选股票：扫描全市场并按流动性与因子选出候选，结果填入标的清单",
+    "en": "Scan the market for liquidity and factor candidates, then populate the security list"
+  },
+  "ui.screening.may.take.tens.of.seconds": {
+    "zh": "选股中…（数十秒）",
+    "en": "Screening… (may take tens of seconds)"
+  },
+  "ui.screen.securities": {
+    "zh": "一键筛选股票",
+    "en": "Screen securities"
+  },
+  "ui.run.the.fixed.workflow.for.the.listed.securities.research.only.no.orders": {
+    "zh": "一键分析指定股票：对下方清单里的标的跑固定分析流程（只分析，绝不下单）",
+    "en": "Run the fixed workflow for the listed securities (research only; no orders)"
+  },
+  "ui.submitting.2": {
+    "zh": "提交中…",
+    "en": "Submitting…"
+  },
+  "ui.analyze.listed.securities": {
+    "zh": "一键分析指定股票",
+    "en": "Analyze listed securities"
+  },
+  "ui.round.label.a.za.z0.9.only": {
+    "zh": "轮次标签（仅 [A-Za-z0-9_.-]）",
+    "en": "Round label ([A-Za-z0-9_.-] only)"
+  },
+  "ui.security.source": {
+    "zh": "标的来源",
+    "en": "Security source"
+  },
+  "ui.manual.entry": {
+    "zh": "手动输入",
+    "en": "Manual entry"
+  },
+  "ui.from.screening.2": {
+    "zh": "来自选股",
+    "en": "From screening"
+  },
+  "ui.security.list.comma.space.newline.separated.deduplicated": {
+    "zh": "标的清单（逗号 / 空格 / 换行分隔，去重）",
+    "en": "Security list (comma / space / newline separated; deduplicated)"
+  },
+  "ui.exceeds.maximum": {
+    "zh": "（超出上限 ",
+    "en": " (exceeds maximum "
+  },
+  "ui.securities.5": {
+    "zh": " 个）",
+    "en": " securities)"
+  },
+  "ui.linked.goal.optional.goal.id.from.a.previous.round": {
+    "zh": "绑定目标（可选，取自历史轮次记录的目标 ID）",
+    "en": "Linked goal (optional; goal ID from a previous round)"
+  },
+  "ui.no.linked.goal": {
+    "zh": "（不绑定目标）",
+    "en": "(No linked goal)"
+  },
+  "ui.preflight": {
+    "zh": "预检 ",
+    "en": "Preflight "
+  },
+  "ui.ready": {
+    "zh": " 就绪",
+    "en": " ready"
+  },
+  "ui.checks.unmet": {
+    "zh": " 项未满足",
+    "en": " checks unmet"
+  },
+  "ui.collapse": {
+    "zh": "收起",
+    "en": "Collapse"
+  },
+  "ui.expand": {
+    "zh": "展开",
+    "en": "Expand"
+  },
+  "ui.stop.current.round.analysis.only.accounts.are.unaffected": {
+    "zh": "停止当前轮次（只影响分析，绝不影响账户）",
+    "en": "Stop current round (analysis only; accounts are unaffected)"
+  },
+  "ui.no.round.is.currently.running": {
+    "zh": "当前没有运行中的轮次",
+    "en": "No round is currently running"
+  },
+  "ui.stop": {
+    "zh": "停止",
+    "en": "Stop"
+  },
+  "ui.retry.with.the.same.cycle.id.resume.from.saved.checkpoints": {
+    "zh": "沿用同一个 cycle_id 重试（引擎从检查点续跑）",
+    "en": "Retry with the same cycle_id (resume from saved checkpoints)"
+  },
+  "ui.no.retryable.round.only.failed.stopped.or.unsubmitted.rounds.can.be.retried": {
+    "zh": "没有可重试的轮次：仅已失败 / 已停止的轮次或尚未提交成功的轮次可重试",
+    "en": "No retryable round: only failed, stopped or unsubmitted rounds can be retried"
+  },
+  "ui.retry": {
+    "zh": "重试",
+    "en": "Retry"
+  },
+  "ui.running.2": {
+    "zh": "进行中：",
+    "en": "Running: "
+  },
+  "ui.poll.every": {
+    "zh": " · 轮询 ",
+    "en": " · Poll every "
+  },
+  "ui.this.round.has.ended.polling.stopped": {
+    "zh": "轮次已进入终态，已停止轮询。",
+    "en": "This round has ended; polling stopped."
+  },
+  "ui.no.round.is.currently.running.2": {
+    "zh": "当前没有运行中的轮次。",
+    "en": "No round is currently running."
+  },
+  "ui.research.and.execution": {
+    "zh": "研究与执行",
+    "en": "Research and execution"
+  },
+  "ui.analysis.produces.research.and.trade.recommendations.execution.requires.separate.appr": {
+    "zh": "分析只生成研究报告和交易建议。交易执行仍需另行批准。",
+    "en": "Analysis produces research and trade recommendations. Execution requires separate approval."
+  },
+  "ui.investment.research": {
+    "zh": "投资研究",
+    "en": "Investment research"
+  },
+  "ui.security.research.progress.and.historical.reports": {
+    "zh": "股票研究、分析过程与历史报告",
+    "en": "Security research, progress and historical reports"
+  },
+  "ui.investment.engine.unavailable": {
+    "zh": "投资引擎不可达",
+    "en": "Investment engine unavailable"
+  },
+  "ui.no.research.rounds.yet": {
+    "zh": "尚无研究轮次",
+    "en": "No research rounds yet"
+  },
+  "ui.research.actions": {
+    "zh": "研究操作",
+    "en": "Research actions"
+  },
+  "ui.stages": {
+    "zh": " 阶段",
+    "en": " stages"
+  },
+  "ui.evidence.items": {
+    "zh": " 条证据",
+    "en": " evidence items"
+  },
+  "ui.resume": {
+    "zh": "续跑",
+    "en": "Resume"
+  },
+  "ui.research.produces.recommendations.execution.requires.separate.approval": {
+    "zh": "分析生成建议，交易需另行批准。",
+    "en": "Research produces recommendations; execution requires separate approval."
+  },
+  "ui.research.history": {
+    "zh": "研究记录",
+    "en": "Research history"
+  },
+  "ui.failed.to.read.history": {
+    "zh": "历史读取失败：",
+    "en": "Failed to read history: "
+  },
+  "ui.loading.research.history": {
+    "zh": "正在读取研究记录…",
+    "en": "Loading research history…"
+  },
+  "ui.no.research.yet.select.new.research.to.begin": {
+    "zh": "还没有研究，点击新建研究开始",
+    "en": "No research yet. Select New research to begin."
+  },
+  "ui.research.workspace": {
+    "zh": "研究工作区",
+    "en": "Research workspace"
+  },
+  "ui.awaiting.screening": {
+    "zh": "等待选股",
+    "en": "Awaiting screening"
+  },
+  "ui.select.a.round.on.the.left.or.create.new.research": {
+    "zh": "选择左侧记录，或新建研究",
+    "en": "Select a round on the left, or create new research"
+  },
+  "ui.research.stopped": {
+    "zh": "研究已停止：",
+    "en": "Research stopped: "
+  },
+  "ui.saved": {
+    "zh": "。已保存 ",
+    "en": ". Saved "
+  },
+  "ui.stages.resume.manually.to.continue": {
+    "zh": " 个阶段；续跑需要手动操作。",
+    "en": " stages; resume manually to continue."
+  },
+  "ui.research.content": {
+    "zh": "研究内容",
+    "en": "Research content"
+  },
+  "ui.research.report": {
+    "zh": "研究报告",
+    "en": "Research report"
+  },
+  "ui.research.progress": {
+    "zh": "研究过程",
+    "en": "Research progress"
+  },
+  "ui.new.research.2": {
+    "zh": "新建研究",
+    "en": "New research"
+  },
+  "ui.close.3": {
+    "zh": "关闭",
+    "en": "Close"
+  },
+  "ui.strategy.changed.to": {
+    "zh": "策略已切换为 ",
+    "en": "Strategy changed to "
+  },
+  "ui.applies.to.subsequent.rounds.immediately": {
+    "zh": "，立即作用于后续轮次。",
+    "en": "; applies to subsequent rounds immediately."
+  },
+  "ui.switch.failed": {
+    "zh": "切换失败：",
+    "en": "Switch failed: "
+  },
+  "ui.settings.saved.and.applied": {
+    "zh": "设置已保存并生效。",
+    "en": "Settings saved and applied."
+  },
+  "ui.save.failed": {
+    "zh": "保存失败：",
+    "en": "Save failed: "
+  },
+  "ui.minimum.confidence": {
+    "zh": "最低置信度",
+    "en": "Minimum confidence"
+  },
+  "ui.max.security.weight": {
+    "zh": "单股仓位上限 %",
+    "en": "Max security weight %"
+  },
+  "ui.max.total.exposure": {
+    "zh": "总仓位上限 %",
+    "en": "Max total exposure %"
+  },
+  "ui.minimum.cash.reserve": {
+    "zh": "最低现金储备 %",
+    "en": "Minimum cash reserve %"
+  },
+  "ui.maximum.drawdown": {
+    "zh": "最大回撤 %",
+    "en": "Maximum drawdown %"
+  },
+  "ui.max.daily.trades": {
+    "zh": "当日最大交易数",
+    "en": "Max daily trades"
+  },
+  "ui.strategy.and.risk.controls": {
+    "zh": "投资策略与风控",
+    "en": "Strategy and risk controls"
+  },
+  "ui.strategy.profiles.set.prompt.objectives.and.hard.limits.for.weights.cash.drawdown.and": {
+    "zh": "策略档位同时决定提示词目标与硬风险边界（仓位/现金/回撤/换手），由引擎强制执行。",
+    "en": "Strategy profiles set prompt objectives and hard limits for weights, cash, drawdown and turnover. The engine enforces them."
+  },
+  "ui.strategy.profile": {
+    "zh": "策略档位",
+    "en": "Strategy profile"
+  },
+  "ui.conservative": {
+    "zh": "保守",
+    "en": "Conservative"
+  },
+  "ui.neutral": {
+    "zh": "中立",
+    "en": "Neutral"
+  },
+  "ui.aggressive": {
+    "zh": "激进",
+    "en": "Aggressive"
+  },
+  "ui.operation.mode": {
+    "zh": "运行模式",
+    "en": "Operation mode"
+  },
+  "ui.manual.run.only.when.triggered.automatic.run.according.to.the.schedule": {
+    "zh": "手动：仅当你触发时执行轮次；自动：按调度计划自动执行。",
+    "en": "Manual: run only when triggered. Automatic: run according to the schedule."
+  },
+  "ui.automatic.2": {
+    "zh": "自动",
+    "en": "Automatic"
+  },
+  "ui.autonomous.investing.master.switch": {
+    "zh": "自动投资总开关",
+    "en": "Autonomous investing master switch"
+  },
+  "ui.when.disabled.the.engine.runs.no.automatic.rounds": {
+    "zh": "关闭后引擎不再执行任何自动轮次。",
+    "en": "When disabled, the engine runs no automatic rounds."
+  },
+  "ui.enable": {
+    "zh": "启用",
+    "en": "Enable"
+  },
+  "ui.disable": {
+    "zh": "停用",
+    "en": "Disable"
+  },
+  "ui.current.hard.limits": {
+    "zh": "当前硬边界（",
+    "en": "Current hard limits ("
+  },
+  "ui.schedule.saved": {
+    "zh": "调度设置已保存。",
+    "en": "Schedule saved."
+  },
+  "ui.automatic.rounds.and.scheduling": {
+    "zh": "自动轮次与调度",
+    "en": "Automatic rounds and scheduling"
+  },
+  "ui.intraday.and.closing.rounds.run.in.asia.shanghai.time.the.engine.applies.saved.schedu": {
+    "zh": "盘中与收盘轮次按北京时间触发；保存后由引擎调度器生效。",
+    "en": "Intraday and closing rounds run in Asia/Shanghai time. The engine applies saved schedules."
+  },
+  "ui.market.briefing.time": {
+    "zh": "市场早报时间",
+    "en": "Market briefing time"
+  },
+  "ui.generate.a.briefing.each.trading.day.using.news.from.the.previous.trading.day": {
+    "zh": "每个交易日生成一次市场早报（内容为前一交易日的新闻）。",
+    "en": "Generate a briefing each trading day using news from the previous trading day."
+  },
+  "ui.intraday.rounds.hh.mm.comma.separated": {
+    "zh": " 盘中轮次（HH:MM 逗号分隔）",
+    "en": " intraday rounds (HH:MM, comma separated)"
+  },
+  "ui.closing.round": {
+    "zh": "收盘轮次：",
+    "en": "Closing round: "
+  },
+  "ui.market.settings.saved": {
+    "zh": "市场设置已保存。",
+    "en": "Market settings saved."
+  },
+  "ui.markets.and.screening": {
+    "zh": "市场与选股",
+    "en": "Markets and screening"
+  },
+  "ui.enabled.markets.set.the.scheduling.and.screening.scope.screening.parameters.control.m": {
+    "zh": "启用市场决定调度与选股范围；选股参数控制全市场候选筛选。",
+    "en": "Enabled markets set the scheduling and screening scope; screening parameters control market-wide selection."
+  },
+  "ui.enabled.markets": {
+    "zh": "启用市场",
+    "en": "Enabled markets"
+  },
+  "ui.candidate.pool.size": {
+    "zh": "候选池大小",
+    "en": "Candidate pool size"
+  },
+  "ui.maximum.securities.in.each.market.s.screening.pool": {
+    "zh": "每个市场选股池的标的数量上限。",
+    "en": "Maximum securities in each market's screening pool."
+  },
+  "ui.screening.refresh.interval.minutes": {
+    "zh": "选股刷新间隔（分钟）",
+    "en": "Screening refresh interval (minutes)"
+  },
+  "ui.cache.lifetime.the.next.round.refreshes.expired.results": {
+    "zh": "缓存有效期，超期后下一轮次自动刷新。",
+    "en": "Cache lifetime; the next round refreshes expired results."
+  },
+  "ui.notification.settings.saved.webhook.address.encrypted.with.dpapi": {
+    "zh": "通知设置已保存（Webhook 地址经 DPAPI 加密存储）。",
+    "en": "Notification settings saved (Webhook address encrypted with DPAPI)."
+  },
+  "ui.notifications": {
+    "zh": "通知",
+    "en": "Notifications"
+  },
+  "ui.send.completed.round.reports.through.a.webhook": {
+    "zh": "轮次报告完成后通过 Webhook 推送。",
+    "en": "Send completed round reports through a Webhook."
+  },
+  "ui.webhook.notifications": {
+    "zh": "Webhook 通知",
+    "en": "Webhook notifications"
+  },
+  "ui.enabled.2": {
+    "zh": "已启用",
+    "en": "Enabled"
+  },
+  "ui.disabled": {
+    "zh": "未启用",
+    "en": "Disabled"
+  },
+  "ui.webhook.address": {
+    "zh": "Webhook 地址",
+    "en": "Webhook address"
+  },
+  "ui.configured.existing.address.hidden.leave.blank.to.retain.it": {
+    "zh": "已配置（出于安全考虑不显示现有地址，留空保存则保持不变）",
+    "en": "Configured (existing address hidden; leave blank to retain it)"
+  },
+  "ui.must.start.with.https.encrypted.in.the.local.dpapi.store": {
+    "zh": "以 https:// 开头；地址加密保存在本机 DPAPI 库中。",
+    "en": "Must start with https://. Encrypted in the local DPAPI store."
+  },
+  "ui.configured": {
+    "zh": "已配置",
+    "en": "Configured"
+  },
+  "ui.save.notification.settings": {
+    "zh": "保存通知设置",
+    "en": "Save notification settings"
+  },
+  "ui.application.settings": {
+    "zh": "应用设置",
+    "en": "Application settings"
+  },
+  "ui.version.information": {
+    "zh": "版本信息",
+    "en": "Version information"
+  },
+  "ui.product": {
+    "zh": "产品",
+    "en": "Product"
+  },
+  "ui.engine.version": {
+    "zh": "引擎版本",
+    "en": "Engine version"
+  },
+  "ui.paper.trading.paper": {
+    "zh": "纸面模拟（paper）",
+    "en": "Paper trading (paper)"
+  },
+  "ui.safety.information": {
+    "zh": "安全说明",
+    "en": "Safety information"
+  },
+  "ui.this.product.supports.paper.trading.only.and.has.no.live.broker.connection.all.orders": {
+    "zh": "本产品仅支持模拟交易，不连接真实券商。所有订单经引擎硬风控与纸面撮合，AI 无法绕过。行情来自公开第三方接口，仅供研究与模拟。",
+    "en": "This product supports paper trading only and has no live broker connection. All orders pass engine-enforced risk checks and simulated matching. AI cannot bypass these checks. Public third-party prices are for research and simulation."
+  },
+  "ui.no.settings.available": {
+    "zh": "暂无设置项",
+    "en": "No settings available"
+  },
+  "ui.settings": {
+    "zh": "设置",
+    "en": "Settings"
+  },
+  "ui.models.strategy.risk.autonomous.operation.and.desktop.configuration": {
+    "zh": "模型、策略、风险、自主运行与桌面应用配置",
+    "en": "Models, strategy, risk, autonomous operation and desktop configuration"
+  },
+  "ui.secure.local.storage": {
+    "zh": "本机安全存储",
+    "en": "Secure local storage"
+  },
+  "ui.sessions": {
+    "zh": "会话",
+    "en": "Sessions"
+  },
+  "ui.new.session": {
+    "zh": "新会话",
+    "en": "New session"
+  },
+  "ui.create.session": {
+    "zh": "新建会话",
+    "en": "Create session"
+  },
+  "ui.search.sessions": {
+    "zh": "搜索会话",
+    "en": "Search sessions"
+  },
+  "ui.search.results": {
+    "zh": "搜索结果",
+    "en": "Search results"
+  },
+  "ui.recent.sessions": {
+    "zh": "最近会话",
+    "en": "Recent sessions"
+  },
+  "ui.no.matching.sessions": {
+    "zh": "没有匹配的会话",
+    "en": "No matching sessions"
+  },
+  "ui.no.sessions.yet.create.one.above": {
+    "zh": "还没有会话，点击上方新建",
+    "en": "No sessions yet. Create one above."
+  },
+  "ui.rename.session": {
+    "zh": "重命名会话",
+    "en": "Rename session"
+  },
+  "ui.rename": {
+    "zh": "重命名",
+    "en": "Rename"
+  },
+  "ui.archive.this.session": {
+    "zh": "归档该会话？",
+    "en": "Archive this session?"
+  },
+  "ui.archive": {
+    "zh": "归档",
+    "en": "Archive"
+  },
+  "ui.awaiting.your.question": {
+    "zh": "等待提问",
+    "en": "Awaiting your question"
+  },
+  "ui.investment.session": {
+    "zh": "投资会话",
+    "en": "Investment session"
+  },
+  "ui.describe.what.you.want.to.build": {
+    "zh": "描述你想要构建的内容",
+    "en": "Describe what you want to build"
+  },
+  "ui.ask.an.investment.question.or.start.a.complete.analysis": {
+    "zh": "输入投资问题，或启动完整分析流程",
+    "en": "Ask an investment question, or start a complete analysis"
+  },
+  "ui.explore.the.unknown": {
+    "zh": "探索未至之境",
+    "en": "Explore the unknown"
+  },
+  "ui.your.investment.research.assistant": {
+    "zh": "你的投资分析助手",
+    "en": "Your investment research assistant"
+  },
+  "ui.overview": {
+    "zh": "总览",
+    "en": "Overview"
+  },
+  "ui.investment.assistant": {
+    "zh": "投资助手",
+    "en": "Investment assistant"
+  },
+  "ui.product.navigation": {
+    "zh": "产品导航",
+    "en": "Product navigation"
+  },
+  "ui.command.failed": {
+    "zh": "命令失败",
+    "en": "Command failed"
+  },
+  "ui.save.failed.2": {
+    "zh": "保存失败",
+    "en": "Save failed"
+  },
+  "ui.session.not.found": {
+    "zh": "会话不存在",
+    "en": "Session not found"
+  },
+  "ui.investment.engine.2": {
+    "zh": "投资引擎",
+    "en": "Investment engine"
+  },
+  "ui.mode.2": {
+    "zh": "模式",
+    "en": "Mode"
+  },
+  "ui.time": {
+    "zh": "时间",
+    "en": "Time"
+  },
+  "ui.portfolio": {
+    "zh": "组合 ",
+    "en": "Portfolio "
+  },
+  "ui.portfolio.2": {
+    "zh": "组合",
+    "en": "Portfolio"
+  },
+  "ui.trades.2": {
+    "zh": "成交",
+    "en": "Trades"
+  },
+  "ui.investment.mandate": {
+    "zh": "授权书",
+    "en": "Investment mandate"
+  },
+  "ui.min.confidence": {
+    "zh": "最低置信",
+    "en": "Min confidence"
+  },
+  "ui.max.security.weight.2": {
+    "zh": "单股上限",
+    "en": "Max security weight"
+  },
+  "ui.max.drawdown": {
+    "zh": "最大回撤",
+    "en": "Max drawdown"
+  },
+  "language.title": {
+    "zh": "界面语言",
+    "en": "Interface language"
+  },
+  "language.output": {
+    "zh": "研究输出语言",
+    "en": "Research output language"
+  },
+  "language.follow": {
+    "zh": "跟随界面（新轮次生效）",
+    "en": "Follow interface (new rounds)"
+  },
+  "language.history": {
+    "zh": "历史内容与原始资料保留原文",
+    "en": "Historical content and source materials remain in their original language"
+  },
+  "language.saveFailed": {
+    "zh": "语言设置保存失败，请重试",
+    "en": "Language preference could not be saved. Please retry."
+  },
+  "punctuation.closeParen": {
+    "zh": "）",
+    "en": ")"
+  },
+  "punctuation.openParen": {
+    "zh": "（",
+    "en": "("
+  },
+  "punctuation.comma": {
+    "zh": "、",
+    "en": ", "
+  },
+  "punctuation.fullStop": {
+    "zh": "。",
+    "en": "."
+  },
+  "punctuation.colon": {
+    "zh": "：",
+    "en": ": "
+  },
+  "ui.source.commit": {
+    "zh": "源码提交",
+    "en": "Source commit"
+  },
+  "ui.nav.assistant": {
+    "zh": "投资助手",
+    "en": "Assistant"
+  },
+  "ui.nav.research": {
+    "zh": "投资研究",
+    "en": "Research"
+  },
+  "ui.dialog.cancel": {
+    "zh": "取消",
+    "en": "Cancel"
+  },
+  "ui.dialog.save": {
+    "zh": "保存",
+    "en": "Save"
+  }
+}

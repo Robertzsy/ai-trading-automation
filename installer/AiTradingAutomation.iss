@@ -2,7 +2,7 @@
 ; Build: ISCC.exe installer\AiTradingAutomation.iss
 
 #define MyAppName "AI Trading Automation"
-#define MyAppVersion "2.3.0"
+#define MyAppVersion "2.4.0"
 #define MyAppExeName "AiTradingAutomation.Desktop.exe"
 #define MyAppPublisher "AI Trading Automation Contributors"
 
@@ -32,6 +32,14 @@ CloseApplications=yes
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 
+[CustomMessages]
+english.EnsureWebView=Ensuring WebView2 Runtime is available...
+chinesesimplified.EnsureWebView=确保 WebView2 运行时可用...
+english.KeepData=Keep user data (simulated accounts, reports and API configuration)?
+chinesesimplified.KeepData=是否保留用户数据（模拟账户、报告、API 配置等）？
+english.DataLocation=Data is stored in %LocalAppData%\InvestmentAuto.
+chinesesimplified.DataLocation=数据保存在 %LocalAppData%\InvestmentAuto。
+
 [Files]
 ; desktop shell (dotnet publish output)
 Source: "..\windows\desktop\bin\Release\net8.0-windows\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
@@ -40,7 +48,7 @@ Source: "..\build\runtime\python\*"; DestDir: "{app}\python"; Flags: ignoreversi
 ; portable Node.js 22 (flattened by bundle-runtime.ps1)
 Source: "..\build\runtime\node\*"; DestDir: "{app}\node"; Flags: ignoreversion recursesubdirs
 ; investment engine (Python)
-Source: "..\engine\*"; DestDir: "{app}\engine"; Flags: ignoreversion recursesubdirs
+Source: "..\engine\*"; DestDir: "{app}\engine"; Excludes: "__pycache__\*,*.pyc,*.pyo"; Flags: ignoreversion recursesubdirs
 ; DSH application shell (profiles, presets, skills, plugins, pinned node_modules)
 Source: "..\app\*"; DestDir: "{app}\app"; Excludes: "dev-home\*"; Flags: ignoreversion recursesubdirs
 Source: "..\scripts\*"; DestDir: "{app}\scripts"; Flags: ignoreversion recursesubdirs
@@ -49,6 +57,7 @@ Source: "..\config\market\*"; DestDir: "{app}\config\market"; Flags: ignoreversi
 Source: "..\requirements.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\requirements-lock.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\release-source.json"; DestDir: "{app}"; Flags: ignoreversion
 ; WebView2 Evergreen bootstrapper (only installs when the runtime is missing)
 Source: "..\build\runtime-downloads\MicrosoftEdgeWebview2Setup.exe"; DestDir: "{app}\redist"; Flags: ignoreversion
 
@@ -79,9 +88,9 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Paramete
 
 [Run]
 ; WebView2 runtime (self-detecting bootstrapper; hidden)
-Filename: "{app}\redist\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; Flags: runhidden skipifdoesntexist; StatusMsg: "确保 WebView2 运行时可用..."
+Filename: "{app}\redist\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; Flags: runhidden skipifdoesntexist; StatusMsg: "{cm:EnsureWebView}"
 ; launch the app after install (checked by default)
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--app-root ""{app}"" --data-root ""{localappdata}\InvestmentAuto"""; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--app-root ""{app}"" --data-root ""{localappdata}\InvestmentAuto"" --language {code:DesktopLanguage}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\python"
@@ -102,6 +111,11 @@ const
 // 2.2.0 renamed the product. If the user had enabled autostart, carry the
 // registration over to the new name/paths instead of silently dropping it,
 // then remove the stale value.
+function DesktopLanguage(Param: String): String;
+begin
+  if ActiveLanguage = 'chinesesimplified' then Result := 'zh' else Result := 'en';
+end;
+
 procedure MigrateLegacyAutostart();
 var
   LegacyCommand: String;
@@ -133,8 +147,7 @@ begin
     if UninstallSilent() then
       RemoveUserData := False
     else
-      RemoveUserData := MsgBox('是否保留用户数据（模拟账户、报告、API 配置等）？' + #13#10 +
-        '数据保存在 %LocalAppData%\InvestmentAuto。', mbConfirmation, MB_YESNO or MB_DEFBUTTON1) = IDNO;
+      RemoveUserData := MsgBox(CustomMessage('KeepData') + #13#10 + CustomMessage('DataLocation'), mbConfirmation, MB_YESNO or MB_DEFBUTTON1) = IDNO;
   end;
 
   if CurUninstallStep = usPostUninstall then

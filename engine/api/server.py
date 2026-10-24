@@ -92,7 +92,8 @@ def _latest_optimizer_file(market: str) -> Optional[Dict[str, Any]]:
 
 
 class _Handler(BaseHTTPRequestHandler):
-    server_version = "AiTradingAutomationEngine/2.1"
+    from engine.version import __version__ as _product_version
+    server_version = "AiTradingAutomationEngine/" + _product_version
 
     def _send(self, status: int, payload: Any) -> None:
         body = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
@@ -149,6 +150,10 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(500, {"ok": False, "error": str(exc)[:1000]})
 
     def _route_get(self, path: str) -> None:
+        if path == "/api/locale":
+            from engine.localization import locale_preference, ui_language
+            self._send(200, {"ok":True, "language":locale_preference(), "resolved_language":ui_language()})
+            return
         if path == "/api/health":
             from engine.version import __version__
 
@@ -212,7 +217,7 @@ class _Handler(BaseHTTPRequestHandler):
             from engine.research.plan_cache import load_plan
 
             try:
-                result = load_plan(values.get("market", ""), values.get("symbol", ""), values.get("day", ""))
+                result = load_plan(values.get("market", ""), values.get("symbol", ""), values.get("day", ""), language=values.get("language", "zh"), template=values.get("template", "legacy"))
             except ValueError as exc:
                 self._send(400, {"ok": False, "error": str(exc)})
                 return
@@ -285,11 +290,11 @@ class _Handler(BaseHTTPRequestHandler):
                     conditions = parsed
                 preview = run_screening_preview(market, conditions=conditions)
             except ValueError as exc:
-                self._send(400, {"ok": False, "error": str(exc)[:800]})
+                self._send(400, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
                 return
             except Exception as exc:  # noqa: BLE001
                 logger.exception("screening run failed")
-                self._send(500, {"ok": False, "error": str(exc)[:800]})
+                self._send(500, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
                 return
             audit = preview.get("audit") if isinstance(preview, dict) else None
             audit = audit if isinstance(audit, dict) else {}
@@ -478,7 +483,7 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(200, {"ok": True, "ref": ref, "configured": value is not None, "value": value or ""})
             return
         if path == "/setup":
-            from engine.api.setup_page import SETUP_PAGE_HTML
+            from engine.api.setup_page import render_setup_page
             from engine.migration import detect_sources
 
             suggested = ""
@@ -488,13 +493,7 @@ class _Handler(BaseHTTPRequestHandler):
                     suggested = str(sources[0]["path"])
             except Exception:
                 pass
-            page = SETUP_PAGE_HTML.replace(
-                '<div class="hint">检测到旧版项目时会自动填入；数据只复制、不删除。</div>',
-                '<div class="hint">' + (
-                    f"检测到旧版项目：<code>{suggested}</code>（数据只复制、不删除）"
-                    if suggested else "未检测到旧版项目；数据只复制、不删除。"
-                ) + '</div>',
-            )
+            page = render_setup_page(suggested=suggested)
             body = page.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -526,6 +525,15 @@ class _Handler(BaseHTTPRequestHandler):
             self._send(403, {"ok": False, "error": "invalid access token"})
             return
         path = urlsplit(self.path).path
+        if path == "/api/locale":
+            payload = _read_json(self) or {}
+            try:
+                from engine.localization import persist_ui_language
+                persist_ui_language(payload.get("language"))
+                self._send(200, {"ok":True,"language":payload.get("language")})
+            except ValueError as exc:
+                self._send(400, {"ok":False,"error_code":"INVALID_LANGUAGE","error":str(exc)})
+            return
         if path == "/api/securities/refresh":
             payload = _read_json(self)
             if payload is None:
@@ -576,6 +584,7 @@ class _Handler(BaseHTTPRequestHandler):
                     str(payload.get("symbol", "")),
                     str(payload.get("day", "")),
                     payload.get("plan", ""),
+                    language=str(payload.get("language", "zh")), template=str(payload.get("template", "legacy")),
                 )
             except ValueError as exc:
                 self._send(400, {"ok": False, "error": str(exc)})
@@ -602,10 +611,10 @@ class _Handler(BaseHTTPRequestHandler):
                     return
                 self._send(200, analysis_rounds.start(payload))
             except (KeyError, ValueError) as exc:
-                self._send(400, {"ok": False, "error": str(exc)[:800]})
+                self._send(400, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
             except Exception as exc:  # noqa: BLE001
                 logger.exception("analysis round start failed")
-                self._send(500, {"ok": False, "error": str(exc)[:800]})
+                self._send(500, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
             return
         if path.startswith("/api/analysis/runs/"):
             # Raw research archives may exceed the compact checkpoint limit.
@@ -648,10 +657,10 @@ class _Handler(BaseHTTPRequestHandler):
                     return
                 self._send(200, {"ok": True, "analysis": result})
             except (KeyError, ValueError) as exc:
-                self._send(400, {"ok": False, "error": str(exc)[:800]})
+                self._send(400, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
             except Exception as exc:  # noqa: BLE001
                 logger.exception("analysis run update failed")
-                self._send(500, {"ok": False, "error": str(exc)[:800]})
+                self._send(500, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
             return
         if path == "/api/analysis/rounds/stop":
             payload = _read_json(self)
@@ -670,10 +679,10 @@ class _Handler(BaseHTTPRequestHandler):
                 result = analysis_runs.cancel(cycle_id, reason=str(payload.get("reason", ""))[:500])
                 self._send(200, {"ok": True, "analysis": result})
             except (KeyError, ValueError) as exc:
-                self._send(400, {"ok": False, "error": str(exc)[:800]})
+                self._send(400, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
             except Exception as exc:  # noqa: BLE001
                 logger.exception("analysis round stop failed")
-                self._send(500, {"ok": False, "error": str(exc)[:800]})
+                self._send(500, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
             return
         if self.path == "/api/credentials/records":
             payload = _read_json(self)
@@ -733,7 +742,7 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(200, {"ok": True, "updated": result})
             except Exception as exc:  # noqa: BLE001
                 logger.exception("config update failed")
-                self._send(400, {"ok": False, "error": str(exc)[:800]})
+                self._send(400, {"ok": False, "error": str(exc)[:800], "error_code":getattr(exc,"code","CONFIG_UPDATE_FAILED"), "error_params":getattr(exc,"params",{})})
             return
         if self.path == "/api/setup/complete":
             payload = _read_json(self) or {}

@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "2.3.0",
+    [string]$Version = "2.4.0",
     [string]$OutputDirectory = "",
     [switch]$SkipDesktopBuild
 )
@@ -21,6 +21,10 @@ $desktopPublish = Join-Path $projectRoot "windows\desktop\bin\Release\net8.0-win
 # on every clean machine.
 $pythonRuntime = Get-IAPythonRuntimeDir -ProjectRoot $projectRoot
 $nodeRuntime = Get-IANodeRuntimeDir -ProjectRoot $projectRoot
+& (Join-Path $pythonRuntime "python.exe") (Join-Path $PSScriptRoot "verify-release-source.py")
+if ($LASTEXITCODE -ne 0) { throw "Release source validation failed" }
+$sourceVersion = (Get-Content -LiteralPath (Join-Path $projectRoot "app/package.json") -Raw | ConvertFrom-Json).version
+if ($Version -ne $sourceVersion) { throw "Requested version $Version differs from source $sourceVersion" }
 
 if (-not $SkipDesktopBuild) {
     & (Join-Path $PSScriptRoot "build-desktop.ps1") -Configuration Release -Runtime win-x64
@@ -44,8 +48,7 @@ if ($bundledNode -ne $pinnedNode) {
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-if (Test-Path $stage) { Remove-Item -LiteralPath $stage -Recurse -Force }
-if (Test-Path $archive) { Remove-Item -LiteralPath $archive -Force }
+if ((Test-Path -LiteralPath $stage) -or (Test-Path -LiteralPath $archive)) { throw "Use a new output directory; release artifacts already exist" }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
 # The portable archive now ships the same WPF/WebView2 shell as the installer.
@@ -63,24 +66,23 @@ foreach ($name in $rootFiles) {
 }
 # "engine" is the 2.x Python engine. "src" was the retired 1.x layout and no
 # longer exists, so the archive shipped with no engine at all.
-foreach ($directory in @("config", "scripts", "engine")) {
+foreach ($directory in @("config", "scripts", "engine", "app")) {
     Copy-Item -LiteralPath (Join-Path $projectRoot $directory) -Destination $stage -Recurse
 }
-foreach ($required in @("engine", "config", "scripts")) {
+foreach ($required in @("engine", "config", "scripts", "app")) {
     if (-not (Test-Path (Join-Path $stage $required))) {
         throw "portable stage is missing '$required' - the release package would be incomplete"
     }
 }
-if (-not (Test-Path (Join-Path $stage "app"))) {
-    Write-Warning ("portable stage has no 'app' directory: the DSH product shell (app\profiles, " +
-                   "app\plugins, app\node_modules) is not part of this archive. installer\AiTradingAutomation.iss " +
-                   "ships ..\app\* separately; add 'app' here - excluding app\dev-home - if the " +
-                   "portable build must run standalone.")
-}
+Copy-Item -LiteralPath (Join-Path $projectRoot "release-source.json") -Destination $stage
 
 New-Item -ItemType Directory -Force -Path (Join-Path $stage "runtime") | Out-Null
 Get-ChildItem -LiteralPath $stage -Recurse -Directory -Filter "__pycache__" |
-    Sort-Object FullName -Descending | Remove-Item -Recurse -Force
+    Sort-Object FullName -Descending | ForEach-Object {
+        $target = [System.IO.Path]::GetFullPath($_.FullName)
+        if (-not $target.StartsWith($stage + [System.IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw "Unsafe cleanup path" }
+        Remove-Item -LiteralPath $target -Recurse -Force
+    }
 Get-ChildItem -LiteralPath $stage -Recurse -File |
     Where-Object { $_.Extension -in @(".pyc", ".pyo") } |
     Remove-Item -Force

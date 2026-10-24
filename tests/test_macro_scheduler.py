@@ -159,7 +159,7 @@ def test_complete_round_orchestrates_cycle_report_and_notification(monkeypatch, 
     monkeypatch.setattr(scheduler, "REPORT_DIR", tmp_path)
     monkeypatch.setattr(scheduler, "_latest_macro_excerpt", lambda: "macro")
     monkeypatch.setattr(scheduler, "_account_context", lambda market: {"account": {}, "holding_snapshots": []})
-    monkeypatch.setattr(scheduler, "_deliver_completed_report", lambda *args: {"status": "delivered"})
+    monkeypatch.setattr(scheduler, "_deliver_completed_report", lambda *args, **kwargs: {"status": "delivered"})
     monkeypatch.setattr(
         "engine.investment.reflection.InvestmentReflectionService.evaluate_pending",
         lambda *args, **kwargs: [],
@@ -192,7 +192,7 @@ def test_complete_round_orchestrates_cycle_report_and_notification(monkeypatch, 
 def test_cycle_without_runner_writes_skipped_report(monkeypatch, tmp_path):
     monkeypatch.setattr(scheduler, "REPORT_DIR", tmp_path)
     monkeypatch.setattr(scheduler, "_account_context", lambda market: {"account": {}, "holding_snapshots": []})
-    monkeypatch.setattr(scheduler, "_deliver_completed_report", lambda *args: {"status": "delivered"})
+    monkeypatch.setattr(scheduler, "_deliver_completed_report", lambda *args, **kwargs: {"status": "delivered"})
     monkeypatch.setattr(
         "engine.investment.reflection.InvestmentReflectionService.evaluate_pending",
         lambda *args, **kwargs: [],

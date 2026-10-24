@@ -1,4 +1,5 @@
 from __future__ import annotations
+from engine.localization import message, current_language, render_in_run_language, render_with_language
 
 import json
 import os
@@ -26,6 +27,7 @@ def _webhook_url(settings: Mapping[str, Any]) -> str:
         return ""
 
 
+@render_with_language
 def deliver_report(
     *,
     title: str,
@@ -39,13 +41,13 @@ def deliver_report(
         return {"status": "disabled"}
     channels = [str(value).lower() for value in settings.get("channels", [])]
     if "webhook" not in channels:
-        return {"status": "skipped", "reason": "没有启用 webhook 通知渠道"}
+        return {"status": "skipped", "reason": message('report.webhook.notifications.are.not.enabled')}
     url = _webhook_url(settings)
     if not url:
-        return {"status": "skipped", "reason": "未配置通知 webhook 地址"}
+        return {"status": "skipped", "reason": message('report.no.notification.webhook.address.configured')}
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        return {"status": "error", "error": "通知 webhook 地址无效"}
+        return {"status": "error", "error": message('report.invalid.notification.webhook.address')}
 
     payload = {
         "title": title,

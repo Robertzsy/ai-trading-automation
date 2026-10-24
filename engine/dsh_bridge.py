@@ -366,11 +366,17 @@ class DshBridgeRunner:
         configured_timeout = int(_bridge_config().get("node_timeout_seconds", 0) or 0)
         self.timeout_seconds = int(timeout_seconds or configured_timeout or 1800)
 
-    def _spawn(self, market: str, task: str, label: str, cycle_id: str) -> Dict[str, Any]:
+    def _spawn(self, market: str, task: str, label: str, cycle_id: str, *, language: str | None = None) -> Dict[str, Any]:
         """Run one headless DSH round (shared by scheduled and analysis rounds)."""
         from engine.subprocess_utils import decode_subprocess_output, hidden_subprocess_kwargs
 
+        from engine import analysis_runs
+        from engine.localization import output_language
+        saved_run = analysis_runs.get(cycle_id)
+        language = saved_run.get("output_language", "zh") if saved_run else (language or output_language())
+        task += "\nOUTPUT LANGUAGE: " + ("Use English for all generated prose. Preserve codes, numbers, currencies and original citations." if language == "en" else "所有新生成的解释使用简体中文，机器字段与原始引用保持原样。")
         env = dict(os.environ)
+        env["ATA_OUTPUT_LANGUAGE"] = language
         env["DSH_TELEMETRY_DISABLED"] = "1"
         # Research children can use their tools without interactive prompts.
         # The coordinator guard forbids background coding/self-repair.
@@ -456,6 +462,7 @@ class DshBridgeRunner:
             }
         return {
             "status": "generated",
+            "output_language": language,
             "report_text": report_text or "DSH 轮次未输出总结。",
             "label": label,
             "elapsed_seconds": round(time.monotonic() - start_monotonic, 1),
@@ -472,7 +479,7 @@ class DshBridgeRunner:
     def __call__(self, market: str, cycle_type: str, context: Mapping[str, Any]) -> Dict[str, Any]:
         label = str(context.get("label", "auto"))[:40]
         task = _round_task(market, cycle_type, context)
-        spawned = self._spawn(market, task, label, _cycle_id(market, context))
+        spawned = self._spawn(market, task, label, _cycle_id(market, context), language=context.get("output_language"))
         if spawned.get("status") != "generated":
             return spawned
         audit = _latest_audit_since(market, label, spawned.pop("_start_wall"))
@@ -481,6 +488,7 @@ class DshBridgeRunner:
             "report_text": spawned.get("report_text") or "DSH 轮次未输出总结。",
             "label": label,
             "elapsed_seconds": spawned.get("elapsed_seconds"),
+            "output_language":spawned.get("output_language","zh"),
         }
         if audit is None:
             result["warnings"] = ["轮次未产生决策审计（可能未提交决策或标的全部放弃）"]

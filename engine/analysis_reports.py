@@ -30,6 +30,7 @@ Report generation must never fail a round: it is an auxiliary record, the same
 posture ``decision_execution`` takes for its own report/notify step.
 """
 from __future__ import annotations
+from engine.localization import message, current_language, render_in_run_language
 
 import json
 import html
@@ -75,12 +76,12 @@ def _fmt_duration(ms: Any) -> str:
         return "-"
     seconds = ms / 1000
     if seconds < 60:
-        return f"{seconds:.1f} 秒"
+        return f"{seconds:.1f}{message('report.s')}"
     minutes, remainder = divmod(int(seconds), 60)
     if minutes < 60:
-        return f"{minutes} 分 {remainder} 秒"
+        return f"{minutes}{message('report.min.2')}{remainder}{message('report.s')}"
     hours, minutes = divmod(minutes, 60)
-    return f"{hours} 时 {minutes} 分"
+    return f"{hours}{message('report.h')}{minutes}{message('report.min')}"
 
 
 def round_report_path(run: Mapping[str, Any]) -> Path:
@@ -159,22 +160,22 @@ def _goal_section(goal: Optional[Mapping[str, Any]], history_row: Optional[Mappi
     """Render the objective-completion section (empty when no goal is attached)."""
     if not goal and not history_row:
         return []
-    lines = [f"## {_cn(number)}、本轮目标与完成度", ""]
+    lines = [f"## {_cn(number)}{message('report.round.goals.and.progress')}", ""]
     if goal:
-        lines.append(f"- **总目标**：{_safe(goal.get('title'), 200) or '(未命名)'}")
-        lines.append(f"- **目标状态**：{_safe(goal.get('status'), 40) or 'active'}")
+        lines.append(f"{message('report.overall.goal')}{_safe(goal.get('title'), 200) or message('report.untitled')}")
+        lines.append(f"{message('report.goal.status')}{_safe(goal.get('status'), 40) or 'active'}")
         if goal.get("horizon"):
             horizon = goal.get("horizon") or {}
             if horizon.get("until"):
-                lines.append(f"- **期限**：{_safe(horizon.get('until'), 40)}")
+                lines.append(f"{message('report.deadline')}{_safe(horizon.get('until'), 40)}")
     if not history_row:
-        lines.append("- 本轮尚未评估（目标评估在轮次终态后异步写入）。")
+        lines.append(message('report.this.round.has.not.yet.been.evaluated.goal.evaluation.is.recorded.asynchron'))
         lines.append("")
         return lines
     score = history_row.get("weighted_score")
     if isinstance(score, (int, float)) and not isinstance(score, bool):
-        lines.append(f"- **加权完成度**：{float(score):.0%}")
-    lines.extend(["", "| 子目标 | 优先级 | 指标 | 目标 | 实测 | 是否达成 |", "|---|---|---|---|---|---|"])
+        lines.append(f"{message('report.weighted.progress')}{float(score):.0%}")
+    lines.extend(["", message('report.sub.goal.priority.metric.target.actual.met'), "|---|---|---|---|---|---|"])
     sub_goals = {
         str(item.get("id")): item
         for item in (goal.get("sub_goals") if isinstance(goal, Mapping) else []) or []
@@ -188,28 +189,25 @@ def _goal_section(goal: Optional[Mapping[str, Any]], history_row: Optional[Mappi
             met = bool((result or {}).get("met")) if isinstance(result, Mapping) else False
             actual = (result or {}).get("actual") if isinstance(result, Mapping) else None
             lines.append(
-                f"| {_safe(definition.get('title') or sub_id, 60)} "
-                f"| {_safe(definition.get('priority'), 8) or '-'} "
-                f"| {_safe(metric.get('name'), 40) or '-'} "
-                f"| {_safe(metric.get('op'), 4)}{_safe(metric.get('target'), 20)} "
-                f"| {_safe(actual, 20) if actual is not None else '不可得'} "
-                f"| {'是' if met else '否'} |"
+                f"| {_safe(definition.get('title') or sub_id, 60)} | {_safe(definition.get('priority'), 8) or '-'} | {_safe(metric.get('name'), 40) or '-'} | {_safe(metric.get('op'), 4)}{_safe(metric.get('target'), 20)} | {(_safe(actual, 20) if actual is not None else message('report.unavailable'))} | {(message('report.yes') if met else message('report.no'))} |"
             )
     else:
         lines.append("| - | - | - | - | - | - |")
     deviation = history_row.get("deviation")
     if isinstance(deviation, list) and deviation:
-        lines.extend(["", "**偏离项**："])
+        lines.extend(["", message('report.deviations')])
         lines.extend(f"- {_safe(item, 200)}" for item in deviation[:10])
     focus = history_row.get("next_focus")
     if isinstance(focus, list) and focus:
-        lines.extend(["", "**下一轮优化方向**："])
+        lines.extend(["", message('report.next.round.focus')])
         lines.extend(f"- {_safe(item, 200)}" for item in focus[:10])
     lines.append("")
     return lines
 
 
 def _cn(number: int) -> str:
+    if current_language() == "en":
+        return str(number)
     """1 -> 一, 2 -> 二 … (report section numbering)."""
     digits = "零一二三四五六七八九"
     if number <= 0:
@@ -233,20 +231,20 @@ def _stage_section(run: Mapping[str, Any], number: int) -> List[str]:
         "portfolio_draft", "risk_review", "final_decision", "execution",
     ]
     labels = {
-        "preparing": "准备数据", "resuming": "恢复检查点",
-        "base_research": "四类基础研究", "research_debate": "多空辩论与研究裁决",
-        "portfolio_draft": "组合草案", "risk_review": "风险辩论与裁决",
-        "final_decision": "最终组合决策", "execution": "硬风控与模拟执行",
-        "ready_for_execution": "等待批准", "completed": "已完成",
-        "failed": "失败", "cancelled": "已停止",
+        "preparing": message('report.preparing.data'), "resuming": message('report.restoring.checkpoints'),
+        "base_research": message('report.four.base.research.roles'), "research_debate": message('report.bull.bear.debate.and.research.review'),
+        "portfolio_draft": message('report.portfolio.draft'), "risk_review": message('report.risk.debate.and.review'),
+        "final_decision": message('report.final.portfolio.decision'), "execution": message('report.hard.risk.checks.and.paper.execution'),
+        "ready_for_execution": message('report.awaiting.approval'), "completed": message('report.completed'),
+        "failed": message('report.failed'), "cancelled": message('report.stopped'),
     }
     status_labels = {
-        "completed": "已完成", "running": "运行中", "failed": "失败",
-        "cancelled": "已停止", "pending": "等待中",
+        "completed": message('report.completed'), "running": message('report.running'), "failed": message('report.failed'),
+        "cancelled": message('report.stopped'), "pending": message('report.waiting'),
     }
     known = [name for name in order if name in stages]
     extra = [name for name in stages if name not in order]
-    lines = [f"## {_cn(number)}、阶段时间线", "", "| 阶段 | 状态 | 开始 | 结束 | 耗时 | 子任务 |", "|---|---|---|---|---|---|"]
+    lines = [f"## {_cn(number)}{message('report.stage.timeline')}", "", message('report.stage.status.started.ended.duration.tasks'), "|---|---|---|---|---|---|"]
     for name in [*known, *extra]:
         state = stages.get(name) or {}
         if not isinstance(state, Mapping):
@@ -256,7 +254,7 @@ def _stage_section(run: Mapping[str, Any], number: int) -> List[str]:
         failed = state.get("agents_failed")
         subtasks = f"{done or 0}/{total or 0}"
         if failed:
-            subtasks += f"（失败 {failed}）"
+            subtasks += f"{message('report.failed.2')}{failed}）"
         lines.append(
             f"| {_safe(labels.get(name, name), 40)} "
             f"| {_safe(status_labels.get(str(state.get('status')), state.get('status')), 20)} "
@@ -274,8 +272,8 @@ def _agent_section(run: Mapping[str, Any], number: int = 3) -> List[str]:
     if not isinstance(agents, Mapping) or not agents:
         return []
     lines = [
-        f"## {_cn(number)}、子任务明细", "",
-        "| 子任务 | 阶段 | 状态 | 耗时 | 结果摘要 |", "|---|---|---|---|---|",
+        f"## {_cn(number)}{message('report.task.details')}", "",
+        message('report.task.stage.status.duration.result.summary'), "|---|---|---|---|---|",
     ]
     rows = sorted(
         (value for value in agents.values() if isinstance(value, Mapping)),
@@ -283,7 +281,7 @@ def _agent_section(run: Mapping[str, Any], number: int = 3) -> List[str]:
     )
     for agent in rows:
         status = str(agent.get("status"))
-        status_text = {"completed": "完成", "running": "运行中", "failed": "失败", "cancelled": "已停止"}.get(
+        status_text = {"completed": message('report.completed.3'), "running": message('report.running'), "failed": message('report.failed'), "cancelled": message('report.stopped')}.get(
             status, status or "-"
         )
         summary = agent.get("summary") or agent.get("error") or "-"
@@ -302,10 +300,10 @@ def _decision_section(run: Mapping[str, Any], number: int = 4) -> List[str]:
     decisions = run.get("decisions")
     if not isinstance(decisions, list) or not decisions:
         return []
-    action_labels = {"BUY": "买入/加仓", "SELL": "卖出/减仓", "HOLD": "观望/继续持有"}
+    action_labels = {"BUY": message('report.buy.increase'), "SELL": message('report.sell.reduce'), "HOLD": message('report.hold.wait')}
     lines = [
-        f"## {_cn(number)}、研究结论（逐标的）", "",
-        "| 标的 | 建议 | 目标权重 | 置信度 | 依据 | 引用证据 |",
+        f"## {_cn(number)}{message('report.research.conclusions.by.security')}", "",
+        message('report.security.recommendation.target.weight.confidence.rationale.evidence'),
         "|---|---|---|---|---|---|",
     ]
     for item in decisions:
@@ -318,10 +316,10 @@ def _decision_section(run: Mapping[str, Any], number: int = 4) -> List[str]:
             f"{float(confidence):.0%}" if isinstance(confidence, (int, float)) and not isinstance(confidence, bool) else "-"
         )
         evidence = item.get("evidence_ids")
-        evidence_text = f"{len(evidence)} 条" if isinstance(evidence, list) else "-"
+        evidence_text = (f"{len(evidence)}{message('report.items.2')} — " + _safe(", ".join(str(value) for value in evidence), 500)) if isinstance(evidence, list) else "-"
         lines.append(
             f"| {_safe(item.get('symbol'), 20)} "
-            f"| {_safe(action_labels.get(str(item.get('action', '')).upper(), item.get('action')), 20)} "
+            f"| {_safe(message('report.watch.zero.weight') if str(item.get('action')).upper() == 'BUY' and isinstance(weight, (int, float)) and weight <= 0 else action_labels.get(str(item.get('action', '')).upper(), item.get('action')), 40)} "
             f"| {weight_text} | {confidence_text} "
             f"| {_safe(item.get('reason'), 240)} | {evidence_text} |"
         )
@@ -355,13 +353,11 @@ def _summary_section(run: Mapping[str, Any]) -> List[str]:
             confidences.append(float(value))
     average = f"{sum(confidences) / len(confidences):.0%}" if confidences else "-"
     lines = [
-        "## 一、决策摘要",
+        message('report.1.decision.summary'),
         "",
-        f"- 研究标的：{len(run.get('symbols') or [])} 只；"
-        f"买入 {counts.get('BUY', 0)} / 卖出 {counts.get('SELL', 0)} / 观望 {counts.get('HOLD', 0)}；"
-        f"平均置信度：{average}",
+        f"{message('report.securities.researched')}{len(run.get('symbols') or [])}{message('report.buy')}{counts.get('BUY', 0)}{message('report.sell')}{counts.get('SELL', 0)}{message('report.hold')}{counts.get('HOLD', 0)}{message('report.average.confidence')}{average}",
         "",
-        "| 标的 | 评级 | 置信度 | 目标权重 | 一句话结论 |",
+        message('report.security.rating.confidence.target.weight.conclusion'),
         "|---|---|---|---|---|",
     ]
     for item in decisions:
@@ -369,11 +365,11 @@ def _summary_section(run: Mapping[str, Any]) -> List[str]:
         weight = item.get("target_weight")
         weight_value = float(weight) if isinstance(weight, (int, float)) and not isinstance(weight, bool) else None
         if action == "BUY":
-            rating = "买入" if (weight_value or 0) > 0 else "观察（0 权重）"
+            rating = message('report.buy.2') if (weight_value or 0) > 0 else message('report.watch.zero.weight')
         elif action == "SELL":
-            rating = "卖出"
+            rating = message('report.sell.2')
         else:
-            rating = "持有/观望"
+            rating = message('report.hold.wait.2')
         confidence = item.get("confidence")
         confidence_text = (
             f"{float(confidence):.0%}" if isinstance(confidence, (int, float)) and not isinstance(confidence, bool) else "-"
@@ -390,7 +386,7 @@ def _summary_section(run: Mapping[str, Any]) -> List[str]:
 
 def _context_section(run: Mapping[str, Any]) -> List[str]:
     """Screening provenance, data quality and reproducibility caveats."""
-    lines = ["## 一、上下文与数据口径", ""]
+    lines = [message('report.1.context.and.data.basis'), ""]
     screening = run.get("screening") if isinstance(run.get("screening"), Mapping) else None
     if screening:
         generated = _iso_dt(screening.get("generated_at"))
@@ -399,14 +395,13 @@ def _context_section(run: Mapping[str, Any]) -> List[str]:
         if generated is not None and started is not None:
             age = round((started - generated).total_seconds() / 60, 1)
         line = (
-            f"- 选股：生成于 {_safe(screening.get('generated_at'), 40)}，"
-            f"来源 {_safe(screening.get('source'), 60) or '-'}，候选 {screening.get('selected_count', '-')} 只"
+            f"{message('report.screening.generated.at')}{_safe(screening.get('generated_at'), 40)}{message('report.source')}{_safe(screening.get('source'), 60) or '-'}{message('report.candidates')}{screening.get('selected_count', '-')}{message('report.securities')}"
         )
         if age is not None:
-            line += f"，启动时已 {age:.1f} 分钟"
+            line += f"{message('report.age.at.start')}{age:.1f}{message('report.minutes')}"
         lines.append(line)
         if age is not None and age > 30:
-            lines.append("- ⚠️ 该轮使用的选股结果在启动时已超过 30 分钟 TTL，候选池可能过期。")
+            lines.append(message('report.screening.was.older.than.the.30.minute.ttl.at.round.start.candidates.may.be'))
     try:
         from engine import feedback
 
@@ -422,14 +417,13 @@ def _context_section(run: Mapping[str, Any]) -> List[str]:
             f"{name} {count}" for name, count in (quality.get("sources") or {}).items()
         ) or "-"
         lines.append(
-            f"- 数据质量：快照 {quality.get('snapshots')} 个；仍有缺口 {quality.get('with_remaining_gaps')} 个；"
-            f"缺口率 {rate_text}；补数来源 {sources}"
+            f"{message('report.data.quality.snapshots')}{quality.get('snapshots')}{message('report.remaining.gaps')}{quality.get('with_remaining_gaps')}{message('report.gap.rate')}{rate_text}{message('report.supplemental.sources')}{sources}"
         )
     else:
-        lines.append("- 数据质量：本轮无遥测记录")
+        lines.append(message('report.data.quality.no.telemetry.records.for.this.round'))
     lines.extend([
-        "- 数据口径：行情与财务为抓取时点的公开数据快照，不同来源可能存在口径/时点差异；缺失字段会在证据中标注。",
-        "- 复现说明：LLM 输出具有非确定性，相同输入不保证完全相同的结论或置信度。",
+        message('report.data.basis.prices.and.financials.are.public.snapshots.at.collection.time.so'),
+        message('report.reproducibility.llm.outputs.are.nondeterministic.identical.inputs.may.produ'),
         "",
     ])
     return lines
@@ -472,11 +466,11 @@ def _memory_section(run: Mapping[str, Any]) -> List[str]:
     if not latest:
         return []
     lines = [
-        "## 一、历史决策参考",
+        message('report.1.previous.decisions'),
         "",
-        "同一标的在本轮之前最近一次的决策（来自本地反馈记录，仅用于对比，不参与本轮判断）：",
+        message('report.the.latest.previous.decision.for.each.security.local.feedback.records.for.c'),
         "",
-        "| 标的 | 上次轮次 | 决策 | 置信度 | 时间 |",
+        message('report.security.previous.round.action.confidence.time'),
         "|---|---|---|---|---|",
     ]
     for symbol in sorted(latest):
@@ -501,19 +495,17 @@ def _risk_section(run: Mapping[str, Any], number: int = 5) -> List[str]:
     ]
     if not (isinstance(warnings, list) and warnings) and not failed_agents and not run.get("error"):
         return []
-    lines = [f"## {_cn(number)}、风险与降级", ""]
+    lines = [f"## {_cn(number)}{message('report.risks.and.degradation')}", ""]
     if run.get("error"):
-        lines.append(f"- **轮次错误**：{_safe(run.get('error'), 500)}")
+        lines.append(f"{message('report.round.error')}{_safe(run.get('error'), 500)}")
     if isinstance(warnings, list):
         for warning in warnings[:20]:
-            lines.append(f"- **降级说明**：{_safe(warning, 400)}")
+            lines.append(f"{message('report.degradation')}{_safe(warning, 400)}")
     if failed_agents:
-        lines.append(f"- **失败子任务 {len(failed_agents)} 个**：")
+        lines.append(f"{message('report.failed.tasks')}{len(failed_agents)}{message('report.')}")
         for agent in failed_agents[:20]:
             lines.append(
-                f"  - {_safe(agent.get('label') or '-', 80)}"
-                f"（{_safe(agent.get('phase') or agent.get('stage') or '-', 40)}）："
-                f"{_safe(agent.get('error') or '未提供原因', 300)}"
+                f"  - {_safe(agent.get('label') or '-', 80)}（{_safe(agent.get('phase') or agent.get('stage') or '-', 40)}）：{_safe(agent.get('error') or message('report.no.reason.supplied'), 300)}"
             )
     lines.append("")
     return lines
@@ -523,7 +515,7 @@ def _log_section(run: Mapping[str, Any]) -> List[str]:
     logs = run.get("logs")
     if not isinstance(logs, list) or not logs:
         return []
-    lines = [f"## 附：日志尾部（最近 {min(len(logs), MAX_LOG_TAIL)} 条）", "", "```text"]
+    lines = [f"{message('report.appendix.latest.log.entries')}{min(len(logs), MAX_LOG_TAIL)}{message('report.entries')}", "", "```text"]
     for entry in logs[-MAX_LOG_TAIL:]:
         if not isinstance(entry, Mapping):
             continue
@@ -543,9 +535,9 @@ def _brief_section(run: Mapping[str, Any]) -> List[str]:
         return []
     if not isinstance(bundle, dict) or bundle.get("format") != "research-brief-v1":
         return []
-    lines = ["## 六、研究论据与完整事实", "",
-             "事实由程序按原始字段展开；各角色的判断、反证与失效条件完整保留。新闻节选未自动视为已核验原文。", "",
-             "### 共享事实（每个编号展开一次）", ""]
+    lines = [message('report.6.research.arguments.and.complete.facts'), "",
+             message('report.facts.are.expanded.from.original.fields.each.role.s.arguments.countereviden'), "",
+             message('report.shared.facts.each.id.expanded.once'), ""]
 
     def prose(value: Any) -> None:
         # No character cap here: a late counterargument must survive the report.
@@ -560,7 +552,7 @@ def _brief_section(run: Mapping[str, Any]) -> List[str]:
 
     for stage, errors in (bundle.get("errors") or {}).items():
         if errors:
-            lines.extend(["**引用校验失败：该阶段未通过（" + _safe(stage, 80) + "）**", ""])
+            lines.extend([message('report.citation.validation.failed.stage.rejected') + _safe(stage, 80) + "）**", ""])
             for error in errors:
                 prose(str(error.get("label") or "") + "：" + str(error.get("error") or ""))
 
@@ -571,17 +563,17 @@ def _brief_section(run: Mapping[str, Any]) -> List[str]:
         seen.add(fact.get("id"))
         lines.append("#### " + _safe(fact.get("id"), 500))
         lines.append("")
-        prose("来源：" + str(fact.get("source") or "") + "；" + str(fact.get("title") or ""))
+        prose(message('report.source.2') + str(fact.get("source") or "") + "；" + str(fact.get("title") or ""))
         try:
             structured(json.loads(fact.get("claim") or ""))
         except (TypeError, json.JSONDecodeError):
             prose(fact.get("claim"))
 
-    labels = {"summary": "结论", "stance": "倾向", "confidence": "置信度", "risks": "风险/缺口",
-              "data_quality": "数据质量", "thesis": "论证", "verdict": "研究裁决", "reason": "决策理由",
-              "open_risks": "未解决风险", "assessment": "风险判断", "approved": "是否通过",
-              "adjustments": "修订要求", "decisions": "决策清单", "cash_reserve_rationale": "现金安排",
-              "evidence_ids": "引用证据", "target_weight": "目标权重", "action": "行动"}
+    labels = {"summary": message('report.conclusion'), "stance": message('report.stance'), "confidence": message('report.confidence'), "risks": message('report.risks.gaps'),
+              "data_quality": message('report.data.quality'), "thesis": message('report.argument'), "verdict": message('report.research.verdict'), "reason": message('report.decision.rationale'),
+              "open_risks": message('report.unresolved.risks'), "assessment": message('report.risk.assessment'), "approved": message('report.approved'),
+              "adjustments": message('report.required.adjustments'), "decisions": message('report.decisions'), "cash_reserve_rationale": message('report.cash.allocation'),
+              "evidence_ids": message('report.evidence.references'), "target_weight": message('report.target.weight'), "action": message('report.action')}
     for stage in ("base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"):
         rows = (bundle.get("stages") or {}).get(stage) or []
         if not rows:
@@ -596,14 +588,14 @@ def _brief_section(run: Mapping[str, Any]) -> List[str]:
                     continue
                 if key == "arguments":
                     for index, argument in enumerate(value or [], 1):
-                        lines.extend([f"**论据 {index}**", ""])
+                        lines.extend([f"{message('report.argument.2')}{index}**", ""])
                         prose(argument.get("inference"))
-                        prose("证据：" + ", ".join(argument.get("evidence_refs") or []))
-                        prose("反证/异议：" + str(argument.get("counterargument") or "未提供"))
-                        prose("失效条件：" + str(argument.get("invalid_if") or "未提供"))
+                        prose(message('report.evidence.2') + ", ".join(argument.get("evidence_refs") or []))
+                        prose(message('report.counterevidence.objections') + str(argument.get("counterargument") or message('report.not.supplied')))
+                        prose(message('report.invalidation.conditions') + str(argument.get("invalid_if") or message('report.not.supplied')))
                 elif key == "supplemental_evidence":
                     if value:
-                        lines.extend(["**补查证据（模型提交，未自动核验）**", ""])
+                        lines.extend([message('report.additional.evidence.model.supplied.not.automatically.verified'), ""])
                         structured(value)
                 else:
                     lines.extend(["**" + labels.get(key, key) + "**", ""])
@@ -614,6 +606,7 @@ def _brief_section(run: Mapping[str, Any]) -> List[str]:
     return lines
 
 
+@render_in_run_language
 def render_round_report(
     run: Mapping[str, Any],
     *,
@@ -626,9 +619,9 @@ def render_round_report(
     label = _safe(run.get("label"), 40) or "analysis"
     status = str(run.get("status") or "unknown")
     status_labels = {
-        "ready_for_execution": "分析完成，等待批准",
-        "completed": "已完成", "failed": "失败", "cancelled": "已停止",
-        "running": "运行中",
+        "ready_for_execution": message('report.analysis.complete.awaiting.approval'),
+        "completed": message('report.completed'), "failed": message('report.failed'), "cancelled": message('report.stopped'),
+        "running": message('report.running'),
     }
     stages = run.get("stages") or {}
     done_stages = sum(
@@ -651,15 +644,15 @@ def render_round_report(
         duration = ms_between(started, ended)
 
     header_lines: List[str] = [
-        f"# {market} {label} 分析轮次报告 · {_safe(run.get('cycle_id'), 120)}",
+        f"# {market} {label}{message('report.analysis.round.report')}{_safe(run.get('cycle_id'), 120)}",
         "",
-        f"> 轮次状态：{status_labels.get(status, status)}  ",
-        f"> 阶段：{done_stages}/{len(stages)} 完成  ",
-        f"> 耗时：{_fmt_duration(duration)}  ",
-        f"> 子任务：{len(finished)} 完成 / {len(failed)} 失败 / 共 {len(agents)}  ",
-        f"> 证据：{run.get('evidence_count', 0)} 条  ",
-        f"> 标的：{_safe(', '.join(str(item) for item in (run.get('symbols') or [])) or '(由流程内部选股)', 400)}  ",
-        f"> 标的来源：{_safe(run.get('symbols_source'), 40) or '-'}",
+        f"{message('report.round.status')}{status_labels.get(status, status)}  ",
+        f"{message('report.stages')}{done_stages}/{len(stages)}{message('report.complete')}",
+        f"{message('report.duration')}{_fmt_duration(duration)}  ",
+        f"{message('report.tasks')}{len(finished)}{message('report.completed.2')}{len(failed)}{message('report.failed.total')}{len(agents)}  ",
+        f"{message('report.evidence')}{run.get('evidence_count', 0)}{message('report.items')}",
+        f"{message('report.securities.2')}{_safe(', '.join((str(item) for item in run.get('symbols') or [])) or message('report.screened.within.the.workflow'), 400)}  ",
+        f"{message('report.security.source')}{_safe(run.get('symbols_source'), 40) or '-'}",
         "",
     ]
     # Sections are numbered by what is actually present, so the report never
@@ -681,24 +674,24 @@ def render_round_report(
             continue
         # Re-number to the next contiguous slot (each builder emits a
         # "## <n>、标题" heading; only the numeral is rewritten here).
-        block = [re.sub(r"^##\s+\S+?、", f"## {_cn(number)}、", block[0]), *block[1:]]
+        block = [re.sub(r"^##\s+(?:\S+?、|[0-9]+\. ?)", f"## {_cn(number)}" + (". " if current_language() == "en" else "、"), block[0]), *block[1:]]
         body.extend(block)
         number += 1
     body.extend([
-        f"## {_cn(number)}、本报告未执行交易", "",
-        "本轮为分析轮次（`submit=false`）。分析不会改变任何账户；如需执行，请在界面显式批准后",
-        f"用同一 cycle_id（`{_safe(run.get('cycle_id'), 120)}`）提交，引擎将校验决策指纹与硬风控边界。",
+        f"## {_cn(number)}{message('report.this.report.executed.no.trades')}", "",
+        message('report.this.is.an.analysis.round.submit.false.it.does.not.change.accounts.to.execu'),
+        f"{message('report.submit.the.same.cycle.id')}{_safe(run.get('cycle_id'), 120)}{message('report.the.engine.verifies.decision.fingerprints.and.hard.risk.limits')}",
         "",
     ])
     lines = header_lines + body
     if archive_dir:
         lines.extend([
-            "## 附：未截断阶段产物", "",
-            f"完整阶段结果（未经过工作流 1600 字符截断）保存在 `<runtime>/{_safe(archive_dir, 300)}`。",
+            message('report.appendix.untruncated.stage.outputs'), "",
+            f"{message('report.complete.stage.results.before.the.workflow.s.1600.character.truncation.are.')}{_safe(archive_dir, 300)}`。",
             "",
         ])
     lines.extend(_log_section(run))
-    lines.append("本轮为模拟研究与纸面交易，不构成投资建议。")
+    lines.append(message('report.this.round.is.simulated.research.and.paper.trading.not.investment.advice'))
     return "\n".join(lines)
 
 
@@ -744,6 +737,7 @@ def _update_index(entry: Mapping[str, Any]) -> None:
     write_text_atomic(target, json.dumps(rows[:500], ensure_ascii=False, indent=2, default=str))
 
 
+@render_in_run_language
 def generate(
     run: Mapping[str, Any],
     *,
@@ -769,8 +763,7 @@ def generate(
         )
         target = round_report_path(run)
         title = (
-            f"# {_safe(run.get('market'), 12).upper()} {_safe(run.get('label'), 40)} 分析轮次报告\n\n"
-            f"> 生成时间：{_now()}  | 模式：手动/固定分析流程\n\n"
+            f"# {_safe(run.get('market'), 12).upper()} {_safe(run.get('label'), 40)}{message('report.analysis.round.report.generated.at')}{_now()}{message('report.mode.manual.fixed.workflow')}"
         )
         # Strip the renderer's own H1 so the prefix owns the title.
         body_without_h1 = body.split("\n", 1)[1].lstrip("\n") if body.startswith("# ") else body
@@ -843,14 +836,14 @@ def read_report_content(*, cycle_id: str = "", file: str = "") -> Dict[str, Any]
             raise KeyError(f"report not found for cycle_id: {cycle_id}")
     name = str(file or "").strip()
     if not name:
-        raise ValueError("必须提供 cycle_id 或 file")
+        raise ValueError(message('report.provide.cycle.id.or.file'))
     if not re.fullmatch(r"[A-Za-z0-9_.-]+\.md", name):
-        raise ValueError("非法的报告文件名")
+        raise ValueError(message('report.invalid.report.filename'))
     candidate = directory / name
     if not _within(directory, candidate):
-        raise ValueError("非法的报告路径")
+        raise ValueError(message('report.invalid.report.path'))
     if not candidate.is_file():
-        raise KeyError(f"报告文件不存在: {name}")
+        raise KeyError(f"{message('report.report.file.does.not.exist')}{name}")
     text = candidate.read_text(encoding="utf-8")
     return {
         "file": name,

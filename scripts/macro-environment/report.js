@@ -15,6 +15,13 @@ const REPORTS_DIR = process.env.MACRO_DATA_DIR
   ? path.resolve(process.env.MACRO_DATA_DIR)
   : path.resolve(__dirname, '..', '..', 'runtime', 'macro');
 const NEWS_DIR = path.join(REPORTS_DIR, 'news');
+
+const macroLanguage = (process.env.MACRO_OUTPUT_LANGUAGE === 'en' || process.argv.includes('--english')) ? 'en' : 'zh';
+const macroCopy = require('./locales.json');
+const mtr=(key,params={})=>macroCopy[key][macroLanguage].replace(/\{(p[0-9]+)\}/g,(_,name)=>String(params[name]));
+const categoryNames={'货币政策':'Monetary policy','财政政策':'Fiscal policy','产业政策':'Industrial policy','监管动态':'Regulation','宏观数据':'Macro data','国际财经':'International finance','大宗商品':'Commodities','地缘政治':'Geopolitics','行业动态':'Industry','科技前沿':'Technology','其他':'Other'};
+const categoryName=cat=>macroLanguage==='en'?(categoryNames[cat]??cat):cat;
+
 const MARKS_FILE = path.join(REPORTS_DIR, 'marks.json');
 
 const PERIOD_DIRS = {
@@ -76,7 +83,7 @@ function generateDaily(data) {
   // 日报面向"昨天"，所以 endDate 就是昨天
   const date = data.window.endDate;
   const d = new Date(date);
-  const weekday = WEEKDAYS[d.getDay()];
+  const weekday = macroLanguage==='en'?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()]:WEEKDAYS[d.getDay()];
   const news = data.news || [];
   const market = data.market_data || {};
 
@@ -87,20 +94,20 @@ function generateDaily(data) {
   let report = '';
 
   // Header - 显示为"昨日"
-  report += `## 📰 宏观日报 | 昨日 ${date}（周${weekday}）\n\n`;
+  report += mtr("macro.daily.macro.briefing.previous.day.p0.p1",{p0:(date),p1:(weekday)});
 
   // 今日概览
-  report += `> 📡 采集 ${data.stats.total} 条新闻 | 🔴 高 ${data.stats.high} | 🟡 中 ${data.stats.medium} | ⚪ 低 ${data.stats.low}\n\n`;
+  report += mtr("macro.collected.p0.articles.high.p1.medium.p2.low.p3",{p0:(data.stats.total),p1:(data.stats.high),p2:(data.stats.medium),p3:(data.stats.low)});
 
   // Highlight
   if (high.length > 0) {
-    report += `### ⚡ 重点关注\n\n`;
+    report += mtr("macro.highlights",{});
     for (const n of high.slice(0, 8)) {
-      const cats = n.categories.map(c => `${categoryEmoji(c)}${c}`).join(' ');
+      const cats = n.categories.map(c => `${categoryEmoji(c)}${categoryName(c)}`).join(' ');
       report += `**${importanceEmoji(n.importance)} ${n.title}**\n`;
       report += `> ${cats} | ${n.source} | ${formatTime(n.time)}\n`;
       if (n.intro) report += `> ${n.intro.slice(0, 120)}\n`;
-      report += `> 📎 [原文](${n.url})\n\n`;
+      report += mtr("macro.original.source.p0",{p0:(n.url)});
     }
     report += `\n`;
   }
@@ -118,7 +125,7 @@ function generateDaily(data) {
   for (const cat of categoryOrder) {
     const items = groupedByCategory[cat];
     if (!items || items.length === 0) continue;
-    report += `### ${categoryEmoji(cat)} ${cat}\n\n`;
+    report += `### ${categoryEmoji(cat)} ${categoryName(cat)}\n\n`;
     for (const n of items) {
       report += `- ${importanceEmoji(n.importance)} **[${n.title}](${n.url})** — ${n.source}\n`;
     }
@@ -128,11 +135,11 @@ function generateDaily(data) {
   // 行情数据
   const indices = market.indices || [];
   if (market._isWeekend) {
-    report += `### 📊 行情数据\n\n`;
-    report += `> ⚠️ 昨日为周末，A股休市。以下为最近交易日数据，具体请查阅前一个交易日日报。\n\n`;
+    report += mtr("macro.market.data",{});
+    report += mtr("macro.the.previous.day.was.a.weekend.mainland.markets.were.closed.these.are.the.latest",{});
   } else if (indices.length > 0) {
-    report += `### 📊 行情数据\n\n`;
-    report += `| 指数 | 收盘 | 涨跌幅 |\n`;
+    report += mtr("macro.market.data",{});
+    report += mtr("macro.index.close.change",{});
     report += `|------|------|--------|\n`;
     for (const idx of indices) {
       const sign = idx.change_pct >= 0 ? '+' : '';
@@ -144,9 +151,9 @@ function generateDaily(data) {
   const topSectors = market.topSectors || [];
   const bottomSectors = market.bottomSectors || [];
   if (topSectors.length > 0) {
-    report += `**📈 板块涨跌 TOP5**\n\n`;
-    report += `🏆 涨幅: ${topSectors.slice(0, 5).map(s => `${s.name}(+${s.change_pct}%)`).join(' | ')}\n`;
-    report += `💔 跌幅: ${bottomSectors.slice(0, 5).map(s => `${s.name}(${s.change_pct}%)`).join(' | ')}\n`;
+    report += mtr("macro.top.5.sector.moves",{});
+    report += mtr("macro.gainers.p0",{p0:(topSectors.slice(0, 5).map(s => `${s.name}(+${s.change_pct}%)`).join(' | '))});
+    report += mtr("macro.decliners.p0",{p0:(bottomSectors.slice(0, 5).map(s => `${s.name}(${s.change_pct}%)`).join(' | '))});
     report += `\n`;
   }
 
@@ -166,7 +173,7 @@ function generateDaily(data) {
     report += `💡 ${topTags.join(' ')}\n\n`;
   }
 
-  report += `---\n*报告生成时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}*\n`;
+  report += mtr("macro.generated.at.p0",{p0:(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))});
 
   return report;
 }
@@ -183,12 +190,12 @@ function generateWeekly(data) {
 
   let report = '';
 
-  report += `## 📅 宏观周报 | ${startDate} ~ ${endDate}（${wn}）\n\n`;
-  report += `> 📡 本周采集 ${data.stats.total} 条 | 🔴 高 ${data.stats.high} | 🟡 中 ${data.stats.medium}\n\n`;
+  report += mtr("macro.weekly.macro.briefing.p0.p1.p2",{p0:(startDate),p1:(endDate),p2:(wn)});
+  report += mtr("macro.this.week.p0.articles.high.p1.medium.p2",{p0:(data.stats.total),p1:(data.stats.high),p2:(data.stats.medium)});
 
   // 本周主线
   if (high.length > 0) {
-    report += `### 🔥 本周主线\n\n`;
+    report += mtr("macro.main.themes.this.week",{});
     for (const n of high.slice(0, 15)) {
       report += `- ${importanceEmoji(n.importance)} **[${n.title}](${n.url})** — ${n.source} ${formatTime(n.time)}\n`;
     }
@@ -196,41 +203,41 @@ function generateWeekly(data) {
   }
 
   // 分类汇总
-  report += `### 📋 分类汇总\n\n`;
+  report += mtr("macro.category.summary",{});
   const cats = Object.entries(data.stats.categories || {}).sort((a, b) => b[1] - a[1]);
   for (const [cat, count] of cats) {
     const bar = '█'.repeat(Math.min(count, 20));
-    report += `- ${categoryEmoji(cat)} ${cat}: ${count} 条 ${bar}\n`;
+    report += mtr("macro.p0.p1.p2.articles.p3",{p0:(categoryEmoji(cat)),p1:(categoryName(cat)),p2:(count),p3:(bar)});
   }
   report += `\n`;
 
   // 行业热度
-  report += `### 🏭 行业热度\n\n`;
+  report += mtr("macro.industry.attention",{});
   const sectors = Object.entries(data.stats.sectors || {}).sort((a, b) => b[1] - a[1]);
   for (const [sector, count] of sectors.slice(0, 10)) {
-    report += `- ${sector}: ${count} 条相关新闻\n`;
+    report += mtr("macro.p0.p1.related.articles",{p0:(sector),p1:(count)});
   }
   report += `\n`;
 
   // 本周重要数据
-  report += `### 📊 本周重要数据发布\n\n`;
+  report += mtr("macro.key.data.releases.this.week",{});
   const dataNews = news.filter(n => n.categories.includes('宏观数据'));
   if (dataNews.length > 0) {
     for (const n of dataNews) {
       report += `- [${n.title}](${n.url})\n`;
     }
   } else {
-    report += `（本周无重大宏观数据发布）\n`;
+    report += mtr("macro.no.major.macroeconomic.releases.this.week",{});
   }
   report += `\n`;
 
   // 下周关注
-  report += `### 📌 下周关注\n\n`;
-  report += `- 持续关注: 中东局势演变、美伊关系\n`;
-  report += `- 数据发布: 关注 PMI 等月度数据\n`;
-  report += `- 政策面: 关注央行公开市场操作节奏\n\n`;
+  report += mtr("macro.next.week",{});
+  report += mtr("macro.monitor.developments.in.the.middle.east.and.us.iran.relations",{});
+  report += mtr("macro.data.monitor.monthly.releases.including.pmi",{});
+  report += mtr("macro.policy.monitor.central.bank.open.market.operations",{});
 
-  report += `---\n*报告生成时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}*\n`;
+  report += mtr("macro.generated.at.p0",{p0:(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))});
 
   return report;
 }
@@ -245,11 +252,11 @@ function generateMonthly(data) {
 
   let report = '';
 
-  report += `## 🗓️ 宏观月报 | ${startDate} ~ ${endDate}\n\n`;
-  report += `> 📡 本月采集 ${data.stats.total} 条 | 🔴 高 ${data.stats.high}\n\n`;
+  report += mtr("macro.monthly.macro.briefing.p0.p1",{p0:(startDate),p1:(endDate)});
+  report += mtr("macro.this.month.p0.articles.high.p1",{p0:(data.stats.total),p1:(data.stats.high)});
 
   // 宏观全景
-  report += `### 🌏 宏观全景\n\n`;
+  report += mtr("macro.macro.overview",{});
   const macroNews = news.filter(n => n.categories.some(c => ['货币政策', '财政政策', '宏观数据', '国际财经'].includes(c)));
   for (const n of high.slice(0, 20)) {
     report += `- ${importanceEmoji(n.importance)} [${n.title}](${n.url}) — ${n.source}\n`;
@@ -257,7 +264,7 @@ function generateMonthly(data) {
   report += `\n`;
 
   // 政策路线图
-  report += `### 🛤️ 政策路线图\n\n`;
+  report += mtr("macro.policy.roadmap",{});
   const policyNews = news.filter(n => n.categories.some(c => ['货币政策', '财政政策', '产业政策', '监管动态'].includes(c)));
   for (const n of policyNews.filter(n => n.importance === 'high').slice(0, 10)) {
     report += `- [${n.title}](${n.url})\n`;
@@ -265,17 +272,17 @@ function generateMonthly(data) {
   report += `\n`;
 
   // 行业景气度
-  report += `### 🏭 行业轮动\n\n`;
+  report += mtr("macro.industry.rotation",{});
   const sectors = Object.entries(data.stats.sectors || {}).sort((a, b) => b[1] - a[1]);
-  report += `| 行业 | 新闻提及 | 关注度 |\n`;
+  report += mtr("macro.industry.news.mentions.attention",{});
   report += `|------|----------|--------|\n`;
   for (const [sector, count] of sectors.slice(0, 10)) {
-    const level = count > 15 ? '🔥 极高' : count > 10 ? '📈 高' : count > 5 ? '👀 关注' : '➖ 正常';
+    const level = count > 15 ? mtr("macro.very.high") : count > 10 ? mtr("macro.high") : count > 5 ? mtr("macro.watch") : mtr("macro.normal");
     report += `| ${sector} | ${count} | ${level} |\n`;
   }
   report += `\n`;
 
-  report += `---\n*报告生成时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}*\n`;
+  report += mtr("macro.generated.at.p0",{p0:(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))});
 
   return report;
 }
@@ -290,15 +297,15 @@ function generateYearly(data) {
 
   let report = '';
 
-  report += `## 📆 宏观年报 | ${startDate} ~ ${endDate}\n\n`;
-  report += `> 📡 全年采集 ${data.stats.total} 条重大新闻\n\n`;
+  report += mtr("macro.annual.macro.briefing.p0.p1",{p0:(startDate),p1:(endDate)});
+  report += mtr("macro.p0.major.articles.collected.this.year",{p0:(data.stats.total)});
 
   // 年度回顾
-  report += `### 🎯 年度回顾\n\n`;
-  report += `（基于全年采集的 ${data.stats.total} 条新闻数据，以下是年度宏观环境变化的核心主线）\n\n`;
+  report += mtr("macro.annual.review",{});
+  report += mtr("macro.main.macro.themes.based.on.p0.articles.collected.during.the.year",{p0:(data.stats.total)});
 
   // 重大事件时间线
-  report += `### 📅 重大事件时间线\n\n`;
+  report += mtr("macro.major.events.timeline",{});
   // 按月分组
   const byMonth = {};
   for (const n of high) {
@@ -317,9 +324,9 @@ function generateYearly(data) {
   }
 
   // 行业年度轮动
-  report += `### 🏭 行业年度全景\n\n`;
+  report += mtr("macro.annual.industry.overview",{});
   const sectors = Object.entries(data.stats.sectors || {}).sort((a, b) => b[1] - a[1]);
-  report += `| 行业 | 全年关注度 |\n`;
+  report += mtr("macro.industry.annual.attention",{});
   report += `|------|------------|\n`;
   for (const [sector, count] of sectors.slice(0, 15)) {
     report += `| ${sector} | ${'█'.repeat(Math.max(1, Math.ceil(count / 5)))} ${count} |\n`;
@@ -327,13 +334,13 @@ function generateYearly(data) {
   report += `\n`;
 
   // 来年展望
-  report += `### 🔮 来年展望\n\n`;
-  report += `（基于年度趋势分析，以下是来年值得关注的方向和风险点）\n\n`;
-  report += `- 政策延续性：关注重点产业政策的延续与调整\n`;
-  report += `- 国际环境：地缘政治风险仍将是核心变量\n`;
-  report += `- 技术变革：AI 等前沿科技对产业格局的重塑加速\n\n`;
+  report += mtr("macro.outlook.for.next.year",{});
+  report += mtr("macro.directions.and.risks.to.monitor.based.on.annual.trends",{});
+  report += mtr("macro.policy.continuity.monitor.key.industry.policies.and.adjustments",{});
+  report += mtr("macro.international.environment.geopolitical.risks.remain.a.key.variable",{});
+  report += mtr("macro.technology.ai.and.other.emerging.technologies.are.reshaping.industries",{});
 
-  report += `---\n*报告生成时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}*\n`;
+  report += mtr("macro.generated.at.p0",{p0:(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }))});
 
   return report;
 }
@@ -488,6 +495,7 @@ function saveReport(period, refDate, content) {
   }
 
   const filepath = path.join(dir, filename);
+  fs.mkdirSync(path.dirname(filepath), {recursive:true});
   fs.writeFileSync(filepath, content);
   console.error(`💾 报告已保存: ${filepath}`);
   return filepath;
@@ -549,6 +557,7 @@ async function main() {
     case 'yearly':  report = generateYearly(data);  break;
   }
 
+  if (macroLanguage === "en") report = "<!-- output_language: en -->\n> Source titles, quotations, company/industry names and news summaries remain in their original language.\n\n" + report;
   // 输出到 stdout
   console.log(report);
 

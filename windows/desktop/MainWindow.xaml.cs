@@ -1,5 +1,8 @@
+using Localization = AiTradingAutomation.Desktop.Services.Localization;
 using System;
 using System.ComponentModel;
+using System.Text.Json;
+using System.Globalization;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -22,6 +25,13 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         _processManager = processManager;
+        AgentStatusText.Text = Localization.Text("Investment_engine_Starting");
+        ChatStatusText.Text = Localization.Text("Chat_service_Starting");
+        HarnessText.Text = Localization.Text("Risk_Starting");
+        ModeText.Text = Localization.Text("Mode2");
+        MandateText.Text = Localization.Text("Strategy2");
+        RoundText.Text = Localization.Text("Round2");
+        Localization.Changed += () => Dispatcher.BeginInvoke(new Action(() => { _ = RefreshStatusAsync(); }));
         _tray = new TrayIcon(
             onOpen: () => RestoreFromTray(),
             onStart: () => _ = Task.Run(() => _processManager.StartPublicServices()),
@@ -37,6 +47,12 @@ public partial class MainWindow : Window
         LogLine("start: ensuring services...");
         var ready = await _processManager.EnsureRunningAsync(new System.Threading.CancellationToken());
         _ready = ready;
+        if (_processManager.IsFirstRun)
+        {
+            var storedLanguage = await _processManager.ReadUiLanguageAsync();
+            if (storedLanguage == null) await _processManager.SetUiLanguageAsync(Localization.Language);
+            else Localization.Change(storedLanguage);
+        }
         LogLine("start: services ready at " + ready.Url);
 
         StartStatusTimer();
@@ -72,14 +88,14 @@ public partial class MainWindow : Window
             browserExecutableFolder: browserFolder, userDataFolder: userDataFolder, options: null);
         var createDone = await Task.WhenAny(createTask, Task.Delay(TimeSpan.FromSeconds(45)));
         if (createDone != createTask)
-            throw new TimeoutException("WebView2 环境创建超时（45 秒）。请重启应用；若反复出现请安装 WebView2 Runtime。");
+            throw new TimeoutException(Localization.Text("WebView2_environment_creation_timed_out_45_seconds_Restart_the_app_if_this_"));
         var environment = await createTask;
         LogLine("start: webview2 environment ready");
 
         var initTask = WebView.EnsureCoreWebView2Async(environment);
         var finished = await Task.WhenAny(initTask, Task.Delay(TimeSpan.FromSeconds(45)));
         if (finished != initTask)
-            throw new TimeoutException("WebView2 组件初始化超时（45 秒）。请重启应用；若反复出现请安装 WebView2 Runtime。");
+            throw new TimeoutException(Localization.Text("WebView2_initialization_timed_out_45_seconds_Restart_the_app_if_this_persis"));
         LogLine("start: core webview2 ready");
 
         // Inject the per-launch token ONLY on requests to our own loopback
@@ -90,6 +106,42 @@ public partial class MainWindow : Window
             args.Request.Headers.SetHeader("X-ATA-Token", ready.Token);
         };
         WebView.CoreWebView2.AddWebResourceRequestedFilter(_processManager.EngineUrl + "/*", CoreWebView2WebResourceContext.All);
+
+        var webOrigin = new Uri(ready.Url).GetLeftPart(UriPartial.Authority);
+        var engineOrigin = new Uri(_processManager.EngineUrl).GetLeftPart(UriPartial.Authority);
+        WebView.CoreWebView2.WebMessageReceived += async (_, args) =>
+        {
+            if (!Uri.TryCreate(args.Source,UriKind.Absolute,out var source) ||
+                (source.GetLeftPart(UriPartial.Authority) != webOrigin && source.GetLeftPart(UriPartial.Authority) != engineOrigin)) return;
+            try
+            {
+                var payload = JsonSerializer.Deserialize<JsonElement>(args.WebMessageAsJson);
+                if (payload.GetProperty("type").GetString() == "ata-locale-change")
+                    Localization.Change(payload.GetProperty("locale").GetString() ?? "");
+                else if (payload.GetProperty("type").GetString() == "ata-locale-read")
+                {
+                    string? preference;
+                    try { preference = await _processManager.ReadUiLanguageAsync(); } catch { preference = Localization.Language; }
+                    if (preference is "zh" or "en") Localization.Change(preference);
+                    WebView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new {type="ata-locale-bootstrap",id=payload.GetProperty("id").GetString(),preference,languages=new[]{CultureInfo.CurrentUICulture.Name}}));
+                }
+            }
+            catch (Exception ex) { LogLine("locale bridge: " + ex.GetType().Name); }
+        };
+        await WebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(@"
+(() => {
+  const allowed = " + JsonSerializer.Serialize(new[]{webOrigin,engineOrigin}) + @";
+  if (!allowed.includes(location.origin)) return;
+  const pending = new Map(); let next = 0;
+  chrome.webview.addEventListener('message', event => {
+    if(event.data?.type !== 'ata-locale-bootstrap') return;
+    const resolve = pending.get(event.data.id); if(resolve) {pending.delete(event.data.id);resolve(event.data);}
+  });
+  window.__DSH_LOCALE__ = {
+    read: () => new Promise(resolve => { const id = Date.now()+'-'+(++next);pending.set(id,resolve);chrome.webview.postMessage({type:'ata-locale-read',id});}),
+    onChange: locale => chrome.webview.postMessage({type:'ata-locale-change',locale})
+  };
+})();");
 
         var firstRun = _processManager.IsFirstRun;
         var startUrl = firstRun
@@ -118,14 +170,14 @@ public partial class MainWindow : Window
         {
             if (_ready == null) return;
             var status = await _processManager.FetchStatusAsync(_ready);
-            AgentStatusText.Text = status.AgentRunning ? "投资引擎: ● 运行中" : "投资引擎: 未运行";
-            ChatStatusText.Text = status.WebRunning ? "对话服务: ● 运行中" : "对话服务: 未运行";
-            ModeText.Text = "模式: " + status.OperationMode;
-            MandateText.Text = "策略: " + status.Mandate;
-            RoundText.Text = "轮次: " + status.LastRound;
+            AgentStatusText.Text = status.AgentRunning ? Localization.Text("Investment_engine_Running") : Localization.Text("Investment_engine_Stopped");
+            ChatStatusText.Text = status.WebRunning ? Localization.Text("Chat_service_Running") : Localization.Text("Chat_service_Stopped");
+            ModeText.Text = Localization.Text("Mode") + status.OperationMode;
+            MandateText.Text = Localization.Text("Strategy") + status.Mandate;
+            RoundText.Text = Localization.Text("Round") + status.LastRound;
             HarnessText.Text = status.ControlNote.Length > 0
-                ? "风控: " + status.ControlNote
-                : "风控: 正常";
+                ? Localization.Text("Risk") + status.ControlNote
+                : Localization.Text("Risk_Normal");
 
             // The wizard just completed: bring the autonomous engine up now
             // and switch the WebView from the setup page to the assistant.
@@ -155,8 +207,8 @@ public partial class MainWindow : Window
         }
         catch
         {
-            ChatStatusText.Text = "对话服务: 未连接";
-            HarnessText.Text = "风控: 未知";
+            ChatStatusText.Text = Localization.Text("Chat_service_Disconnected");
+            HarnessText.Text = Localization.Text("Risk_Unknown");
         }
     }
 
@@ -203,10 +255,10 @@ public partial class MainWindow : Window
 
         var choice = MessageBox.Show(
             this,
-            "关闭窗口后，AI Trading Automation 要继续做什么？\n\n" +
-            "是 - 最小化到托盘：窗口隐藏，后台自动投资继续运行（推荐）\n" +
-            "否 - 停止全部后台服务并退出\n" +
-            "取消 - 保持窗口打开",
+            Localization.Text("What_should_AI_Trading_Automation_do_after_closing_this_window_n_n") +
+            Localization.Text("Yes_Minimize_to_tray_hide_the_window_and_continue_in_the_background_recomme") +
+            Localization.Text("No_Stop_all_background_services_and_exit_n") +
+            Localization.Text("Cancel_Keep_this_window_open"),
             "AI Trading Automation",
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Question,
@@ -284,7 +336,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            _tray?.ShowErrorBalloon("开机自启设置失败：" + ex.Message);
+            _tray?.ShowErrorBalloon(Localization.Text("Could_not_change_the_Windows_startup_setting") + ex.Message);
         }
     }
 }

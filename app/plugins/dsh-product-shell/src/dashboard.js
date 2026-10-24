@@ -4,9 +4,9 @@ const dbH = (...args) => react.createElement(...args);
 const dbMarkets = ['cn', 'hk', 'us', 'etf'];
 const dbCurrencies = {cn:'¥', hk:'HK$', us:'US$', etf:'¥'};
 const dbPeriods = {month:1, quarter:3, year:12};
-const dbPeriodNames = {month:'近1个月', quarter:'近3个月', year:'近1年'};
+const dbPeriodNames = {get month(){return tr("ui.1.month");}, get quarter(){return tr("ui.3.months");}, get year(){return tr("ui.1.year");}};
 const dbNumber = value => value === null || value === undefined || value === '' || !Number.isFinite(Number(value)) ? null : Number(value);
-const dbMoney = (value, currency='', digits=2) => dbNumber(value) === null ? '—' : currency + Number(value).toLocaleString('zh-CN',{minimumFractionDigits:digits,maximumFractionDigits:digits});
+const dbMoney = (value, currency='', digits=2) => dbNumber(value) === null ? '—' : currency + Number(value).toLocaleString(localeTag(),{minimumFractionDigits:digits,maximumFractionDigits:digits});
 const dbSigned = value => dbNumber(value) === null ? '—' : (value>0?'+':'') + Number(value).toFixed(2) + '%';
 const dbTrend = value => value>0?'up':value<0?'down':'flat';
 const dbCode = (market, value) => {
@@ -22,7 +22,7 @@ function dbAccount(account, market) {
     const shares=dbNumber(item.shares ?? item.quantity);
     const cost=dbNumber(item.costPrice ?? item.cost);
     const price=dbNumber(item.lastPrice);
-    return {...item, code:dbCode(market,item.code), name:String(item.name || item.code || '未命名标的'), shares, cost, price,
+    return {...item, code:dbCode(market,item.code), name:String(item.name || item.code || tr("ui.unnamed.security")), shares, cost, price,
       value:shares!==null && price!==null && price>0 ? shares*price : null,
       pnl:shares!==null && cost!==null && price!==null && price>0 ? shares*(price-cost) : null};
   }).filter(item=>item.code && item.shares>0);
@@ -34,8 +34,8 @@ function dbAccount(account, market) {
 }
 
 function dbHistory(payload) {
-  if(payload?.error || payload?.ok===false) throw new Error(String(payload.error || '历史行情暂不可用'));
-  if(!payload || !Array.isArray(payload.data)) throw new Error('行情返回格式异常');
+  if(payload?.error || payload?.ok===false) throw new Error(String(payload.error || tr("ui.price.history.unavailable")));
+  if(!payload || !Array.isArray(payload.data)) throw new Error(tr("ui.invalid.price.history.response"));
   const dates=new Map();
   let invalid=0;
   for(const item of payload.data) {
@@ -47,7 +47,7 @@ function dbHistory(payload) {
     dates.set(date,{date,close,open:candle?open:null,high:candle?high:null,low:candle?low:null,volume:volume>=0?volume:null});
   }
   const warnings=(Array.isArray(payload.warnings)?payload.warnings:[]).filter(Boolean).map(String);
-  if(invalid) warnings.push('部分无效行情已跳过');
+  if(invalid) warnings.push(tr("ui.some.invalid.prices.were.skipped"));
   return {...payload,bars:[...dates.values()].sort((a,b)=>a.date.localeCompare(b.date)),warnings};
 }
 
@@ -137,10 +137,10 @@ const dbPath=(bars,x,y,key='close')=>bars.map((row,index)=>(index?'L':'M')+x(ind
 function DashboardSparkline({history,name}) {
   const [ref,width]=useDashboardWidth();
   const bars=history?.data ? dbWindow(history.data.bars,'month') : [];
-  if(bars.length<2) return dbH('div',{className:'ia-db-spark-empty',ref},history?.error?'走势暂不可用':history?.data?'历史数据不足':'正在加载走势…');
+  if(bars.length<2) return dbH('div',{className:'ia-db-spark-empty',ref},history?.error?tr("ui.chart.unavailable"):history?.data?tr("ui.insufficient.history"):tr("ui.loading.chart"));
   const lo=Math.min(...bars.map(row=>row.close)),hi=Math.max(...bars.map(row=>row.close));
   const x=index=>3+index/(bars.length-1)*Math.max(0,width-6),y=value=>34-(value-lo)/(hi-lo || 1)*28;
-  return dbH('div',{ref,className:'ia-db-spark'},width>0?dbH('svg',{viewBox:'0 0 '+width+' 38',role:'img','aria-label':name+'近一个月日线走势'},
+  return dbH('div',{ref,className:'ia-db-spark'},width>0?dbH('svg',{viewBox:'0 0 '+width+' 38',role:'img','aria-label':name+tr("ui.daily.prices.over.the.past.month")},
     dbH('path',{d:dbPath(bars,x,y),fill:'none',stroke:'var(--ia-viz-1)',strokeWidth:1.7})):null);
 }
 
@@ -149,7 +149,7 @@ function DashboardPriceChart({history,holding,market,period,type,options,trades}
   const bars=react.useMemo(()=>dbWindow(history.bars,period),[history,period]);
   const [cursor,setCursor]=react.useState(null),[pinned,setPinned]=react.useState(false);
   react.useEffect(()=>{setCursor(null);setPinned(false);},[history,period]);
-  if(bars.length<2) return dbH('div',{ref,className:'ia-db-chart-empty'},'历史数据不足，至少需要两个交易日');
+  if(bars.length<2) return dbH('div',{ref,className:'ia-db-chart-empty'},tr("ui.at.least.two.trading.days.are.required"));
   const index=Math.min(cursor ?? bars.length-1,bars.length-1),current=bars[index];
   const candle=type==='candle' && bars.every(row=>row.open!==null);
   const height=width<400?260:310,left=64,right=Math.max(left+1,width-16),top=22,bottom=height-(options.volume?82:38);
@@ -193,11 +193,11 @@ function DashboardPriceChart({history,holding,market,period,type,options,trades}
       dbH('text',{key:'ma-label',x:left+3,y:top+14},'MA20'));
   }
   if(options.cost && holding.cost>0) svg.push(dbH('line',{key:'cost',x1:left,x2:right,y1:y(holding.cost),y2:y(holding.cost),className:'ia-db-cost',strokeDasharray:'4 4'}),
-    dbH('text',{key:'cost-label',x:right-2,y:Math.max(top+14,y(holding.cost)-6),textAnchor:'end'},'当前成本 '+dbMoney(holding.cost)));
+    dbH('text',{key:'cost-label',x:right-2,y:Math.max(top+14,y(holding.cost)-6),textAnchor:'end'},tr("ui.current.cost")+dbMoney(holding.cost)));
   if(options.volume) {
     const max=Math.max(...bars.map(row=>row.volume ?? 0)),bw=Math.max(1,(right-left)/bars.length*.6);
     bars.forEach((row,i)=>{if(row.volume!==null) svg.push(dbH('rect',{key:'v'+i,x:x(i)-bw/2,y:height-32-(max?row.volume/max*26:0),width:bw,height:max?row.volume/max*26:0,className:'ia-db-volume'}));});
-    svg.push(dbH('text',{key:'vunit',x:4,y:height-42},'成交量'));
+    svg.push(dbH('text',{key:'vunit',x:4,y:height-42},tr("ui.volume")));
   }
   if(options.trades) {
     const grouped=new Map();
@@ -209,9 +209,9 @@ function DashboardPriceChart({history,holding,market,period,type,options,trades}
     bars.forEach((bar,i)=>{
       const fills=grouped.get(bar.date);if(!fills) return;
       const actions=[...new Set(fills.map(fill=>fill.action))];
-      const label=actions.length>1?'买/卖':actions[0]==='BUY'?'买':'卖';
+      const label=actions.length>1?tr("ui.buy.sell"):actions[0]==='BUY'?tr("ui.b"):tr("ui.s");
       svg.push(dbH('g',{key:'trade'+i,className:'ia-db-trade-mark'},
-        dbH('title',null,fills.map(fill=>(fill.action==='BUY'?'买入':'卖出')+' '+dbMoney(fill.shares,'',0)+' 股 · 成交价 '+dbMoney(fill.price,dbCurrencies[market])+' · '+fill.date).join('\n')),
+        dbH('title',null,fills.map(fill=>(fill.action==='BUY'?tr("ui.buy"):tr("ui.sell"))+' '+dbMoney(fill.shares,'',0)+tr("ui.shares.fill.price")+dbMoney(fill.price,dbCurrencies[market])+' · '+fill.date).join('\n')),
         dbH('circle',{cx:x(i),cy:y(bar.close),r:5}),dbH('text',{x:x(i),y:Math.min(bottom-4,y(bar.close)+19),textAnchor:'middle'},label)));
     });
   }
@@ -222,14 +222,14 @@ function DashboardPriceChart({history,holding,market,period,type,options,trades}
     setCursor(Math.max(0,Math.min(bars.length-1,Math.round((local-left)/(right-left)*(bars.length-1)))));
   };
   return dbH('div',{ref,className:'ia-db-chart'},
-    dbH('div',{className:'ia-db-readout'},dbH('span',null,current.date),dbH('b',null,'收盘 '+dbMoney(current.close,dbCurrencies[market])),
-      current.open!==null?dbH('span',null,'开 '+dbMoney(current.open)+' · 高 '+dbMoney(current.high)+' · 低 '+dbMoney(current.low)):null,
-      current.volume!==null?dbH('span',null,'量 '+dbMoney(current.volume,'',0)):null),
+    dbH('div',{className:'ia-db-readout'},dbH('span',null,current.date),dbH('b',null,tr("ui.close")+dbMoney(current.close,dbCurrencies[market])),
+      current.open!==null?dbH('span',null,tr("ui.open")+dbMoney(current.open)+tr("ui.high")+dbMoney(current.high)+tr("ui.low")+dbMoney(current.low)):null,
+      current.volume!==null?dbH('span',null,tr("ui.volume.2")+dbMoney(current.volume,'',0)):null),
     width>0?dbH('svg',{className:'ia-db-main-chart',viewBox:'0 0 '+width+' '+height,style:{height},role:'img',
-      'aria-label':holding.name+' '+dbPeriodNames[period]+'日线价格，单位'+dbCurrencies[market],onPointerMove:move,
+      'aria-label':holding.name+' '+dbPeriodNames[period]+tr("ui.daily.price.currency")+dbCurrencies[market],onPointerMove:move,
       onPointerLeave:()=>{if(!pinned)setCursor(null);},onClick:event=>{move(event);setPinned(true);}},svg):null,
-    dbH('label',{className:'ia-db-date-slider'},dbH('span',null,'查看交易日'),dbH('input',{type:'range',min:0,max:bars.length-1,value:index,
-      'aria-label':'查看交易日','aria-valuetext':current.date+'，收盘'+dbMoney(current.close,dbCurrencies[market]),
+    dbH('label',{className:'ia-db-date-slider'},dbH('span',null,tr("ui.view.trading.day")),dbH('input',{type:'range',min:0,max:bars.length-1,value:index,
+      get 'aria-label'(){return tr("ui.view.trading.day");},'aria-valuetext':current.date+tr("ui.close.2")+dbMoney(current.close,dbCurrencies[market]),
       onChange:event=>{setCursor(Number(event.target.value));setPinned(true);}})));
 }
 
@@ -251,7 +251,7 @@ function ProductDashboard({onOpenAnalysis}={}) {
   const bars=history?dbWindow(history.bars,period):[];
   const trades=holding?dbTrades(account.trades,market,holding.code):[];
   const currency=dbCurrencies[market],engineError=summaryState.error || status.error || '';
-  const riskLabel=engineError?'未知':status.control?.kill_switch?'紧急停止':status.control?.paused?'已暂停':'正常';
+  const riskLabel=engineError?tr("ui.unknown"):status.control?.kill_switch?tr("ui.emergency.stop"):status.control?.paused?tr("ui.paused"):tr("ui.normal");
   const reports=Array.isArray(summary.reports?.reports)?summary.reports.reports:[];
   const choose=code=>setSelection(previous=>({...previous,[market]:code}));
   const current=history?.bars.at(-1),rangeChange=bars.length>1?(bars.at(-1).close/bars[0].close-1)*100:null;
@@ -259,14 +259,14 @@ function ProductDashboard({onOpenAnalysis}={}) {
   const canCandle=bars.length>1 && bars.every(row=>row.open!==null),canVolume=bars.some(row=>row.volume!==null);
   const canCost=holding?.cost>0;
   const metrics=[
-    ['账户权益',dbMoney(account?.equity,currency,0),'现金 + 最近持仓估值'],
-    ['持仓浮动盈亏',account?.pnl===null || !account?'—':(account.pnl>0?'+':'')+dbMoney(account.pnl,currency,0),'按账户记录价格计算'],
-    ['资金使用率',account?.equity>0 && account.value!==null?(account.value/account.equity*100).toFixed(1)+'%':'—',account?.cash!==null && account?.equity>0?'现金占比 '+(account.cash/account.equity*100).toFixed(1)+'%':'等待账户数据'],
-    ['持有标的',account?holdings.length+' 只':'—',marketName[market]+' · 独立模拟账户']
+    [tr("ui.account.equity"),dbMoney(account?.equity,currency,0),tr("ui.cash.latest.position.valuations")],
+    [tr("ui.unrealized.p.l"),account?.pnl===null || !account?'—':(account.pnl>0?'+':'')+dbMoney(account.pnl,currency,0),tr("ui.calculated.from.recorded.account.prices")],
+    [tr("ui.capital.utilization"),account?.equity>0 && account.value!==null?(account.value/account.equity*100).toFixed(1)+'%':'—',account?.cash!==null && account?.equity>0?tr("ui.cash.share")+(account.cash/account.equity*100).toFixed(1)+'%':tr("ui.waiting.for.account.data")],
+    [tr("ui.securities.held"),account?holdings.length+tr("ui.securities"):'—',marketName[market]+tr("ui.separate.simulated.account")]
   ];
   const panelHead=(title,detail)=>dbH('div',{className:'ia-db-panel-head'},dbH('h3',null,title),dbH('span',null,detail));
-  const errorState=(message,retry)=>dbH('div',{className:'ia-db-chart-empty',role:'status'},icon('alertTriangle',22),dbH('p',null,message),retry?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:retry},'重新加载'):null);
-  const allocation=account?.equity>0 && account.value!==null && account.cash>=0 ? [...holdings.map((item,i)=>({name:item.name,code:item.code,value:item.value,opacity:.45+.15*(i%4)})),{name:'现金',value:account.cash,opacity:1}] : [];
+  const errorState=(message,retry)=>dbH('div',{className:'ia-db-chart-empty',role:'status'},icon('alertTriangle',22),dbH('p',null,message),retry?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:retry},tr("ui.reload")):null);
+  const allocation=account?.equity>0 && account.value!==null && account.cash>=0 ? [...holdings.map((item,i)=>({name:item.name,code:item.code,value:item.value,opacity:.45+.15*(i%4)})),{get name(){return tr("ui.cash");},value:account.cash,opacity:1}] : [];
   const colors=item=>item.code?'var(--ia-viz-1)':'var(--ia-border-strong)';
   const nextCycle = status.markets?.[market]?.next_cycle;
   const equityText = account?.equity > 0 ? dbMoney(account.equity, currency, 0) : '—';
@@ -279,71 +279,71 @@ function ProductDashboard({onOpenAnalysis}={}) {
     dbH('b', { className: 'ia-num' }, value),
     detail ? dbH('span', { className: 'ia-db-band-detail' }, detail) : null);
   return dbH('div',{className:'ia-page ia-db-page','data-red-up':market!=='us'},
-    dbH(PageHeader,{title:'投资总览',subtitle:'从组合到个股，看清每一次变化',status:summaryState.loading?'正在连接投资引擎':'模拟交易 · 风控'+riskLabel,statusKind:engineError?'error':status.control?.kill_switch || status.control?.paused?'warn':'ok'}),
+    dbH(PageHeader,{get title(){return tr("ui.portfolio.overview");},get subtitle(){return tr("ui.track.changes.across.your.portfolio.and.securities");},status:summaryState.loading?tr("ui.connecting.to.the.investment.engine"):tr("ui.paper.trading.risk")+riskLabel,statusKind:engineError?'error':status.control?.kill_switch || status.control?.paused?'warn':'ok'}),
     dbH('div',{className:'ia-page-content'},
-      engineError?dbH('div',{className:'ia-notice','data-kind':'err',role:'alert'},'引擎暂不可达：'+engineError):null,
+      engineError?dbH('div',{className:'ia-notice','data-kind':'err',role:'alert'},tr("ui.engine.unavailable")+engineError):null,
       dbH('section',{className:'ia-db-band'},
         dbH('div',{className:'ia-db-band-main'},
-          dbH('span',{className:'ia-db-band-label'},'账户权益'),
+          dbH('span',{className:'ia-db-band-label'},tr("ui.account.equity")),
           dbH('div',{className:'ia-db-band-equity ia-num'},equityText),
-          dbH('div',{className:'ia-db-band-sub'},'现金 '+dbMoney(account?.cash,currency,0)+' · 市值 '+dbMoney(account?.value,currency,0))),
+          dbH('div',{className:'ia-db-band-sub'},tr("ui.cash.2")+dbMoney(account?.cash,currency,0)+tr("ui.market.value")+dbMoney(account?.value,currency,0))),
         dbH('div',{className:'ia-db-band-stats'},
-          metricChip('持仓浮动盈亏',pnlText,pnlRate===null?null:(pnlRate>0?'+':'')+pnlRate.toFixed(2)+'%'),
-          metricChip('资金使用率',usageText,account?.cash!==null && account?.equity>0?'现金占比 '+(account.cash/account.equity*100).toFixed(1)+'%':'等待账户数据'),
-          metricChip('持有标的',account?holdings.length+' 只':'—',marketName[market]+' · 独立模拟账户'),
-          metricChip('下一轮',nextCycle?String(nextCycle).replace('T',' ').slice(5,16):'—',status.operation_mode==='automatic'?'自动运行':'手动运行')),
+          metricChip(tr("ui.unrealized.p.l"),pnlText,pnlRate===null?null:(pnlRate>0?'+':'')+pnlRate.toFixed(2)+'%'),
+          metricChip(tr("ui.capital.utilization"),usageText,account?.cash!==null && account?.equity>0?tr("ui.cash.share")+(account.cash/account.equity*100).toFixed(1)+'%':tr("ui.waiting.for.account.data")),
+          metricChip(tr("ui.securities.held"),account?holdings.length+tr("ui.securities"):'—',marketName[market]+tr("ui.separate.simulated.account")),
+          metricChip(tr("ui.next.round.2"),nextCycle?String(nextCycle).replace('T',' ').slice(5,16):'—',status.operation_mode==='automatic'?tr("ui.automatic"):tr("ui.manual"))),
         dbH('div',{className:'ia-db-band-actions'},
-          dbH('div',{ref:marketRef,className:'ia-db-market-picker ia-seg','aria-label':'查看市场'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),dbMarkets.map(key=>dbH('button',{key,type:'button','aria-pressed':market===key,onClick:()=>setMarket(key)},marketName[key]))),
-          onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev ia-elev-lg ia-db-primary',onClick:onOpenAnalysis},'＋ 新建研究'):null)),
+          dbH('div',{ref:marketRef,className:'ia-db-market-picker ia-seg',get 'aria-label'(){return tr("ui.view.market");}},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),dbMarkets.map(key=>dbH('button',{key,type:'button','aria-pressed':market===key,onClick:()=>setMarket(key)},marketName[key]))),
+          onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev ia-elev-lg ia-db-primary',onClick:onOpenAnalysis},tr("ui.new.research")):null)),
       dbH('div',{className:'ia-db-workbench'},
-        dbH('section',{className:'ia-db-panel ia-db-watch'},panelHead('我的持仓',account?holdings.length+' 只 · 市值 '+dbMoney(account.value,currency,0):''),
+        dbH('section',{className:'ia-db-panel ia-db-watch'},panelHead(tr("ui.my.holdings"),account?holdings.length+tr("ui.securities.market.value")+dbMoney(account.value,currency,0):''),
           holdings.length?dbH('div',{className:'ia-db-stock-list'},holdings.map(item=>{
             const stockHistory=histories.items[item.code],rows=stockHistory?.data?.bars ?? [],latest=rows.at(-1),previous=rows.at(-2);
             const change=previous?(latest.close/previous.close-1)*100:null;
-            return dbH('button',{type:'button',className:'ia-db-stock',key:item.code,'aria-pressed':holding?.code===item.code,'aria-label':'查看'+item.name+'的走势',onClick:()=>choose(item.code)},
+            return dbH('button',{type:'button',className:'ia-db-stock',key:item.code,'aria-pressed':holding?.code===item.code,'aria-label':tr("ui.view")+item.name+tr("ui.price.chart"),onClick:()=>choose(item.code)},
               dbH('div',{className:'ia-db-stock-row'},dbH('b',null,item.name),dbH('span',{className:'ia-num'},dbMoney(latest?.close ?? item.price))),
               dbH('div',{className:'ia-db-stock-row'},dbH('span',{className:'ia-db-muted'},item.code),dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(change)},dbSigned(change))),
               dbH(DashboardSparkline,{history:stockHistory,name:item.name}),
-              dbH('span',{className:'ia-db-stock-meta ia-num'},dbMoney(item.shares,'',0)+' 股 · 成本 '+dbMoney(item.cost,currency)+' · 盈亏 '+((item.pnl>0?'+':'')+dbMoney(item.pnl,currency))));
-          })):dbH('div',{className:'ia-empty'},summaryState.loading?'正在读取持仓…':account?'暂无持仓':'账户数据暂不可用'),
-          holdings.length?dbH('div',{className:'ia-db-watch-foot'},'近1个月日线 · 点击切换右侧走势'):null),
+              dbH('span',{className:'ia-db-stock-meta ia-num'},dbMoney(item.shares,'',0)+tr("ui.shares.cost")+dbMoney(item.cost,currency)+tr("ui.p.l")+((item.pnl>0?'+':'')+dbMoney(item.pnl,currency))));
+          })):dbH('div',{className:'ia-empty'},summaryState.loading?tr("ui.loading.holdings"):account?tr("ui.no.holdings.yet"):tr("ui.account.data.unavailable")),
+          holdings.length?dbH('div',{className:'ia-db-watch-foot'},tr("ui.daily.prices.1.month.select.to.view.chart")):null),
         dbH('section',{className:'ia-db-panel ia-db-focus'},holding?dbH(react.Fragment,null,
           dbH('div',{className:'ia-db-focus-head'},
-            dbH('div',{'aria-live':'polite'},dbH('h2',null,'价格走势'),
+            dbH('div',{'aria-live':'polite'},dbH('h2',null,tr("ui.price.chart.2")),
               dbH('div',{className:'ia-db-muted'},holding.name+' · '+holding.code+' · '+dbPeriodNames[period])),
             dbH('div',{className:'ia-db-quote'},
               holdings.length>1?dbH('div',{className:'ia-db-chart-chips'},holdings.map(item=>dbH('button',{key:item.code,type:'button','aria-pressed':holding.code===item.code,onClick:()=>choose(item.code)},item.code))):null,
               dbH('strong',null,dbMoney(current?.close,currency)),
               dbH('span',{className:'ia-trend','data-red-up':market!=='us','data-trend':dbTrend(rangeChange)},dbSigned(rangeChange)))),
           dbH('div',{className:'ia-db-toolbar'},
-            dbH('div',{ref:periodRef,className:'ia-db-choices ia-seg','aria-label':'时间范围'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),Object.entries(dbPeriodNames).map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':period===key,onClick:()=>setPeriod(key)},label))),
-            dbH('div',{ref:typeRef,className:'ia-db-choices ia-seg','aria-label':'图表类型'},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),[['line','走势线'],['candle','K 线']].map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':(canCandle?type:'line')===key,disabled:key==='candle'&&!canCandle,title:key==='candle'&&!canCandle?'当前来源没有完整的开高低收数据':undefined,onClick:()=>setType(key)},label))),
-            dbH('div',{className:'ia-db-options'},[['cost','成本线',canCost],['volume','成交量',canVolume],['trades','买卖日期',!!trades.length],['ma','MA20',!!history && history.bars.length>=20]].map(([key,label,enabled])=>dbH('label',{key},dbH('input',{type:'checkbox',checked:options[key],disabled:!enabled,onChange:event=>setOptions(previous=>({...previous,[key]:event.target.checked}))}),label)))),
-          selected?.error?errorState(selected.error,()=>histories.retry(holding.code)):!history?dbH('div',{className:'ia-db-chart-empty','aria-busy':true,role:'status'},dbH('div',{className:'ia-db-skeleton'}),'正在加载历史行情…'):history.bars.length<2?errorState('暂时没有足够的历史行情',()=>histories.retry(holding.code)):
+            dbH('div',{ref:periodRef,className:'ia-db-choices ia-seg',get 'aria-label'(){return tr("ui.time.range");}},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),Object.entries(dbPeriodNames).map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':period===key,onClick:()=>setPeriod(key)},label))),
+            dbH('div',{ref:typeRef,className:'ia-db-choices ia-seg',get 'aria-label'(){return tr("ui.chart.type");}},dbH('span',{className:'ia-seg-thumb','aria-hidden':'true'}),[['line',tr("ui.line")],['candle',tr("ui.candlestick")]].map(([key,label])=>dbH('button',{key,type:'button','aria-pressed':(canCandle?type:'line')===key,disabled:key==='candle'&&!canCandle,title:key==='candle'&&!canCandle?tr("ui.this.source.does.not.provide.complete.ohlc.data"):undefined,onClick:()=>setType(key)},label))),
+            dbH('div',{className:'ia-db-options'},[['cost',tr("ui.cost.line"),canCost],['volume',tr("ui.volume"),canVolume],['trades',tr("ui.trade.dates"),!!trades.length],['ma','MA20',!!history && history.bars.length>=20]].map(([key,label,enabled])=>dbH('label',{key},dbH('input',{type:'checkbox',checked:options[key],disabled:!enabled,onChange:event=>setOptions(previous=>({...previous,[key]:event.target.checked}))}),label)))),
+          selected?.error?errorState(selected.error,()=>histories.retry(holding.code)):!history?dbH('div',{className:'ia-db-chart-empty','aria-busy':true,role:'status'},dbH('div',{className:'ia-db-skeleton'}),tr("ui.loading.price.history")):history.bars.length<2?errorState(tr("ui.not.enough.price.history.yet"),()=>histories.retry(holding.code)):
             dbH(DashboardPriceChart,{key:market+':'+holding.code,history,holding,market,period,type,options:{...options,volume:options.volume&&canVolume,cost:options.cost&&canCost},trades}),
-          dbH('div',{className:'ia-db-position'},[['持有数量',dbMoney(holding.shares,'',0)+' 股'],['当前持仓成本',dbMoney(holding.cost,currency)],['账户记录估值',dbMoney(holding.price,currency)],['持仓浮动盈亏',(holding.pnl>0?'+':'')+dbMoney(holding.pnl,currency)]].map(([label,value])=>dbH('div',{key:label},dbH('span',{className:'ia-db-muted'},label),dbH('strong',null,value)))),
-          history?dbH('div',{className:'ia-db-provenance'},dbH('span',null,'来源 '+(history.source || '未提供')+' · 最后交易日 '+(current?.date || '—')),age>7?dbH('span',{className:'ia-db-data-warning'},' · 行情距今 '+age+' 天'):null,
-            history.degraded || history.adjusted!==true || history.warnings.length?dbH('span',{className:'ia-db-data-warning',role:'status'},' · 行情提示：'+(history.warnings.join('；') || (history.degraded?'已使用备用行情来源':'复权状态未经确认'))):null):null):dbH(react.Fragment,null,dbH('div',{className:'ia-db-focus-head'},dbH('div',null,dbH('h2',null,'价格走势'),dbH('div',{className:'ia-db-muted'},account?'选择左侧持仓查看走势':'等待账户数据'))),dbH('div',{className:'ia-db-chart-empty','data-kind':'empty',role:'status'},dbH('p',null,account?'选中一只持仓即可查看走势':'账户数据暂不可用'))))),
+          dbH('div',{className:'ia-db-position'},[[tr("ui.quantity.held"),dbMoney(holding.shares,'',0)+tr("ui.shares")],[tr("ui.current.position.cost"),dbMoney(holding.cost,currency)],[tr("ui.recorded.account.valuation"),dbMoney(holding.price,currency)],[tr("ui.unrealized.p.l"),(holding.pnl>0?'+':'')+dbMoney(holding.pnl,currency)]].map(([label,value])=>dbH('div',{key:label},dbH('span',{className:'ia-db-muted'},label),dbH('strong',null,value)))),
+          history?dbH('div',{className:'ia-db-provenance'},dbH('span',null,tr("ui.source")+(history.source || tr("ui.not.provided"))+tr("ui.last.trading.day")+(current?.date || '—')),age>7?dbH('span',{className:'ia-db-data-warning'},tr("ui.price.age")+age+tr("ui.days")):null,
+            history.degraded || history.adjusted!==true || history.warnings.length?dbH('span',{className:'ia-db-data-warning',role:'status'},tr("ui.price.notes")+(history.warnings.join('；') || (history.degraded?tr("ui.a.fallback.price.source.was.used"):tr("ui.adjustment.status.is.unconfirmed")))):null):null):dbH(react.Fragment,null,dbH('div',{className:'ia-db-focus-head'},dbH('div',null,dbH('h2',null,tr("ui.price.chart.2")),dbH('div',{className:'ia-db-muted'},account?tr("ui.select.a.holding.on.the.left.to.view.its.chart"):tr("ui.waiting.for.account.data")))),dbH('div',{className:'ia-db-chart-empty','data-kind':'empty',role:'status'},dbH('p',null,account?tr("ui.select.a.holding.to.view.its.chart"):tr("ui.account.data.unavailable")))))),
       dbH('div',{className:'ia-db-secondary'},
-        dbH('section',{className:'ia-db-panel'},panelHead('轮次时间线','最近 '+(runs.length?Math.min(runs.length,5):0)+' 轮'),
+        dbH('section',{className:'ia-db-panel'},panelHead(tr("ui.round.timeline"),tr("ui.latest")+(runs.length?Math.min(runs.length,5):0)+tr("ui.rounds")),
           runs.length?dbH('ul',{className:'ia-db-timeline'},runs.slice(0,5).map((run,index)=>dbH('li',{key:String(run.cycle_id ?? run.id ?? index),'data-current':index===0},
             dbH('b',{className:'ia-num'},String(run.started_at ?? run.created_at ?? '').replace('T',' ').slice(5,16)),
-            dbH('span',{className:'ia-db-timeline-copy'},(marketName[run.market] ?? run.market ?? '-')+' · '+(run.label || '股票研究')),
-            dbH('span',{className:'ia-chip','data-kind':analysisStatusKind(run.status)},analysisStatusLabel(run.status))))):dbH('div',{className:'ia-empty'},'暂无历史轮次')),
-        dbH('section',{className:'ia-db-panel'},panelHead('组合分布','本市场 · 含现金'),allocation.length?dbH(react.Fragment,null,
-          dbH('div',{className:'ia-db-allocation',role:'img','aria-label':marketName[market]+'资产占比'},allocation.map(item=>dbH('span',{key:item.code || 'cash',style:{flex:item.value,background:colors(item),opacity:item.opacity},title:item.name+' '+(item.value/account.equity*100).toFixed(1)+'%'}))),
-          dbH('div',{className:'ia-db-allocation-list'},allocation.map(item=>dbH(item.code?'button':'div',{key:item.code || 'cash',className:'ia-db-allocation-item',...(item.code?{type:'button',onClick:()=>choose(item.code),'aria-label':'查看'+item.name+'的走势'}:{})},
-            dbH('i',{style:{background:colors(item),opacity:item.opacity},'aria-hidden':true}),dbH('span',null,item.name),dbH('span',{className:'ia-db-muted'},(item.value/account.equity*100).toFixed(1)+'%'))))):dbH('div',{className:'ia-empty'},'暂无可展示的资产分布')),
-        dbH('section',{className:'ia-db-panel'},panelHead('交易记录','近 5 笔 · 模拟成交'),trades.length?dbH('div',{className:'ia-db-ledger'},trades.slice(-5).reverse().map((trade,i)=>dbH('div',{className:'ia-db-trade',key:trade.id || trade.date+':'+i},
-          dbH('span',{className:'ia-db-trade-label','data-side':trade.action==='BUY'?'buy':'sell'},trade.action==='BUY'?'买入':'卖出'),
-          dbH('div',{className:'ia-db-trade-copy'},dbH('b',null,holding.name),dbH('span',{className:'ia-db-muted'},trade.date.replace('T',' ').slice(5,16)+' · '+dbMoney(trade.shares,'',0)+' 股 @ '+dbMoney(trade.price,currency))),
-          dbH('span',{className:'ia-db-muted ia-num'},dbMoney(trade.shares*trade.price,currency))))):dbH('div',{className:'ia-empty'},holding?'该股票暂无模拟成交记录':'选中持仓后查看成交记录'))),
-      dbH('section',{className:'ia-db-panel ia-db-activity'},panelHead('运行与研究',status.operation_mode==='automatic'?'自动运行':'手动运行'),
-        dbH('div',{className:'ia-db-activity-grid'},dbH('div',null,dbH('b',null,'风控'+riskLabel),dbH('p',{className:'ia-db-muted'},'策略：'+(status.mandate?.display_name ?? status.mandate?.profile ?? '—'))),
-          dbH('div',null,dbH('b',null,marketName[market]+' 下一轮'),dbH('p',{className:'ia-db-muted'},String(nextCycle ?? '尚未安排').replace('T',' ').slice(0,16))),
-          dbH('div',null,dbH('b',null,'最近轮次报告'),reports.length?dbH('ul',null,reports.slice(0,3).map(report=>dbH('li',{key:report.file},report.file))):dbH('p',{className:'ia-db-muted'},'暂无轮次报告'))),
-        summary.analysis?dbH('p',{className:'ia-db-muted'},'最近分析 · '+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+analysisTaskCounts(summary.analysis).completed+'/'+Math.max(Number(summary.analysis.expected_agents ?? 0),analysisTaskCounts(summary.analysis).total)):null,
-        onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:onOpenAnalysis},'打开分析流程与报告'):null),
-      typeof summary.macro?.content==='string' && summary.macro.content?dbH('section',{className:'ia-card ia-news',style:{marginTop:14}},panelHead('市场早报','每交易日 08:00 采集'),dbH('div',{className:'ia-news-body'},renderMarkdown(summary.macro.content))):null));
+            dbH('span',{className:'ia-db-timeline-copy'},(marketName[run.market] ?? run.market ?? '-')+' · '+(run.label || tr("ui.security.research"))),
+            dbH('span',{className:'ia-chip','data-kind':analysisStatusKind(run.status)},analysisStatusLabel(run.status))))):dbH('div',{className:'ia-empty'},tr("ui.no.previous.rounds"))),
+        dbH('section',{className:'ia-db-panel'},panelHead(tr("ui.portfolio.allocation"),tr("ui.this.market.including.cash")),allocation.length?dbH(react.Fragment,null,
+          dbH('div',{className:'ia-db-allocation',role:'img','aria-label':marketName[market]+tr("ui.asset.allocation")},allocation.map(item=>dbH('span',{key:item.code || 'cash',style:{flex:item.value,background:colors(item),opacity:item.opacity},title:item.name+' '+(item.value/account.equity*100).toFixed(1)+'%'}))),
+          dbH('div',{className:'ia-db-allocation-list'},allocation.map(item=>dbH(item.code?'button':'div',{key:item.code || 'cash',className:'ia-db-allocation-item',...(item.code?{type:'button',onClick:()=>choose(item.code),'aria-label':tr("ui.view")+item.name+tr("ui.price.chart")}:{})},
+            dbH('i',{style:{background:colors(item),opacity:item.opacity},'aria-hidden':true}),dbH('span',null,item.name),dbH('span',{className:'ia-db-muted'},(item.value/account.equity*100).toFixed(1)+'%'))))):dbH('div',{className:'ia-empty'},tr("ui.no.allocation.data.available"))),
+        dbH('section',{className:'ia-db-panel'},panelHead(tr("ui.trade.history"),tr("ui.latest.5.simulated.fills")),trades.length?dbH('div',{className:'ia-db-ledger'},trades.slice(-5).reverse().map((trade,i)=>dbH('div',{className:'ia-db-trade',key:trade.id || trade.date+':'+i},
+          dbH('span',{className:'ia-db-trade-label','data-side':trade.action==='BUY'?'buy':'sell'},trade.action==='BUY'?tr("ui.buy"):tr("ui.sell")),
+          dbH('div',{className:'ia-db-trade-copy'},dbH('b',null,holding.name),dbH('span',{className:'ia-db-muted'},trade.date.replace('T',' ').slice(5,16)+' · '+dbMoney(trade.shares,'',0)+tr("ui.shares.2")+dbMoney(trade.price,currency))),
+          dbH('span',{className:'ia-db-muted ia-num'},dbMoney(trade.shares*trade.price,currency))))):dbH('div',{className:'ia-empty'},holding?tr("ui.no.simulated.trades.for.this.security"):tr("ui.select.a.holding.to.view.its.trades")))),
+      dbH('section',{className:'ia-db-panel ia-db-activity'},panelHead(tr("ui.operations.and.research"),status.operation_mode==='automatic'?tr("ui.automatic"):tr("ui.manual")),
+        dbH('div',{className:'ia-db-activity-grid'},dbH('div',null,dbH('b',null,tr("ui.risk")+riskLabel),dbH('p',{className:'ia-db-muted'},tr("ui.strategy")+(strategyName(status.mandate)))),
+          dbH('div',null,dbH('b',null,marketName[market]+tr("ui.next.round.3")),dbH('p',{className:'ia-db-muted'},String(nextCycle ?? tr("ui.not.scheduled")).replace('T',' ').slice(0,16))),
+          dbH('div',null,dbH('b',null,tr("ui.recent.round.reports")),reports.length?dbH('ul',null,reports.slice(0,3).map(report=>dbH('li',{key:report.file},report.file))):dbH('p',{className:'ia-db-muted'},tr("ui.no.round.reports.yet")))),
+        summary.analysis?dbH('p',{className:'ia-db-muted'},tr("ui.latest.analysis")+(marketName[summary.analysis.market] ?? summary.analysis.market)+' · '+analysisStageLabel(summary.analysis.current_stage)+' · Agent '+analysisTaskCounts(summary.analysis).completed+'/'+Math.max(Number(summary.analysis.expected_agents ?? 0),analysisTaskCounts(summary.analysis).total)):null,
+        onOpenAnalysis?dbH('button',{type:'button',className:'ia-btn ia-elev',onClick:onOpenAnalysis},tr("ui.open.analysis.workflow.and.reports")):null),
+      typeof summary.macro?.content==='string' && summary.macro.content?dbH('section',{className:'ia-card ia-news',style:{marginTop:14}},panelHead(tr("ui.market.briefing"),tr("ui.collected.at.08.00.each.trading.day.asia.shanghai")),dbH('div',{className:'ia-news-body'},renderMarkdown(summary.macro.content))):null));
 
 }

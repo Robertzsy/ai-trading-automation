@@ -1,4 +1,5 @@
 from __future__ import annotations
+from engine.localization import message, current_language, render_with_language, render_in_run_language, output_language
 
 import logging
 import threading
@@ -171,111 +172,84 @@ def _round_report_path(market: str, label: str, value: Optional[datetime] = None
     return REPORT_DIR / f"{date}-{market}-{label}.md"
 
 
+@render_with_language
 def _write_report(path: Path, title: str, content: str, generated_at: datetime, catch_up: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if catch_up:
-        run_mode = "启动补跑"
-    elif any(marker in path.stem for marker in ("-manual-", "-chat-", "-button-", "-agent-")):
-        run_mode = "手动整轮"
+        run_mode = message('cycle.startup.catch.up')
+    elif any((marker in path.stem for marker in ('-manual-', '-chat-', '-button-', '-agent-'))):
+        run_mode = message('cycle.manual.round')
     else:
-        run_mode = "全自动定时"
-    prefix = (
-        f"# {title}\n\n"
-        f"> 生成时间：{generated_at.isoformat(timespec='seconds')}  "
-        f"| 模式：{run_mode}\n\n"
-    )
-    path.write_text(prefix + content.strip() + "\n", encoding="utf-8")
+        run_mode = message('cycle.automatic.schedule')
+    prefix = f"# {title}{message('cycle.generated.at')}{generated_at.isoformat(timespec='seconds')}{message('cycle.mode')}{run_mode}\n\n"
+    path.write_text(prefix + content.strip() + '\n', encoding='utf-8')
 
 
 def _action_label(action: Any) -> str:
-    return {"BUY": "买入/加仓", "SELL": "卖出/减仓", "HOLD": "观望/继续持有"}.get(
-        str(action or "HOLD").upper(), "观望/继续持有"
-    )
+    return {'BUY': message('cycle.buy.increase'), 'SELL': message('cycle.sell.reduce'), 'HOLD': message('cycle.hold.wait')}.get(str(action or 'HOLD').upper(), message('cycle.hold.wait'))
 
 
 def _decision_section(autonomous: Mapping[str, Any]) -> str:
-    chair = autonomous.get("chair") if isinstance(autonomous.get("chair"), Mapping) else {}
-    decisions = chair.get("decisions", autonomous.get("decisions", [])) or []
-    held = {
-        str(item.get("code", "")).upper()
-        for item in autonomous.get("account_before", {}).get("holdings", [])
-        if item.get("code")
-    }
-    selected = {
-        str(value).upper()
-        for value in autonomous.get("screening", {}).get("selected_symbols", [])
-    }
-    by_symbol = {
-        str(item.get("symbol", "")).upper(): item
-        for item in decisions
-        if isinstance(item, Mapping) and item.get("symbol")
-    }
+    chair = autonomous.get('chair') if isinstance(autonomous.get('chair'), Mapping) else {}
+    decisions = chair.get('decisions', autonomous.get('decisions', [])) or []
+    held = {str(item.get('code', '')).upper() for item in autonomous.get('account_before', {}).get('holdings', []) if item.get('code')}
+    selected = {str(value).upper() for value in autonomous.get('screening', {}).get('selected_symbols', [])}
+    by_symbol = {str(item.get('symbol', '')).upper(): item for item in decisions if isinstance(item, Mapping) and item.get('symbol')}
     excluded = set()
     symbol_errors: Dict[str, Any] = {}
-    mandate = autonomous.get("mandate", {}) if isinstance(autonomous.get("mandate"), Mapping) else {}
+    mandate = autonomous.get('mandate', {}) if isinstance(autonomous.get('mandate'), Mapping) else {}
     symbols = list(dict.fromkeys([*sorted(selected), *sorted(held), *by_symbol]))
-    lines = ["## 本轮投资授权书", ""]
+    lines = [message('cycle.round.mandate'), '']
     if mandate:
-        lines.extend([
-            f"- 策略：{mandate.get('display_name', mandate.get('profile', '未知'))}",
-            f"- 目标：{mandate.get('objective', '未记录')}",
-            f"- 版本：{mandate.get('risk_policy_version', '未记录')}",
-            "",
-        ])
+        lines.extend([f"{message('cycle.strategy')}{mandate.get('display_name', mandate.get('profile', message('cycle.unknown')))}", f"{message('cycle.objective')}{mandate.get('objective', message('cycle.not.recorded'))}", f"{message('cycle.version')}{mandate.get('risk_policy_version', message('cycle.not.recorded'))}", ''])
     else:
-        lines.extend(["- 本轮未记录策略授权书快照。", ""])
-    lines.extend(["## 逐标的最终决策", "", "| 标的 | 身份 | 决策 | 置信度 | 依据 |", "|---|---|---|---:|---|"])
+        lines.extend([message('cycle.no.mandate.snapshot.recorded.for.this.round'), ''])
+    lines.extend([message('cycle.final.decisions.by.security'), '', message('cycle.security.role.decision.confidence.rationale'), '|---|---|---|---:|---|'])
     for symbol in symbols:
         decision = by_symbol.get(symbol)
         identities = []
         if symbol in selected:
-            identities.append("本轮候选")
+            identities.append(message('cycle.round.candidate'))
         if symbol in held:
-            identities.append("已有持仓")
-        confidence = decision.get("confidence") if decision else None
-        confidence_text = f"{float(confidence):.0%}" if isinstance(confidence, (int, float)) else "-"
+            identities.append(message('cycle.existing.holding'))
+        confidence = decision.get('confidence') if decision else None
+        confidence_text = f'{float(confidence):.0%}' if isinstance(confidence, (int, float)) else '-'
         if decision:
-            action_text = _action_label(decision.get("action"))
-            reason_value = decision.get("reason", "未提供依据")
+            action_text = _action_label(decision.get('action'))
+            reason_value = decision.get('reason', message('cycle.no.rationale.supplied'))
         elif symbol in excluded:
-            action_text = "研究失败/已排除"
-            reason_value = symbol_errors.get(symbol, "逐标的研究失败，未进入组合决策")
+            action_text = message('cycle.research.failed.excluded')
+            reason_value = symbol_errors.get(symbol, message('cycle.per.security.research.failed.excluded.from.portfolio.decisions'))
         else:
-            action_text = "未形成决策"
-            reason_value = "分析链被阻断或失败，未生成该标的决策"
-        reason = str(reason_value).replace("|", "/")[:240]
-        lines.append(
-            f"| {symbol} | {'、'.join(identities) or '分析池'} | "
-            f"{action_text} | {confidence_text} | {reason} |"
-        )
+            action_text = message('cycle.no.decision')
+            reason_value = message('cycle.analysis.was.blocked.or.failed.no.decision.was.generated.for.this.security')
+        reason = str(reason_value).replace('|', '/')[:240]
+        lines.append(f"| {symbol} | {'、'.join(identities) or message('cycle.research.universe')} | {action_text} | {confidence_text} | {reason} |")
     if not symbols:
-        lines.append("| - | - | 本轮无有效标的 | - | 筛选或行情数据不足 |")
-
-    execution = autonomous.get("execution", {}) if isinstance(autonomous.get("execution"), Mapping) else {}
-    lines.extend(["", "## 模拟执行结果", ""])
-    fills = execution.get("fills", []) if isinstance(execution, Mapping) else []
-    rejected = execution.get("rejected", []) if isinstance(execution, Mapping) else []
+        lines.append(message('cycle.no.valid.securities.insufficient.screening.or.price.data'))
+    execution = autonomous.get('execution', {}) if isinstance(autonomous.get('execution'), Mapping) else {}
+    lines.extend(['', message('cycle.paper.execution.results'), ''])
+    fills = execution.get('fills', []) if isinstance(execution, Mapping) else []
+    rejected = execution.get('rejected', []) if isinstance(execution, Mapping) else []
     if fills:
         for fill in fills:
-            lines.append(
-                f"- 已成交：{fill.get('code')} {_action_label(fill.get('action'))} "
-                f"{fill.get('shares', 0)} 股，成交价 {fill.get('price', fill.get('fill_price', '-'))}。"
-            )
+            lines.append(f"{message('cycle.filled')}{fill.get('code')} {_action_label(fill.get('action'))} {fill.get('shares', 0)}{message('cycle.shares.price')}{fill.get('price', fill.get('fill_price', '-'))}。")
     else:
-        lines.append("- 本轮没有产生模拟成交。")
+        lines.append(message('cycle.no.simulated.fills.in.this.round'))
     for item in rejected:
-        lines.append(f"- 被拒订单：{item.get('code', item.get('symbol', '-'))}，原因：{item.get('reason', '未知')}。")
-    return "\n".join(lines)
+        lines.append(f"{message('cycle.rejected.order')}{item.get('code', item.get('symbol', '-'))}{message('cycle.reason')}{item.get('reason', message('cycle.unknown'))}。")
+    return '\n'.join(lines)
 
 
 def _fallback_report_text(cycle: Mapping[str, Any], cycle_type: str) -> str:
-    if cycle.get("status") == "skipped":
-        return f"本轮未执行自主投资分析：{cycle.get('reason') or cycle.get('error') or '执行器未就绪'}。"
-    if cycle.get("status") == "error":
-        return f"本轮自主投资分析失败：{cycle.get('error') or '未知错误'}。"
-    return f"{cycle_type} 轮次执行完成。"
+    if cycle.get('status') == 'skipped':
+        return f"{message('cycle.autonomous.analysis.was.not.run')}{cycle.get('reason') or cycle.get('error') or message('cycle.runner.not.ready')}。"
+    if cycle.get('status') == 'error':
+        return f"{message('cycle.autonomous.analysis.failed')}{cycle.get('error') or message('cycle.unknown.error')}。"
+    return f"{cycle_type}{message('cycle.round.completed')}"
 
 
+@render_in_run_language
 def _build_report_content(cycle: Mapping[str, Any], cycle_type: str) -> str:
     summary = cycle.get("report_text")
     if isinstance(summary, str) and summary.strip():
@@ -285,6 +259,7 @@ def _build_report_content(cycle: Mapping[str, Any], cycle_type: str) -> str:
     return content + "\n\n" + _decision_section(cycle)
 
 
+@render_with_language
 def _deliver_completed_report(path: Path, title: str, content: str, market: str, label: str) -> Dict[str, Any]:
     try:
         from engine.notifications import deliver_report
@@ -293,7 +268,7 @@ def _deliver_completed_report(path: Path, title: str, content: str, market: str,
             title=title,
             content=content,
             report_path=path,
-            metadata={"market": market, "label": label},
+            metadata={"market": market, "label": label, "output_language":current_language()},
         )
     except Exception as exc:
         logger.exception("[NOTIFY:%s] report delivery failed", market)
@@ -386,6 +361,7 @@ def _run_intraday_job(
         macro = _latest_macro_excerpt()
         context: Dict[str, Any] = {
             "label": label,
+            "output_language": output_language(),
             "time_str": time_str,
             "scheduled_at": scheduled,
             "catch_up": catch_up,
@@ -397,10 +373,11 @@ def _run_intraday_job(
         if progress_callback is not None:
             progress_callback("正在执行投资轮次（DSH 决策桥）…")
         cycle = _run_engine_cycle(market, "intraday", context)
+        cycle.setdefault("output_language", context["output_language"])
         report_content = _build_report_content(cycle, "intraday")
-        report_title = f"{market.upper()} {label} 完整投资轮次报告"
-        _write_report(path, report_title, report_content, current, catch_up)
-        notification = _deliver_completed_report(path, report_title, report_content, market, label)
+        report_title = f"{market.upper()} {label} " + ("Full investment round report" if cycle["output_language"] == "en" else "完整投资轮次报告")
+        _write_report(path, report_title, report_content, current, catch_up, language=cycle["output_language"])
+        notification = _deliver_completed_report(path, report_title, report_content, market, label, language=cycle["output_language"])
         reflection_meta = _record_reflection(
             market, path, cycle, "catch-up" if catch_up else ("manager" if label.startswith(("agent", "button")) else "scheduler")
         )
@@ -444,6 +421,7 @@ def _run_close_job(
         macro = _latest_macro_excerpt()
         context: Dict[str, Any] = {
             "label": "close",
+            "output_language": output_language(),
             "time_str": time_str,
             "scheduled_at": scheduled,
             "catch_up": catch_up,
@@ -454,10 +432,11 @@ def _run_close_job(
             "progress_callback": None,
         }
         cycle = _run_engine_cycle(market, "close", context)
+        cycle.setdefault("output_language", context["output_language"])
         report_content = _build_report_content(cycle, "close")
-        report_title = f"{market.upper()} 收盘完整投资轮次报告"
-        _write_report(path, report_title, report_content, current, catch_up)
-        notification = _deliver_completed_report(path, report_title, report_content, market, "close")
+        report_title = f"{market.upper()} " + ("Closing investment round report" if cycle["output_language"] == "en" else "收盘完整投资轮次报告")
+        _write_report(path, report_title, report_content, current, catch_up, language=cycle["output_language"])
+        notification = _deliver_completed_report(path, report_title, report_content, market, "close", language=cycle["output_language"])
         reflection_meta = _record_reflection(
             market, path, cycle, "catch-up" if catch_up else "scheduler-close"
         )

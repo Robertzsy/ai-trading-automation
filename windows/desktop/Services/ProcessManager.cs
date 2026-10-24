@@ -92,7 +92,7 @@ internal sealed class ProcessManager : IDisposable
             var candidate = Path.Combine(dir, "pythonw.exe");
             if (File.Exists(candidate)) return candidate;
         }
-        throw new FileNotFoundException("未找到 pythonw.exe。请先完成安装或初始化。");
+        throw new FileNotFoundException(Localization.Text("pythonw_exe_was_not_found_Complete_installation_or_initialization_first"));
     }
 
     internal static string LocateNode(string appRoot)
@@ -111,7 +111,7 @@ internal sealed class ProcessManager : IDisposable
             var candidate = Path.Combine(dir, "node.exe");
             if (File.Exists(candidate)) return candidate;
         }
-        throw new FileNotFoundException("未找到 node.exe（需要 Node.js 22+）。请先完成安装或初始化。");
+        throw new FileNotFoundException(Localization.Text("node_exe_was_not_found_Node_js_22_19_required_Complete_installation_or_init"));
     }
 
     internal static int PickFreePort()
@@ -140,7 +140,7 @@ internal sealed class ProcessManager : IDisposable
                 && await IsHealthyAsync(ready, cancellationToken)
                 && await IsEngineHealthyAsync(cancellationToken)) return ready;
         }
-        throw new TimeoutException("投资引擎或对话服务在 60 秒内未就绪。请查看日志。");
+        throw new TimeoutException(Localization.Text("Investment_engine_or_chat_service_did_not_become_ready_within_60_seconds_Ch"));
     }
 
     public void StartPublicServices()
@@ -253,7 +253,7 @@ internal sealed class ProcessManager : IDisposable
     {
         if (_webPort == 0) _webPort = PickFreePort();
         if (!File.Exists(DshBinPath))
-            throw new FileNotFoundException("未找到 DSH 应用（app/node_modules/@deepseek-ai/dsh）。请先完成安装。");
+            throw new FileNotFoundException(Localization.Text("DSH_was_not_found_app_node_modules_deepseek_ai_dsh_Complete_installation_fi"));
         var info = new ProcessStartInfo
         {
             FileName = _node,
@@ -396,6 +396,26 @@ internal sealed class ProcessManager : IDisposable
         catch { return false; }
     }
 
+    public async Task<string?> ReadUiLanguageAsync()
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        using var request = new HttpRequestMessage(HttpMethod.Get, EngineUrl + "/api/locale");
+        request.Headers.Add("X-ATA-Token", _token);
+        using var response = await client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        var payload=JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
+        return payload.GetProperty("language").GetString();
+    }
+    public async Task SetUiLanguageAsync(string language)
+    {
+        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+        using var request = new HttpRequestMessage(HttpMethod.Post, EngineUrl + "/api/locale");
+        request.Headers.Add("X-ATA-Token", _token);
+        request.Content=new StringContent(JsonSerializer.Serialize(new {language}),System.Text.Encoding.UTF8,"application/json");
+        using var response = await client.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<RuntimeStatus> FetchStatusAsync(ChatReady ready)
     {
         var status = new RuntimeStatus();
@@ -417,9 +437,9 @@ internal sealed class ProcessManager : IDisposable
                 if (root.TryGetProperty("control", out var control))
                 {
                     if (control.TryGetProperty("paused", out var paused) && paused.GetBoolean())
-                        status.ControlNote = "已暂停";
+                        status.ControlNote = Localization.Text("Paused");
                     if (control.TryGetProperty("kill_switch", out var killed) && killed.GetBoolean())
-                        status.ControlNote = "紧急停止";
+                        status.ControlNote = Localization.Text("Emergency_stop");
                 }
             }
         }
@@ -478,7 +498,7 @@ internal sealed class ProcessManager : IDisposable
 
     private void CreateJobObject()
     {
-        // Idempotent: repeated "启动服务" clicks must reuse the same job
+        // Idempotent: repeated Localization.Text("Start_services") clicks must reuse the same job
         // handle instead of leaking the previous one (orphaning its children).
         if (_jobHandle != IntPtr.Zero) return;
         _jobHandle = CreateJobObject(IntPtr.Zero, null);

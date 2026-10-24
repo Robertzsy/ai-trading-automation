@@ -1,6 +1,6 @@
 {
   "name": "@ai-trading-automation/dsh-investment-workflow",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "The single fixed multi-role investment analysis workflow entry for AI Trading Automation 2.1 (web launcher + headless executor + status poller)",
   "type": "module",
   "main": "lib/index.js",

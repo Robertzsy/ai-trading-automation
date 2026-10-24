@@ -44,13 +44,16 @@ def _validate(market: str, symbol: str, day: str) -> tuple[str, str, str]:
     return market, symbol, day
 
 
-def plan_path(market: str, symbol: str, day: str, root: Optional[Path] = None) -> Path:
+def plan_path(market: str, symbol: str, day: str, root: Optional[Path] = None, language: str = "zh", template: str = "legacy") -> Path:
     market, symbol, day = _validate(market, symbol, day)
-    return (root or plans_root()) / market / f"{symbol}-{day}.json"
+    if language not in {"zh", "en"} or not re.fullmatch(r"[A-Za-z0-9_.-]{1,60}", template):
+        raise ValueError("invalid research plan language/template")
+    suffix = "" if language == "zh" and template == "legacy" else f"-{language}-{template}"
+    return (root or plans_root()) / market / f"{symbol}-{day}{suffix}.json"
 
 
-def load_plan(market: str, symbol: str, day: str, root: Optional[Path] = None, max_age_days: int = 7) -> Dict[str, Any]:
-    path = plan_path(market, symbol, day, root)
+def load_plan(market: str, symbol: str, day: str, root: Optional[Path] = None, max_age_days: int = 7, *, language: str = "zh", template: str = "legacy") -> Dict[str, Any]:
+    path = plan_path(market, symbol, day, root, language, template)
     if not path.exists():
         return {"found": False}
     try:
@@ -69,12 +72,12 @@ def load_plan(market: str, symbol: str, day: str, root: Optional[Path] = None, m
     return {"found": True, "plan": plan, "saved_at": saved_at, "market": market, "symbol": symbol, "day": day}
 
 
-def save_plan(market: str, symbol: str, day: str, plan: str, root: Optional[Path] = None) -> Dict[str, Any]:
+def save_plan(market: str, symbol: str, day: str, plan: str, root: Optional[Path] = None, *, language: str = "zh", template: str = "legacy") -> Dict[str, Any]:
     if not isinstance(plan, str) or not plan.strip():
         raise ValueError("plan must be a non-empty string")
     if len(plan) > MAX_PLAN_CHARS:
         raise ValueError("plan is too large")
-    path = plan_path(market, symbol, day, root)
+    path = plan_path(market, symbol, day, root, language, template)
     path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "market": market,
@@ -82,7 +85,7 @@ def save_plan(market: str, symbol: str, day: str, plan: str, root: Optional[Path
         "day": day,
         "plan": plan,
         "saved_at": datetime.now().isoformat(timespec="seconds"),
-        "version": 1,
+        "version": 1, "output_language": language, "template_version": template,
     }
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")

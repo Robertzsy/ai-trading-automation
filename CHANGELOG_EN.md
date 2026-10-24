@@ -4,6 +4,21 @@
 
 See the [README](README_EN.md) for installation and usage, and [GitHub Releases](https://github.com/Robertzsy/ai-trading-automation/releases) for published builds.
 
+## 2.4.0 — Bilingual interface and DSH runtime upgrade (unreleased)
+
+### Simplified Chinese / English
+
+- Added interface and research-output language preferences across Overview, Assistant, Investment research, Settings, charts, tool cards, desktop and first-run setup.
+- New research rounds freeze output language and prompt-template version. Resume preserves them; prose plans are cached by language/template. Historical content and original sources retain their language.
+- Added English report, macro-briefing, notification and feedback templates and bilingual HOLD classification. Zero-weight BUY recommendations display as WATCH.
+
+### DSH
+
+- Pinned `@deepseek-ai/dsh@0.2.1-rc.3` (upstream prerelease), adapting declarative presets, configuration forms, PTC workflows and frontend slots.
+- Added credential records, CAS revisions and current change events, preserving DPAPI encryption and removing the old application credential cache after updates/revocation.
+- Separated shipped composition from user overrides. Read-only historical sessions retain source bytes; writes publish a successor generation.
+- Fixed relative CONFIG_PATH resolution under the selected data root and stop startup on configuration migration failure. Installation and user-data directory compatibility is retained.
+
 ## 2.3.0 — Screening relevance, actionable research and lower analysis cost (2026-10-23)
 
 - Added relative strength, volume breakout, acceleration and risk-adjusted momentum factors, growth candidates, and a potential/quality blended ranking.

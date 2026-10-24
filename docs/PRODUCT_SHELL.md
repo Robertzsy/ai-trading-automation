@@ -1,5 +1,16 @@
 # AI Trading Automation 产品外壳改造设计（DSH 内核嵌入）
 
+[English](PRODUCT_SHELL_EN.md) · [语言规则](LANGUAGE_SUPPORT.md)
+
+## 2.4.0 当前接口
+
+DSH 精确锁定为 `0.2.1-rc.3`。产品外壳提供 root scope 的 keyed `main`（对话 key 为 `conversation`），以及 single `sidebar`、`rightbar`、`shell.bottom`、`shell.leading` 和 list `shell.overlay`。`layout` 服务提供共享 `panelInfo`、导航取消及侧栏显示/全屏控制；右侧栏收到宽度、视口和可用状态。会话创建/归档使用 `uiWorkspace`，打开/搜索/改名沿用 session 服务。
+
+Profile 的 `product/cordis.patch.yml` 保存发布定义，根 `cordis.patch.yml` 留给 Settings 写入用户设置。语言以活动 profile 的 locale 为准，通过原生桥同步桌面。打包使用 `prepare-release-source.ps1` 导出指定提交；安装器及便携构建检查源码回执和产品白名单，便携包包含完整 app 与语言资源。详细当前接口见英文对应文档。
+
+以下保留此前版本的实现记录；其中 rc.6 槽名称与旧服务调用已由上述接口替代。
+
+
 ## 目标
 
 投资研究页采用左侧研究记录、右侧所选轮次工作区。新建研究打开侧边表单，保留“一键全流程”“一键筛选股票”“一键分析指定股票”；运行时默认研究过程，完成后默认研究报告，阶段角色分组折叠，报告正文沿页面滚动。失败轮次明确显示停止原因与已保存检查点，续跑必须由用户操作；代码修复继续使用先展示方案再确认的协议。

@@ -137,7 +137,7 @@ def main() -> None:
         return
 
     if args.command in {"run", "serve", "once", "catchup", "macro", "optimizer", "screen"} and not shutil.which("node"):
-        raise SystemExit("未找到 Node.js。行情、优化器和宏观日报需要 Node.js 18+，请安装后重试。")
+        raise SystemExit("未找到 Node.js。行情、优化器和宏观日报需要 Node.js 22.19+，请安装后重试。")
 
     _ensure_data_layout(logger)
     from engine.config import cfg
@@ -149,8 +149,9 @@ def main() -> None:
 
         if seed_from_env():
             logger.info("DSH home seeded from %s", os.getenv("AI_TRADING_AUTOMATION_APP_DIR", ""))
-    except Exception:
-        logger.debug("DSH home seeding skipped", exc_info=True)
+    except Exception as exc:
+        logger.exception("DSH product configuration could not be seeded")
+        raise RuntimeError("DSH product configuration upgrade failed; existing user files were retained") from exc
 
     # Every process that can execute a cycle (serve dispatches manual
     # run_cycle commands, run drives scheduled rounds) registers the DSH

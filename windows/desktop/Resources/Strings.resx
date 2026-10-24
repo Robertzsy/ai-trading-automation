@@ -1,0 +1,147 @@
+<?xml version='1.0' encoding='utf-8'?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms</value>
+  </resheader>
+  <data name="Open_main_window" xml:space="preserve">
+    <value>打开主窗口</value>
+  </data>
+  <data name="Start_services" xml:space="preserve">
+    <value>启动服务</value>
+  </data>
+  <data name="Pause_investing" xml:space="preserve">
+    <value>暂停投资</value>
+  </data>
+  <data name="View_logs" xml:space="preserve">
+    <value>查看日志</value>
+  </data>
+  <data name="Start_with_Windows" xml:space="preserve">
+    <value>开机自启</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="AI_Trading_Automation_Automated_paper_investing" xml:space="preserve">
+    <value>AI Trading Automation - AI 自主模拟投资</value>
+  </data>
+  <data name="Minimized_to_the_system_tray_Background_investing_continues" xml:space="preserve">
+    <value>已最小化到托盘，后台自动投资继续运行。</value>
+  </data>
+  <data name="Start_with_Windows_enabled" xml:space="preserve">
+    <value>已开启开机自启。</value>
+  </data>
+  <data name="Start_with_Windows_disabled" xml:space="preserve">
+    <value>已关闭开机自启。</value>
+  </data>
+  <data name="Startup_failed" xml:space="preserve">
+    <value>启动失败：</value>
+  </data>
+  <data name="n_nDiagnostic_log_TEMP_ia_desktop_boot_log" xml:space="preserve">
+    <value>
+
+诊断日志：%TEMP%\ia-desktop-boot.log</value>
+  </data>
+  <data name="WebView2_environment_creation_timed_out_45_seconds_Restart_the_app_if_this_" xml:space="preserve">
+    <value>WebView2 环境创建超时（45 秒）。请重启应用；若反复出现请安装 WebView2 Runtime。</value>
+  </data>
+  <data name="WebView2_initialization_timed_out_45_seconds_Restart_the_app_if_this_persis" xml:space="preserve">
+    <value>WebView2 组件初始化超时（45 秒）。请重启应用；若反复出现请安装 WebView2 Runtime。</value>
+  </data>
+  <data name="Investment_engine_Running" xml:space="preserve">
+    <value>投资引擎: ● 运行中</value>
+  </data>
+  <data name="Investment_engine_Stopped" xml:space="preserve">
+    <value>投资引擎: 未运行</value>
+  </data>
+  <data name="Chat_service_Running" xml:space="preserve">
+    <value>对话服务: ● 运行中</value>
+  </data>
+  <data name="Chat_service_Stopped" xml:space="preserve">
+    <value>对话服务: 未运行</value>
+  </data>
+  <data name="Mode" xml:space="preserve">
+    <value>模式: </value>
+  </data>
+  <data name="Strategy" xml:space="preserve">
+    <value>策略: </value>
+  </data>
+  <data name="Round" xml:space="preserve">
+    <value>轮次: </value>
+  </data>
+  <data name="Risk" xml:space="preserve">
+    <value>风控: </value>
+  </data>
+  <data name="Risk_Normal" xml:space="preserve">
+    <value>风控: 正常</value>
+  </data>
+  <data name="Chat_service_Disconnected" xml:space="preserve">
+    <value>对话服务: 未连接</value>
+  </data>
+  <data name="Risk_Unknown" xml:space="preserve">
+    <value>风控: 未知</value>
+  </data>
+  <data name="What_should_AI_Trading_Automation_do_after_closing_this_window_n_n" xml:space="preserve">
+    <value>关闭窗口后，AI Trading Automation 要继续做什么？
+
+</value>
+  </data>
+  <data name="Yes_Minimize_to_tray_hide_the_window_and_continue_in_the_background_recomme" xml:space="preserve">
+    <value>是 - 最小化到托盘：窗口隐藏，后台自动投资继续运行（推荐）
+</value>
+  </data>
+  <data name="No_Stop_all_background_services_and_exit_n" xml:space="preserve">
+    <value>否 - 停止全部后台服务并退出
+</value>
+  </data>
+  <data name="Cancel_Keep_this_window_open" xml:space="preserve">
+    <value>取消 - 保持窗口打开</value>
+  </data>
+  <data name="Could_not_change_the_Windows_startup_setting" xml:space="preserve">
+    <value>开机自启设置失败：</value>
+  </data>
+  <data name="pythonw_exe_was_not_found_Complete_installation_or_initialization_first" xml:space="preserve">
+    <value>未找到 pythonw.exe。请先完成安装或初始化。</value>
+  </data>
+  <data name="node_exe_was_not_found_Node_js_22_19_required_Complete_installation_or_init" xml:space="preserve">
+    <value>未找到 node.exe（需要 Node.js 22+）。请先完成安装或初始化。</value>
+  </data>
+  <data name="Investment_engine_or_chat_service_did_not_become_ready_within_60_seconds_Ch" xml:space="preserve">
+    <value>投资引擎或对话服务在 60 秒内未就绪。请查看日志。</value>
+  </data>
+  <data name="DSH_was_not_found_app_node_modules_deepseek_ai_dsh_Complete_installation_fi" xml:space="preserve">
+    <value>未找到 DSH 应用（app/node_modules/@deepseek-ai/dsh）。请先完成安装。</value>
+  </data>
+  <data name="Paused" xml:space="preserve">
+    <value>已暂停</value>
+  </data>
+  <data name="Emergency_stop" xml:space="preserve">
+    <value>紧急停止</value>
+  </data>
+  <data name="Investment_engine_Starting" xml:space="preserve">
+    <value>投资 Agent: 启动中…</value>
+  </data>
+  <data name="Chat_service_Starting" xml:space="preserve">
+    <value>对话服务: 启动中…</value>
+  </data>
+  <data name="Risk_Starting" xml:space="preserve">
+    <value>风控: 启动中…</value>
+  </data>
+  <data name="Mode2" xml:space="preserve">
+    <value>模式: -</value>
+  </data>
+  <data name="Strategy2" xml:space="preserve">
+    <value>策略: -</value>
+  </data>
+  <data name="Round2" xml:space="preserve">
+    <value>轮次: -</value>
+  </data>
+</root>

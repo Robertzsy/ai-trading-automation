@@ -65,6 +65,20 @@ def test_health_endpoint(api):
     assert payload["service"] == "ai-trading-automation-engine"
 
 
+def test_locale_api_persists_host_preference_and_rejects_invalid_values(api, monkeypatch, tmp_path):
+    from engine import config_api
+    monkeypatch.setenv("DSH_HOME", str(tmp_path / "home"))
+    monkeypatch.setattr(config_api, "apply_config_changes", lambda changes: None)
+    status, payload = _post(api, "/api/locale", {"language": "en"})
+    assert status == 200 and payload["language"] == "en"
+    assert _get(api, "/api/locale")["resolved_language"] == "en"
+    profile = tmp_path / "home/profiles/investment-web/cordis.patch.yml"
+    before = profile.read_bytes()
+    status, payload = _post(api, "/api/locale", {"language": "invalid"})
+    assert status == 400 and payload["error_code"] == "INVALID_LANGUAGE"
+    assert profile.read_bytes() == before
+
+
 def test_credential_records_require_revision_and_preserve_concurrent_writes(api, monkeypatch, tmp_path):
     from engine import paths, secret_store
     monkeypatch.setattr(paths, "data_root", lambda: tmp_path)

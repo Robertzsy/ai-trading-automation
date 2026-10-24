@@ -41,6 +41,9 @@ def test_module_constants_follow_data_root_in_fresh_process(monkeypatch, tmp_pat
     A fresh interpreter with the env set must bind constants to the data root."""
     data = tmp_path / "fresh-data"
     code = (
+        "import logging\n"
+        "from engine.main import _ensure_data_layout\n"
+        "_ensure_data_layout(logging.getLogger('path-test'))\n"
         "from engine.portfolio import account as a\n"
         "from engine import scheduler as s\n"
         "print(a.RUNTIME)\n"

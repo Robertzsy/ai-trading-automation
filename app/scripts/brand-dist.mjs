@@ -61,3 +61,20 @@ writeFileSync(faviconPath, favicon);
 console.log(`branded ${faviconPath}`);
 
 console.log("brand-dist: done");
+
+// Own these three native copy points at build time, in both dictionaries.
+// Matching by semantic key survives locale changes; never rewrite live DOM.
+const conversationPath = join(distDir, "..", "..", "dsh-client-ui-conversation", "lib", "client.js");
+let conversation = readFileSync(conversationPath, "utf-8");
+const copy = {
+  "placeholder.hero": ["输入投资问题，或启动完整分析流程", "Ask an investment question, or start a complete analysis"],
+  "placeholder.default": ["输入投资问题，/ 调用指令，@ 文件或会话", "Ask an investment question, / commands, @ files or sessions"],
+  "hero.headline": ["你的投资分析助手", "Your investment research assistant"],
+};
+for (const [key, values] of Object.entries(copy)) {
+  let count = 0;
+  const pattern = new RegExp('("' + key.replaceAll(".", "\\.") + '": )"(?:[^"\\\\]|\\\\.)*"', "g");
+  conversation = conversation.replace(pattern, (_, prefix) => prefix + JSON.stringify(values[count++]));
+  if (count !== 2) throw new Error(`Native conversation dictionary changed: ${key} matched ${count}, expected 2`);
+}
+writeFileSync(conversationPath, conversation);

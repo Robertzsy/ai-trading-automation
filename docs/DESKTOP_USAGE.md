@@ -1,87 +1,22 @@
-# AI Trading Automation 桌面版 - 使用与验收文档
+# 桌面版使用说明
 
-## 一、构建产物
+[简体中文](DESKTOP_USAGE.md) | [English](DESKTOP_USAGE_EN.md)
 
-`release\AiTradingAutomation-Setup-x64.exe` - 每用户安装包（约 100-200MB，内含：
+AI Trading Automation 支持 Windows 10/11 x64。安装包包含 .NET 桌面外壳、Python 和 Node.js 22.19 运行时；系统缺少 WebView2 时由安装器补齐。无需另外安装 Python、Node 或 PowerShell。
 
-- AiTradingAutomation.Desktop.exe（.NET 8 自包含 WPF + WebView2 外壳）
-- 完整可迁移 Python 3.11 运行时（全部锁定依赖离线预装）
-- 便携版 Node.js 20
-- 项目源码与静态页面
-- WebView2 Evergreen 安装器（系统缺少运行时才会触发）
+1. 运行安装器，选择简体中文或 English。按用户安装，无需管理员权限。
+2. 首次启动选择界面语言，可填写旧版数据目录。初始化创建 A股、港股、美股和 ETF 四个独立模拟账户；初始资金分别按市场币种计价，不因语言切换换算。
+3. 完成初始化后，在“设置 → 模型”配置提供商及 API 密钥。桌面版使用 Windows DPAPI 加密保存凭据。
+4. 在“设置 → 投资策略与风控”选择策略和手动/自动模式。交易模式固定为 paper，硬风控始终有效。
+5. “总览”显示账户、持仓、价格走势和历史轮次。“投资助手”提供会话；“投资研究”集中管理研究和报告。
+6. 投资研究支持筛选股票、分析指定股票、筛选后运行全流程。三个入口均为研究入口，不自动批准交易。BUY 的零目标权重表示观察，不表示成交。
+7. 在“设置 → 界面语言”随时切换简体中文 / English。研究输出可跟随界面或单独指定。新轮次冻结输出语言，当前轮次与续跑保持原语言。
+8. 点击窗口关闭按钮，可选择最小化到托盘、停止全部服务退出或取消。托盘菜单包括打开窗口、启动服务、暂停投资、查看日志和开机自启。
 
-## 二、本机自动化验证
+历史报告、旧会话、原文新闻与公司名称保留原文；切换语言不会调用模型翻译历史。研究失败后先读取错误，明确点击“续跑/重试”才会从检查点继续。产品修复须先展示方案并获得确认；修复完成不会自动重跑研究。
 
-- 一键发行候选门禁：`powershell scripts\release-check.ps1`（自动依次执行下列全部检查，
-  任一失败退出码非 0，最后输出安装包 SHA-256 与大小；`-SkipUpgrade` 等开关可跳过单项；
-  失败退出码已实测：指向不存在的安装包时退出码为 1）
-- 桌面外壳单元测试：`dotnet test windows\desktop\AiTradingAutomation.Desktop.Tests`（单实例、ready 解析、pythonw 定位、开机自启、进程管理，18 项）
-- 首次向导端到端：`tests/test_setup_flow.py`（配置深合并、模型接线、账户文件创建、
-  模式/策略直写、迁移检测，9 项）+ 本机 HTTP 全链路模拟（见 DESKTOP_PLAN 状态矩阵）
-- 升级保数据：`scripts\verify-upgrade.ps1`（快照 → 静默覆盖安装 → SHA-256 逐文件比对，要求 0 缺失 0 变更）
-- Python 全量：`.venv\Scripts\python -m pytest tests`（261 项，开发模式回归）+ 捆绑运行时同套件复跑（验证离线依赖完整）
+程序安装在 `%LocalAppData%\Programs\InvestmentAuto`，数据位于 `%LocalAppData%\InvestmentAuto`。升级保留数据目录；交互卸载默认保留数据，静默卸载始终保留。
 
-## 三、用户安装与使用
+2.4.0 使用精确锁定的 DSH `0.2.1-rc.3`，属于上游候选版本。About 同时展示应用与 DSH 版本。旧会话首次写入时产生新格式代际并保留前代；前代保留并不等于旧版能读取升级后的新内容。升级前备份数据，回退时保留升级后新增的业务记录，不用整目录旧备份覆盖新数据。
 
-1. 双击 `AiTradingAutomation-Setup-x64.exe`，全程图形向导（无需管理员、无需 PowerShell、无需预装 Python/Node）
-2. 安装完成自动创建桌面与开始菜单「AI Trading Automation」快捷方式
-3. 双击图标 → 独立桌面窗口打开（不启动任何外部浏览器）
-4. 首次启动显示 10 步配置向导：旧数据导入 → API Key（DPAPI 加密）→ 模型 → 策略 → 模式 → 市场 → 风控确认 → 通知 → 初始化账户 → 完成
-5. 之后每次双击直接进入应用主界面；点窗口 X 会弹出三选一：最小化到托盘（后台继续）/ 停止全部服务并退出 / 取消
-6. 托盘菜单：打开主窗口 / 启动服务 / 暂停投资 / 查看日志 / 开机自启（勾选开关）/ 退出
-7. 登录 Windows 后自动启动（托盘静默运行）：托盘菜单「开机自启」勾选后生效，写入 HKCU Run 键，无需管理员
-
-### 目录布局
-
-| 内容 | 位置 |
-|---|---|
-| 程序文件（只读） | `%LocalAppData%\Programs\InvestmentAuto` |
-| 用户数据（配置/账户/报告/记忆/自建工具） | `%LocalAppData%\InvestmentAuto` |
-| 加密密钥 | `%LocalAppData%\InvestmentAuto\secrets.enc`（DPAPI） |
-
-升级覆盖程序文件、保留全部用户数据；卸载默认保留数据。
-
-## 三、开发模式（不变）
-
-```bash
-python -m src.main run    # 投资 Agent + 调度器
-python -m src.main chat   # 管理对话（浏览器开发模式）
-docker compose up -d      # Docker 部署
-```
-
-开发模式不设 `AI_TRADING_AUTOMATION_DATA_DIR` 时数据根=代码根，行为与桌面化改造前完全一致。
-
-## 四、构建流程（开发人员）
-
-```powershell
-# 1. 下载运行时组件（python nupkg + node zip + webview2）
-powershell scripts\fetch-runtime.ps1
-# 2. 解压并离线安装依赖到捆绑 python
-powershell scripts\bundle-runtime.ps1
-# 3. 编译桌面外壳（需要 .NET 8 SDK）
-powershell scripts\build-desktop.ps1
-# 4. 编译安装器（需要 Inno Setup 6）
-& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\AiTradingAutomation.iss
-# 5. 发行候选门禁（自动跑全部本机自动化检查 + 输出哈希）
-powershell scripts\release-check.ps1
-```
-
-安装器界面语言：中英双语（installer\ChineseSimplified.isl，取自 Inno Setup 官方翻译）。
-
-## 五、干净 Windows 虚拟机验收清单
-
-在全新 Win10/11 x64 虚拟机（无 Python/Node/.NET/Inno）上执行：
-
-1. [ ] 复制安装包运行，图形向导完成安装（无 UAC 弹窗、无 PowerShell 窗口）
-2. [ ] 桌面与开始菜单出现快捷方式
-3. [ ] 双击快捷方式：弹出 AI Trading Automation 独立窗口，不出现 Chrome/Edge/控制台
-4. [ ] 首次向导 10 步走完（旧数据导入项显示"未检测到"）
-5. [ ] 填写 API Key 后密钥加密文件生成、明文不可见
-6. [ ] 发起一次模拟分析，窗口内查看报告
-7. [ ] 关闭窗口 → 弹出三选一 → 选「最小化到托盘」→ 托盘图标存在、后台继续；选「停止并退出」→ 窗口、托盘、pythonw 全部消失；「取消」→ 窗口保持
-8. [ ] 重启虚拟机重新登录 → 托盘自动出现（若开了自启）→ 双击恢复窗口
-9. [ ] 卸载：数据保留询问 → 重装：配置/账户仍在
-10. [ ] 任务管理器无孤儿 python/pythonw/node 进程
-11. [ ] 安装器向导界面为中文（系统语言为中文时）
-
-以上全部通过后，可发布正式版并更新 GitHub Release。
+开发与验收入口：`scripts/release-check.ps1`、`scripts/verify-upgrade.ps1`、Python / Node / 桌面测试。历史文档中的固定测试数量和安装包大小不作为当前版本承诺。

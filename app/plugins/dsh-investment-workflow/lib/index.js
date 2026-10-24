@@ -1,3 +1,4 @@
+import {withLanguage,languageForContext} from "../../dsh-investment-tools/lib/copy.js";
 /** Session-plane registration for the fixed AI Trading Automation workflow. */
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { EngineClient } from "../../dsh-investment-tools/lib/engine-client.js";
@@ -19,7 +20,7 @@ function registerTool(ctx, toolName, description, parameters, executor, options 
     parameters,
     output: { schema: FREE_OBJECT, render },
     timeoutMs: options.timeoutMs ?? 1800000,
-    execute: executor,
+    execute: (args,exec) => withLanguage(languageForContext(ctx),()=>executor(args,exec)),
   }));
 }
 

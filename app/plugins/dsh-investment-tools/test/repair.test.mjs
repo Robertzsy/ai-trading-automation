@@ -9,15 +9,16 @@ import { ToolRuntime, defineTool } from "@deepseek-ai/dsh-tools";
 import { createScope } from "@deepseek-ai/dsh-scope";
 import * as investmentTools from "../lib/index.js";
 
-async function fixture(body, {decision="确认此方案", custom, exitCode=0, duringReview}={}) {
+async function fixture(body, {decision="确认此方案", custom, exitCode=0, duringReview, language="zh"}={}) {
   const root=mkdtempSync(join(tmpdir(),"ata-repair-")), env=process.env.AI_TRADING_AUTOMATION_ROOT;
   process.env.AI_TRADING_AUTOMATION_ROOT=root;
   writeFileSync(join(root,"app.js"),"original");
   const ctx=new Context();ctx.provide("systemPrompt",{tools(){},section(){}});
+  ctx.provide("settings", {describe:()=>[{ns:"locale",value:{preference:language}}]});
   let reviews=0, writes=0, n=0;
   try {
     await ctx.plugin(ToolRuntime);await ctx.plugin(AgentRegistry);
-    ctx.provide("userQuestions",{async ask(request){reviews++;assert.match(request.questions[0].detail,/原因与依据/);duringReview?.(root);return {answers:[{id:request.questions[0].id,selected:[decision],...(custom!==undefined?{custom}:{})}]};}});
+    ctx.provide("userQuestions",{async ask(request){reviews++;assert.match(request.questions[0].detail,language==="en"?/Cause and evidence/:/原因与依据/);duringReview?.(root);return {answers:[{id:request.questions[0].id,selected:[decision],...(custom!==undefined?{custom}:{})}]};}});
     const register=(ctx,name,description,parameters,execute,options={})=>ctx.tools.register(defineTool({name,description,parameters,timeoutMs:options.timeoutMs,execute,output:{schema:{type:"object",additionalProperties:true},render:()=>[]}}));
     register(ctx,"write","write",{file_path:{type:"string",required:true},content:{type:"string",required:true}},args=>{writes++;writeFileSync(args.file_path,args.content);return {};});
     register(ctx,"pwsh","shell",{command:{type:"string",required:true}},()=>({exitCode,timedOut:false,aborted:false}));
@@ -37,6 +38,11 @@ test("real SDK blocks source writes before a reviewed plan",()=>fixture(async f=
   assert.equal((await f.call("write",{file_path:join(f.root,"app.js"),content:"changed"})).isError,true);
   assert.equal(f.writes,0);assert.equal(f.reviews,0);
 }));
+test("English approval grants only the reviewed repair scope",()=>fixture(async f=>{
+  assert.equal((await f.call("investment_repair_plan",f.plan)).value.approved,true);
+  assert.equal((await f.call("write",{file_path:join(f.root,"other.js"),content:"changed"})).isError,true);
+  assert.equal((await f.call("write",{file_path:join(f.root,"app.js"),content:"changed"})).isError,false);
+},{language:"en",decision:"Approve this plan"}));
 test("decline and custom answer grant no repair permission",async()=>{
   for(const options of [{decision:"修改方案"},{custom:"确认此方案"}])await fixture(async f=>{
     assert.equal((await f.call("investment_repair_plan",f.plan)).value.approved,false);

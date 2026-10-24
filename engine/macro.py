@@ -155,6 +155,8 @@ def run_daily(*, force: bool = False, now: Optional[datetime] = None, data_root:
 
         env = os.environ.copy()
         env["MACRO_DATA_DIR"] = str(root)
+        from engine.localization import output_language
+        env["MACRO_OUTPUT_LANGUAGE"] = output_language()
         for directory in ("news", "daily", "weekly", "monthly", "yearly"):
             (root / directory).mkdir(parents=True, exist_ok=True)
         reference_date = current.date().isoformat()

@@ -1,3 +1,4 @@
+import {withLanguage,languageForContext} from "./copy.js";
 /**
  * AI Trading Automation 2.0 engine bridge tools.
  *
@@ -22,6 +23,7 @@
  * Row config: { engineUrl, token } — env overrides INVESTMENT_ENGINE_URL /
  * ATA_ACCESS_TOKEN.
  */
+import { installConversationLanguage } from "./output-language.js";
 import { defineTool } from "@deepseek-ai/dsh-tools";
 import { EngineClient } from "./engine-client.js";
 import { installAnalysisMeter } from "./analysis-meter.js";
@@ -84,13 +86,14 @@ function registerTool(ctx, toolName, description, parameters, executor, options 
       parameters,
       output: { schema: FREE_OBJECT, render: options.render ?? jsonRender },
       timeoutMs: options.timeoutMs ?? 60000,
-      execute: executor,
+      execute: (args,exec) => withLanguage(languageForContext(ctx),()=>executor(args,exec)),
     }),
   );
 }
 
 /** @param {import('@deepseek-ai/cordis').Context} ctx */
 export function apply(ctx, config) {
+  installConversationLanguage(ctx);
   const engineUrl =
     process.env.INVESTMENT_ENGINE_URL ??
     (typeof config?.engineUrl === "string" ? config.engineUrl : "http://127.0.0.1:8790");

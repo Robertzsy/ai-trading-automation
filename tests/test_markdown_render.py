@@ -52,6 +52,7 @@ MD_CLASSES = (
 
 # react + react/jsx-runtime shims: build a JSON tree instead of real elements.
 HARNESS = '''
+
 "use strict";
 const fs = require("fs");
 const flatten = (children) => {
@@ -130,7 +131,7 @@ def render(tmp_path: Path) -> Callable[[str], dict[str, Any]]:
     """
     node = _node()
     driver = tmp_path / "markdown-driver.cjs"
-    driver.write_text(HARNESS + "\n" + markdown_block() + "\n" + CALLER, encoding="utf-8", newline="\n")
+    driver.write_text("const COPY="+json.dumps(json.loads((REPO_ROOT / "app/locales/product.json").read_text(encoding="utf-8")))+"; const tr=key=>COPY[key].zh;\n"+HARNESS + "\n" + markdown_block() + "\n" + CALLER, encoding="utf-8", newline="\n")
     payload = tmp_path / "markdown-input.json"
     output = tmp_path / "markdown-output.json"
     cache: dict[str, dict[str, Any]] = {}

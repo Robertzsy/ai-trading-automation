@@ -97,6 +97,12 @@ jobs:
       - name: Generated Markdown renderer is current
         run: node app/plugins/dsh-product-shell/scripts/generate-markdown.mjs --check
 
+      - name: Generated bilingual dictionaries are current
+        run: node app/scripts/generate-i18n.mjs --check
+
+      - name: Declarative investment preset is current
+        run: node app/scripts/generate-preset.mjs --check
+
       - name: Generated Dashboard is current
         run: node app/plugins/dsh-product-shell/scripts/generate-dashboard.mjs --check
 

@@ -1,0 +1,350 @@
+{
+  "repair.approve.this.plan": {
+    "zh": "确认此方案",
+    "en": "Approve this plan"
+  },
+  "repair.revise.plan": {
+    "zh": "修改方案",
+    "en": "Revise plan"
+  },
+  "repair.repair.paths.must.stay.within.project.source.and.must.not.target.user.data": {
+    "zh": "修复路径必须是项目源码，不能指向用户数据或目录之外",
+    "en": "Repair paths must stay within project source and must not target user data"
+  },
+  "repair.the.repair.path.links.outside.the.project": {
+    "zh": "修复路径的链接指向项目之外",
+    "en": "The repair path links outside the project"
+  },
+  "repair.p0.problem.p1.cause.and.evidence.p2.changes.p3.files.p4.allowed.commands.p5.vali": {
+    "zh": "# {p0}\n\n问题：{p1}\n\n原因与依据：{p2}\n\n修改方案：{p3}\n\n修改文件：\n{p4}\n\n允许执行的命令：\n{p5}\n\n验证：\n{p6}\n\n回退：{p7}\n\n确认仅授权上述修复，完成后报告验证结果；原分析不会自动重跑。",
+    "en": "# {p0}\n\nProblem: {p1}\n\nCause and evidence: {p2}\n\nChanges: {p3}\n\nFiles:\n{p4}\n\nAllowed commands:\n{p5}\n\nValidation:\n{p6}\n\nRollback: {p7}\n\nApproval authorizes only these repairs. Report validation results afterward; the original analysis will not restart automatically."
+  },
+  "repair.read.the.error.and.source.then.call.investment.repair.plan.with.the.full.plan.do": {
+    "zh": "先读取错误和源码，调用 investment_repair_plan 展示完整修复方案；用户确认前禁止改文件、执行 shell 或委派修复",
+    "en": "Read the error and source, then call investment_repair_plan with the full plan. Do not edit, run shell commands or delegate repairs before user approval."
+  },
+  "repair.repairs.may.execute.only.the.approved.file.changes.and.commands.in.this.conversa": {
+    "zh": "修复仅允许当前对话执行已确认的文件修改和命令，不能委派或启动替代工作流",
+    "en": "Repairs may execute only the approved file changes and commands in this conversation. Do not delegate or start another workflow."
+  },
+  "repair.this.command.is.outside.the.approved.plan.update.the.plan.and.obtain.approval.ag": {
+    "zh": "命令不在已确认方案内，请更新方案并重新确认",
+    "en": "This command is outside the approved plan. Update the plan and obtain approval again."
+  },
+  "repair.repair.commands.must.finish.in.the.foreground.with.an.exit.code": {
+    "zh": "修复命令必须在前台完成并取得退出码",
+    "en": "Repair commands must finish in the foreground with an exit code"
+  },
+  "repair.repair.commands.must.explicitly.set.workdir.to.the.approved.absolute.project.roo": {
+    "zh": "修复命令必须用绝对路径明确指定已确认的项目根目录作为 workdir",
+    "en": "Repair commands must explicitly set workdir to the approved absolute project root"
+  },
+  "repair.repair.files.must.use.approved.absolute.paths.rather.than.the.session.working.di": {
+    "zh": "修复文件必须使用已确认源码的绝对路径，不能依赖会话工作目录",
+    "en": "Repair files must use approved absolute paths rather than the session working directory"
+  },
+  "repair.this.file.is.outside.the.approved.plan.update.the.plan.and.obtain.approval.again": {
+    "zh": "文件不在已确认方案内，请更新方案并重新确认",
+    "en": "This file is outside the approved plan. Update the plan and obtain approval again."
+  },
+  "repair.too.many.repair.operations.stopped.report.results.before.proposing.another.plan": {
+    "zh": "本次修复操作过多，已停止，请报告结果后重新提出方案",
+    "en": "Too many repair operations; stopped. Report results before proposing another plan."
+  },
+  "repair.present.a.diagnosed.product.repair.plan.and.wait.for.user.approval.approval.cove": {
+    "zh": "展示产品修复方案并等待用户确认。必须先诊断；确认前不修改源码。确认只授权列明的文件和命令，失败后停止，不自动重跑原分析。",
+    "en": "Present a diagnosed product repair plan and wait for user approval. Approval covers only listed files and commands. Stop on failure; do not restart the original analysis automatically."
+  },
+  "repair.repair.approval.is.available.only.in.the.user.s.desktop.conversation.background.": {
+    "zh": "修复确认只能在用户桌面对话中进行，后台只报告错误并停止",
+    "en": "Repair approval is available only in the user's desktop conversation. Background tasks must report errors and stop."
+  },
+  "repair.product.source.root.is.missing.repair.scope.cannot.be.determined": {
+    "zh": "缺少产品源码根目录，不能确定修复范围",
+    "en": "Product source root is missing; repair scope cannot be determined"
+  },
+  "repair.repair.plan.is.missing.a.valid": {
+    "zh": "修复方案缺少有效的 ",
+    "en": "Repair plan is missing a valid "
+  },
+  "repair.validation.commands.must.also.be.listed.among.allowed.commands": {
+    "zh": "验证命令必须列在允许执行的命令内",
+    "en": "Validation commands must also be listed among allowed commands"
+  },
+  "repair.no.user.approval.channel.is.available.repair.remains.stopped": {
+    "zh": "当前对话没有用户确认通道，修复保持停止",
+    "en": "No user approval channel is available; repair remains stopped"
+  },
+  "repair.product.repair.approval": {
+    "zh": "产品修复确认",
+    "en": "Product repair approval"
+  },
+  "repair.apply.the.following.repair.plan": {
+    "zh": "按下列方案修复？",
+    "en": "Apply the following repair plan?"
+  },
+  "repair.project.root": {
+    "zh": "\n\n项目根目录：`",
+    "en": "\n\nProject root: `"
+  },
+  "repair.execute.only.the.listed.changes.and.commands.then.report.validation.results": {
+    "zh": "只执行列明的修改和命令，完成后报告验证结果。",
+    "en": "Execute only the listed changes and commands, then report validation results."
+  },
+  "repair.keep.stopped.and.revise.the.plan.first": {
+    "zh": "保持停止，先修改方案。",
+    "en": "Keep stopped and revise the plan first."
+  },
+  "repair.user.approval.was.not.given.repair.remains.stopped": {
+    "zh": "用户未确认，修复保持停止",
+    "en": "User approval was not given; repair remains stopped"
+  },
+  "repair.source.changed.while.awaiting.approval.diagnose.again.and.request.a.new.approval": {
+    "zh": "方案确认期间源码已变化，请重新诊断并确认",
+    "en": "Source changed while awaiting approval. Diagnose again and request a new approval."
+  },
+  "repair.use.the.absolute.file.paths.and.workdir.above.stay.within.the.approved.scope.and": {
+    "zh": "文件和 workdir 使用上述绝对路径；仅执行确认范围，验证失败立即停止。完成后调用 investment_repair_finish，不自动重跑原分析。",
+    "en": "Use the absolute file paths and workdir above. Stay within the approved scope and stop on validation failure. Call investment_repair_finish afterward. Do not restart the original analysis automatically."
+  },
+  "repair.close.the.repair.grant.and.report.results.success.requires.all.validation.comman": {
+    "zh": "关闭本次修复并报告结果。成功必须有实际执行通过的全部验证命令；失败立即关闭授权并报告，不能继续自动修复或重跑分析。",
+    "en": "Close the repair grant and report results. Success requires all validation commands to pass. On failure, revoke the grant and stop; do not continue repairs or restart analysis."
+  },
+  "repair.this.conversation.has.no.matching.repair.grant": {
+    "zh": "当前对话没有对应的修复授权",
+    "en": "This conversation has no matching repair grant"
+  },
+  "repair.repair.operations.are.still.running.validation.cannot.be.declared.complete": {
+    "zh": "修复操作尚未结束，不能宣布验证完成",
+    "en": "Repair operations are still running; validation cannot be declared complete"
+  },
+  "repair.not.all.validation.commands.passed.against.the.current.source.repair.success.can": {
+    "zh": "没有取得当前源码下全部验证命令的成功退出码，不能宣布修复成功",
+    "en": "Not all validation commands passed against the current source; repair success cannot be declared"
+  },
+  "repair.the.repair.grant.is.closed.report.results.to.the.user.resuming.the.original.anal": {
+    "zh": "修复授权已关闭。请向用户报告结果；原分析续跑仍需用户明确要求。",
+    "en": "The repair grant is closed. Report results to the user. Resuming the original analysis still requires an explicit user request."
+  },
+  "research.incomplete": {
+    "zh": "基础研究未达到完整性阈值，按故障安全规则保持持仓。",
+    "en": "Base research did not meet completeness requirements; retain the position under fail-safe rules."
+  },
+  "research.notSubmitted": {
+    "zh": "本次仅生成研究方案，未进入模拟撮合",
+    "en": "Research generated only; no paper orders were submitted"
+  },
+  "workflow.cash.deployment.rule.cash": {
+    "zh": "现金部署强制：现金 ",
+    "en": "Cash deployment rule: cash "
+  },
+  "workflow.exceeds.target.ceiling": {
+    "zh": "% 高于目标上限 ",
+    "en": "% exceeds target ceiling "
+  },
+  "workflow.and.this.security.has.positive.ev.allocate.the.mandate.s.standard.position.this.": {
+    "zh": "%，且该标的 EV 为正，按授权书标准仓位部署。这项是分析建议，不构成硬性交易。 ",
+    "en": "%, and this security has positive EV. Allocate the mandate's standard position. This is an analysis recommendation, not a mandatory trade. "
+  },
+  "workflow.exceeds.the.target.ceiling.the.portfolio.should.not.remain.entirely.in.cash.appl": {
+    "zh": "% 高于目标上限，组合不得全现金；按最低部署 25% 与单票上限执行。这项是分析建议，不构成硬性交易。 ",
+    "en": "% exceeds the target ceiling; the portfolio should not remain entirely in cash. Apply minimum 25% deployment and per-security limits. This is an analysis recommendation, not a mandatory trade. "
+  },
+  "workflow.analysis.stopped": {
+    "zh": "分析已停止",
+    "en": "Analysis stopped"
+  },
+  "workflow.required.stage.roles.returned.incomplete.results": {
+    "zh": "阶段必要角色结果不完整：",
+    "en": "Required stage roles returned incomplete results: "
+  },
+  "workflow.brief.stage.contract.mismatch": {
+    "zh": "简洁论据阶段契约不匹配",
+    "en": "Brief stage contract mismatch"
+  },
+  "workflow.conflicting.evidence.id.in.briefs": {
+    "zh": "简洁论据存在冲突证据编号：",
+    "en": "Conflicting evidence ID in briefs: "
+  },
+  "workflow.brief.binding.failed": {
+    "zh": "简洁论据绑定失败：",
+    "en": "Brief binding failed: "
+  },
+  "workflow.the.researchbriefs.experiment.requires.other.role.deduplication.output.and.tool.": {
+    "zh": "researchBriefs 试验需关闭其他角色、去重、输出与工具策略试验",
+    "en": "The researchBriefs experiment requires other role, deduplication, output and tool-policy experiments to be disabled"
+  },
+  "workflow.the.selectivefastthinking.experiment.requires.other.role.deduplication.output.an": {
+    "zh": "selectiveFastThinking 试验需关闭其他角色、去重、输出与工具策略试验",
+    "en": "The selectiveFastThinking experiment requires other role, deduplication, output and tool-policy experiments to be disabled"
+  },
+  "workflow.stage.advanced": {
+    "zh": "阶段推进：",
+    "en": "Stage advanced: "
+  },
+  "workflow.market.must.be.cn.hk.us.or.etf": {
+    "zh": "market 必须是 cn、hk、us 或 etf",
+    "en": "market must be cn, hk, us or etf"
+  },
+  "workflow.a.manual.conversation.cannot.submit.directly.present.the.plan.and.obtain.user.ap": {
+    "zh": "手动对话不能直接提交；请先展示方案并取得用户确认，再使用受控提交工具",
+    "en": "A manual conversation cannot submit directly. Present the plan and obtain user approval before using the controlled submission tool."
+  },
+  "workflow.manual.analysis.requires.explicit.securities.screen.first.with.investment.run.sc": {
+    "zh": "手动分析必须明确标的：请先运行选股（investment_run_screening / investment_screening）得到标准化候选列表，再把结果以 symbols 传入本工具（symbols_source=\"screening\"）；用户点名的股票直接以 symbols 传入（symbols_source=\"user\"）。本入口不允许空股票列表。",
+    "en": "Manual analysis requires explicit securities. Screen first with investment_run_screening / investment_screening, then pass the standardized symbols with symbols_source=\"screening\". Pass user-selected securities with symbols_source=\"user\". Empty security lists are not permitted."
+  },
+  "workflow.this.round.failed.and.was.not.restarted.report.the.original.error.resume.with.th": {
+    "zh": "该轮次失败且未重启。先报告原错误；只有用户明确要求时才传同一 cycle_id 和 retry=true 续跑。",
+    "en": "This round failed and was not restarted. Report the original error. Resume with the same cycle_id and retry=true only when the user explicitly requests it."
+  },
+  "workflow.this.round.was.stopped.its.original.cycle.id.will.not.restart": {
+    "zh": "该轮次已停止；原 cycle_id 不重启。",
+    "en": "This round was stopped; its original cycle_id will not restart."
+  },
+  "workflow.check.progress.with.investment.analysis.status.cycle.id": {
+    "zh": "请用 investment_analysis_status(cycle_id=\"",
+    "en": "Check progress with investment_analysis_status(cycle_id=\""
+  },
+  "workflow.do.not.restart.or.reimplement.the.analysis": {
+    "zh": "\") 查询进度；不要重复启动或自行重写分析。",
+    "en": "\"). Do not restart or reimplement the analysis."
+  },
+  "workflow.a.valid.dsh.session.is.required.for.the.full.analysis.workflow": {
+    "zh": "全流程分析需要从一个有效的 DSH 会话调用",
+    "en": "A valid DSH session is required for the full analysis workflow"
+  },
+  "workflow.the.background.round.timed.out.checkpoints.are.retained.restarting.research.is.p": {
+    "zh": "后台轮次已超时，检查点保留；禁止重新启动研究",
+    "en": "The background round timed out. Checkpoints are retained; restarting research is prohibited."
+  },
+  "workflow.the.engine.is.paused.or.emergency.stopped.no.analysis.round.was.started": {
+    "zh": "引擎已暂停或紧急停止，分析轮次未启动",
+    "en": "The engine is paused or emergency-stopped; no analysis round was started"
+  },
+  "workflow.targets.came.from.screening.and.holdings.screened.within.the.automatic.round": {
+    "zh": "目标来自选股池与持仓（自动轮次内部选股）",
+    "en": "Targets came from screening and holdings (screened within the automatic round)"
+  },
+  "workflow.targets.were.explicitly.selected.by.the.caller": {
+    "zh": "目标来自调用方显式指定（",
+    "en": "Targets were explicitly selected by the caller ("
+  },
+  "workflow.screening.pool.securities.were.not.added": {
+    "zh": "），未混入选股池标的",
+    "en": "); screening-pool securities were not added"
+  },
+  "workflow.screening.and.holdings.are.empty.analysis.cannot.start": {
+    "zh": "选股与持仓均为空，无法启动分析",
+    "en": "Screening and holdings are empty; analysis cannot start"
+  },
+  "workflow.submit.the.saved.final.decisions.for.this.paper.round": {
+    "zh": "使用已保存的最终决策完成本轮模拟提交",
+    "en": "Submit the saved final decisions for this paper round"
+  },
+  "workflow.the.brief.contract.cannot.change.within.a.round.use.a.new.cycle.id": {
+    "zh": "不能在同一轮次中切换简洁论据契约；请使用新的 cycle_id",
+    "en": "The brief contract cannot change within a round. Use a new cycle_id."
+  },
+  "workflow.the.research.thinking.policy.cannot.change.within.a.round.use.a.new.cycle.id": {
+    "zh": "不能在同一轮次中切换研究思考档位策略；请使用新的 cycle_id",
+    "en": "The research thinking policy cannot change within a round. Use a new cycle_id."
+  },
+  "workflow.brief.archive.is.missing.or.account.mandate.changed.use.a.new.cycle.id": {
+    "zh": "简洁论据归档缺失或账户/授权书已变化；请使用新的 cycle_id",
+    "en": "Brief archive is missing or account/mandate changed. Use a new cycle_id."
+  },
+  "workflow.completed.stage.brief.archives.are.incomplete.use.a.new.cycle.id": {
+    "zh": "已完成阶段的简洁论据归档不完整；请使用新的 cycle_id",
+    "en": "Completed-stage brief archives are incomplete. Use a new cycle_id."
+  },
+  "workflow.account.or.mandate.changed.the.old.verdict.cannot.be.reused.analyze.again.with.a": {
+    "zh": "账户或授权书已变化，不能复用旧轮次的裁决；请使用新的 cycle_id 重新分析",
+    "en": "Account or mandate changed; the old verdict cannot be reused. Analyze again with a new cycle_id."
+  },
+  "workflow.full.research.archives.are.missing.lossless.resume.is.unavailable.resolve.this.i": {
+    "zh": "本轮完整研究归档缺失，不能无损续跑；请在用户对话中处理",
+    "en": "Full research archives are missing; lossless resume is unavailable. Resolve this in the user's conversation."
+  },
+  "workflow.shared.original.research.material.is.missing.lossless.resume.is.unavailable.use.": {
+    "zh": "本轮共享原始资料归档缺失，不能无损续跑；请使用新的 cycle_id",
+    "en": "Shared original research material is missing; lossless resume is unavailable. Use a new cycle_id."
+  },
+  "workflow.shared.evidence.archive.was.not.written.traceability.is.incomplete": {
+    "zh": "共享取证归档未写入；本轮数据追溯不完整",
+    "en": "Shared evidence archive was not written; traceability is incomplete"
+  },
+  "workflow.shared.evidence.archive.request.failed.traceability.is.incomplete": {
+    "zh": "共享取证归档接口失败；本轮数据追溯不完整",
+    "en": "Shared evidence archive request failed; traceability is incomplete"
+  },
+  "workflow.base.research.success.ratio": {
+    "zh": "基础研究成功率 ",
+    "en": "Base research success ratio "
+  },
+  "workflow.is.below.threshold": {
+    "zh": " 未达到阈值 ",
+    "en": " is below threshold "
+  },
+  "workflow.fail.safe.rules.block.submission.for.this.round": {
+    "zh": "，本轮按故障安全规则停止提交",
+    "en": "; fail-safe rules block submission for this round"
+  },
+  "workflow.base.research.incomplete.forced.hold": {
+    "zh": " 基础研究不完整，已强制 HOLD",
+    "en": " base research incomplete; forced HOLD"
+  },
+  "workflow.base.research.incomplete.excluded.from.candidate.decisions": {
+    "zh": " 基础研究不完整，已从候选决策排除",
+    "en": " base research incomplete; excluded from candidate decisions"
+  },
+  "workflow.full.multi.role.analysis.completed": {
+    "zh": "全流程多角色分析完成",
+    "en": "Full multi-role analysis completed"
+  },
+  "workflow.round.not.found": {
+    "zh": "轮次不存在",
+    "en": "Round not found"
+  },
+  "workflow.no.analysis.rounds.yet.start.the.fixed.workflow.with.investment.analysis.workflo": {
+    "zh": "尚无分析轮次记录；请先调用 investment_analysis_workflow 启动固定流程",
+    "en": "No analysis rounds yet. Start the fixed workflow with investment_analysis_workflow."
+  },
+  "workflow.analysis.completed.ready.for.execution.present.the.exact.final.decisions.and.wai": {
+    "zh": "分析已完成（ready_for_execution）。把最终决策清单呈现给用户并等待明确批准；批准后用 investment_submit_decisions 原样提交，idempotency_key 必须等于本轮的 cycle_id（",
+    "en": "Analysis completed (ready_for_execution). Present the exact final decisions and wait for explicit approval. Then submit them unchanged with investment_submit_decisions; idempotency_key must equal this round's cycle_id ("
+  },
+  "workflow.round.is.still.running": {
+    "zh": "轮次仍在运行（",
+    "en": "Round is still running ("
+  },
+  "workflow.check.again.later.with.this.tool.do.not.start.a.duplicate.round": {
+    "zh": "）。稍后再次调用本工具查询，不要重复启动轮次。",
+    "en": "). Check again later with this tool; do not start a duplicate round."
+  },
+  "workflow.round.failed": {
+    "zh": "轮次失败：",
+    "en": "Round failed: "
+  },
+  "workflow.unknown.error": {
+    "zh": "未知错误",
+    "en": "Unknown error"
+  },
+  "workflow.saved.checkpoints.are.retained.report.the.error.first.resume.with.the.same.cycle": {
+    "zh": "。已保存的检查点保留；先报告错误，只有用户明确要求时才用同一 cycle_id 和 retry=true 续跑。后台不得自行修复或重跑。",
+    "en": ". Saved checkpoints are retained. Report the error first; resume with the same cycle_id and retry=true only on explicit user request. Background tasks must not repair or restart themselves."
+  },
+  "workflow.round.stopped.start.a.new.round.if.a.new.analysis.is.needed": {
+    "zh": "轮次已停止。需要重新分析时请发起新轮次。",
+    "en": "Round stopped. Start a new round if a new analysis is needed."
+  },
+  "workflow.round.ended": {
+    "zh": "轮次已结束（",
+    "en": "Round ended ("
+  },
+  "workflow.summarize.decisions.fills.rejections.and.risks.do.not.submit.trades.without.user": {
+    "zh": "）。向用户复述最终决策、成交/拒绝与风险提示；未经用户批准不得提交任何买卖。",
+    "en": "). Summarize decisions, fills/rejections and risks. Do not submit trades without user approval."
+  }
+}

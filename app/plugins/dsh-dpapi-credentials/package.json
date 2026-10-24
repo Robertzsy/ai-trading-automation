@@ -1,6 +1,6 @@
 {
   "name": "@ai-trading-automation/dsh-dpapi-credentials",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "DPAPI-backed credential provider for DeepSeek Harness (AI Trading Automation 2.0 desktop): secrets live encrypted in the user data root via the engine",
   "type": "module",
   "main": "lib/index.js",

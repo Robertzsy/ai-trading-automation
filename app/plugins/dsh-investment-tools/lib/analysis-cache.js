@@ -48,7 +48,7 @@ export function buildResearchPlan(symbol, market, name = "", industry = "") {
   ].join("\n");
 }
 
-export async function collectResearchPackets(ctx, client, symbols, market, { memory, mandate, holdings, signal, read, researchRoles = false, now = Date.now } = {}) {
+export async function collectResearchPackets(ctx, client, symbols, market, { memory, mandate, holdings, signal, read, researchRoles = false, outputLanguage = "zh", now = Date.now } = {}) {
   const packets = {};
   for (const symbol of symbols) {
     signal?.throwIfAborted();
@@ -67,12 +67,13 @@ export async function collectResearchPackets(ctx, client, symbols, market, { mem
     let researchPlan = "";
     if (typeof client.get === "function" && typeof client.post === "function") {
       try {
-        const stored = await client.get(`/api/research/plan?market=${encodeURIComponent(market)}&symbol=${encodeURIComponent(symbol)}&day=${day}`, { timeoutMs: 15000 });
+        const stored = await client.get(`/api/research/plan?market=${encodeURIComponent(market)}&symbol=${encodeURIComponent(symbol)}&day=${day}&language=${outputLanguage}&template=research-2.4.0-1`, { timeoutMs: 15000 });
         if (stored && stored.found && typeof stored.plan === "string") researchPlan = stored.plan;
       } catch { /* cache miss or API unavailable: fall back to the local template */ }
       if (!researchPlan) {
         researchPlan = buildResearchPlan(symbol, market, companyName, snapshot.industry ?? snapshot.sector ?? "");
-        try { await client.post("/api/research/plan", { market, symbol, day, plan: researchPlan }, { timeoutMs: 15000 }); } catch { /* best-effort cache write */ }
+        if (outputLanguage === "en") researchPlan = "Use the canonical local-language queries below. Keep the same 5+10+5 search budget and evidence coverage. Write all generated explanations in English.\n" + researchPlan;
+        try { await client.post("/api/research/plan", { market, symbol, day, plan: researchPlan, language:outputLanguage, template:"research-2.4.0-1" }, { timeoutMs: 15000 }); } catch { /* best-effort cache write */ }
       }
     }
     const query = newsQuery(symbol, market, { now: now(), companyName });

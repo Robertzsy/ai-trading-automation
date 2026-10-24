@@ -1,0 +1,186 @@
+{
+  "macro.daily.macro.briefing.previous.day.p0.p1": {
+    "zh": "## 📰 宏观日报 | 昨日 {p0}（周{p1}）\n\n",
+    "en": "## 📰 Daily macro briefing | Previous day {p0} ({p1})\n\n"
+  },
+  "macro.collected.p0.articles.high.p1.medium.p2.low.p3": {
+    "zh": "> 📡 采集 {p0} 条新闻 | 🔴 高 {p1} | 🟡 中 {p2} | ⚪ 低 {p3}\n\n",
+    "en": "> 📡 Collected {p0} articles | 🔴 High {p1} | 🟡 Medium {p2} | ⚪ Low {p3}\n\n"
+  },
+  "macro.highlights": {
+    "zh": "### ⚡ 重点关注\n\n",
+    "en": "### ⚡ Highlights\n\n"
+  },
+  "macro.original.source.p0": {
+    "zh": "> 📎 [原文]({p0})\n\n",
+    "en": "> 📎 [Original source]({p0})\n\n"
+  },
+  "macro.market.data": {
+    "zh": "### 📊 行情数据\n\n",
+    "en": "### 📊 Market data\n\n"
+  },
+  "macro.the.previous.day.was.a.weekend.mainland.markets.were.closed.these.are.the.latest": {
+    "zh": "> ⚠️ 昨日为周末，A股休市。以下为最近交易日数据，具体请查阅前一个交易日日报。\n\n",
+    "en": "> ⚠️ The previous day was a weekend; mainland markets were closed. These are the latest trading-day prices. Refer to the previous trading-day briefing.\n\n"
+  },
+  "macro.index.close.change": {
+    "zh": "| 指数 | 收盘 | 涨跌幅 |\n",
+    "en": "| Index | Close | Change |\n"
+  },
+  "macro.top.5.sector.moves": {
+    "zh": "**📈 板块涨跌 TOP5**\n\n",
+    "en": "**📈 Top 5 sector moves**\n\n"
+  },
+  "macro.gainers.p0": {
+    "zh": "🏆 涨幅: {p0}\n",
+    "en": "🏆 Gainers: {p0}\n"
+  },
+  "macro.decliners.p0": {
+    "zh": "💔 跌幅: {p0}\n",
+    "en": "💔 Decliners: {p0}\n"
+  },
+  "macro.generated.at.p0": {
+    "zh": "---\n*报告生成时间: {p0}*\n",
+    "en": "---\n*Generated at: {p0}*\n"
+  },
+  "macro.weekly.macro.briefing.p0.p1.p2": {
+    "zh": "## 📅 宏观周报 | {p0} ~ {p1}（{p2}）\n\n",
+    "en": "## 📅 Weekly macro briefing | {p0} ~ {p1} ({p2})\n\n"
+  },
+  "macro.this.week.p0.articles.high.p1.medium.p2": {
+    "zh": "> 📡 本周采集 {p0} 条 | 🔴 高 {p1} | 🟡 中 {p2}\n\n",
+    "en": "> 📡 This week: {p0} articles | 🔴 High {p1} | 🟡 Medium {p2}\n\n"
+  },
+  "macro.main.themes.this.week": {
+    "zh": "### 🔥 本周主线\n\n",
+    "en": "### 🔥 Main themes this week\n\n"
+  },
+  "macro.category.summary": {
+    "zh": "### 📋 分类汇总\n\n",
+    "en": "### 📋 Category summary\n\n"
+  },
+  "macro.p0.p1.p2.articles.p3": {
+    "zh": "- {p0} {p1}: {p2} 条 {p3}\n",
+    "en": "- {p0} {p1}: {p2} articles {p3}\n"
+  },
+  "macro.industry.attention": {
+    "zh": "### 🏭 行业热度\n\n",
+    "en": "### 🏭 Industry attention\n\n"
+  },
+  "macro.p0.p1.related.articles": {
+    "zh": "- {p0}: {p1} 条相关新闻\n",
+    "en": "- {p0}: {p1} related articles\n"
+  },
+  "macro.key.data.releases.this.week": {
+    "zh": "### 📊 本周重要数据发布\n\n",
+    "en": "### 📊 Key data releases this week\n\n"
+  },
+  "macro.no.major.macroeconomic.releases.this.week": {
+    "zh": "（本周无重大宏观数据发布）\n",
+    "en": "(No major macroeconomic releases this week)\n"
+  },
+  "macro.next.week": {
+    "zh": "### 📌 下周关注\n\n",
+    "en": "### 📌 Next week\n\n"
+  },
+  "macro.monitor.developments.in.the.middle.east.and.us.iran.relations": {
+    "zh": "- 持续关注: 中东局势演变、美伊关系\n",
+    "en": "- Monitor developments in the Middle East and US-Iran relations\n"
+  },
+  "macro.data.monitor.monthly.releases.including.pmi": {
+    "zh": "- 数据发布: 关注 PMI 等月度数据\n",
+    "en": "- Data: monitor monthly releases including PMI\n"
+  },
+  "macro.policy.monitor.central.bank.open.market.operations": {
+    "zh": "- 政策面: 关注央行公开市场操作节奏\n\n",
+    "en": "- Policy: monitor central bank open-market operations\n\n"
+  },
+  "macro.monthly.macro.briefing.p0.p1": {
+    "zh": "## 🗓️ 宏观月报 | {p0} ~ {p1}\n\n",
+    "en": "## 🗓️ Monthly macro briefing | {p0} ~ {p1}\n\n"
+  },
+  "macro.this.month.p0.articles.high.p1": {
+    "zh": "> 📡 本月采集 {p0} 条 | 🔴 高 {p1}\n\n",
+    "en": "> 📡 This month: {p0} articles | 🔴 High {p1}\n\n"
+  },
+  "macro.macro.overview": {
+    "zh": "### 🌏 宏观全景\n\n",
+    "en": "### 🌏 Macro overview\n\n"
+  },
+  "macro.policy.roadmap": {
+    "zh": "### 🛤️ 政策路线图\n\n",
+    "en": "### 🛤️ Policy roadmap\n\n"
+  },
+  "macro.industry.rotation": {
+    "zh": "### 🏭 行业轮动\n\n",
+    "en": "### 🏭 Industry rotation\n\n"
+  },
+  "macro.industry.news.mentions.attention": {
+    "zh": "| 行业 | 新闻提及 | 关注度 |\n",
+    "en": "| Industry | News mentions | Attention |\n"
+  },
+  "macro.very.high": {
+    "zh": "🔥 极高",
+    "en": "🔥 Very high"
+  },
+  "macro.high": {
+    "zh": "📈 高",
+    "en": "📈 High"
+  },
+  "macro.watch": {
+    "zh": "👀 关注",
+    "en": "👀 Watch"
+  },
+  "macro.normal": {
+    "zh": "➖ 正常",
+    "en": "➖ Normal"
+  },
+  "macro.annual.macro.briefing.p0.p1": {
+    "zh": "## 📆 宏观年报 | {p0} ~ {p1}\n\n",
+    "en": "## 📆 Annual macro briefing | {p0} ~ {p1}\n\n"
+  },
+  "macro.p0.major.articles.collected.this.year": {
+    "zh": "> 📡 全年采集 {p0} 条重大新闻\n\n",
+    "en": "> 📡 {p0} major articles collected this year\n\n"
+  },
+  "macro.annual.review": {
+    "zh": "### 🎯 年度回顾\n\n",
+    "en": "### 🎯 Annual review\n\n"
+  },
+  "macro.main.macro.themes.based.on.p0.articles.collected.during.the.year": {
+    "zh": "（基于全年采集的 {p0} 条新闻数据，以下是年度宏观环境变化的核心主线）\n\n",
+    "en": "(Main macro themes based on {p0} articles collected during the year)\n\n"
+  },
+  "macro.major.events.timeline": {
+    "zh": "### 📅 重大事件时间线\n\n",
+    "en": "### 📅 Major events timeline\n\n"
+  },
+  "macro.annual.industry.overview": {
+    "zh": "### 🏭 行业年度全景\n\n",
+    "en": "### 🏭 Annual industry overview\n\n"
+  },
+  "macro.industry.annual.attention": {
+    "zh": "| 行业 | 全年关注度 |\n",
+    "en": "| Industry | Annual attention |\n"
+  },
+  "macro.outlook.for.next.year": {
+    "zh": "### 🔮 来年展望\n\n",
+    "en": "### 🔮 Outlook for next year\n\n"
+  },
+  "macro.directions.and.risks.to.monitor.based.on.annual.trends": {
+    "zh": "（基于年度趋势分析，以下是来年值得关注的方向和风险点）\n\n",
+    "en": "(Directions and risks to monitor based on annual trends)\n\n"
+  },
+  "macro.policy.continuity.monitor.key.industry.policies.and.adjustments": {
+    "zh": "- 政策延续性：关注重点产业政策的延续与调整\n",
+    "en": "- Policy continuity: monitor key industry policies and adjustments\n"
+  },
+  "macro.international.environment.geopolitical.risks.remain.a.key.variable": {
+    "zh": "- 国际环境：地缘政治风险仍将是核心变量\n",
+    "en": "- International environment: geopolitical risks remain a key variable\n"
+  },
+  "macro.technology.ai.and.other.emerging.technologies.are.reshaping.industries": {
+    "zh": "- 技术变革：AI 等前沿科技对产业格局的重塑加速\n\n",
+    "en": "- Technology: AI and other emerging technologies are reshaping industries\n\n"
+  }
+}

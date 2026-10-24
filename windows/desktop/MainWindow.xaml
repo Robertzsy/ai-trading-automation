@@ -10,14 +10,14 @@
     <DockPanel>
         <StatusBar DockPanel.Dock="Bottom" Background="#0B0E14" Foreground="#CBD5E1" BorderBrush="#273044" BorderThickness="0,1,0,0">
             <StatusBarItem>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock x:Name="AgentStatusText" Text="投资 Agent: 启动中…" Margin="0,0,16,0" />
-                    <TextBlock x:Name="ChatStatusText" Text="对话服务: 启动中…" Margin="0,0,16,0" />
-                    <TextBlock x:Name="HarnessText" Text="风控: 启动中…" Margin="0,0,16,0" />
-                    <TextBlock x:Name="ModeText" Text="模式: -" Margin="0,0,16,0" />
-                    <TextBlock x:Name="MandateText" Text="策略: -" Margin="0,0,16,0" />
-                    <TextBlock x:Name="RoundText" Text="轮次: -" Margin="0,0,16,0" />
-                </StackPanel>
+                <WrapPanel Orientation="Horizontal">
+                    <TextBlock x:Name="AgentStatusText" Text="" Margin="0,0,16,0" />
+                    <TextBlock x:Name="ChatStatusText" Text="" Margin="0,0,16,0" />
+                    <TextBlock x:Name="HarnessText" Text="" Margin="0,0,16,0" />
+                    <TextBlock x:Name="ModeText" Text="" Margin="0,0,16,0" />
+                    <TextBlock x:Name="MandateText" Text="" Margin="0,0,16,0" />
+                    <TextBlock x:Name="RoundText" Text="" Margin="0,0,16,0" />
+                </WrapPanel>
             </StatusBarItem>
         </StatusBar>
         <wv2:WebView2 x:Name="WebView" />

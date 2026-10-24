@@ -1,3 +1,4 @@
+using Localization = AiTradingAutomation.Desktop.Services.Localization;
 using System;
 using System.IO;
 using System.IO.Pipes;
@@ -43,6 +44,7 @@ public partial class App : Application
         var dataRoot = ReadArg(e.Args, "--data-root");
         var autoStart = e.Args.Contains("--autostart");
         _processManager = new ProcessManager(appRoot, dataRoot);
+        Localization.Initialize(_processManager.DataRoot, ReadArg(e.Args, "--language"));
         _window = new MainWindow(_processManager);
 
         ListenForShowSignal();
@@ -66,7 +68,7 @@ public partial class App : Application
                     DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " STARTUP-FAILED: " + ex + Environment.NewLine);
             }
             catch { }
-            MessageBox.Show("启动失败：" + ex.Message + "\n\n诊断日志：%TEMP%\\ia-desktop-boot.log", "AI Trading Automation",
+            MessageBox.Show(Localization.Text("Startup_failed") + ex.Message + Localization.Text("n_nDiagnostic_log_TEMP_ia_desktop_boot_log"), "AI Trading Automation",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown();
             return;

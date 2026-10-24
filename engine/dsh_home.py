@@ -43,6 +43,11 @@ def _seed_profiles(source: Path, target: Path, *, force: bool) -> None:
                 if not backup.exists():
                     shutil.copy2(patch, backup)
                 shutil.copy2(profile / "cordis.patch.yml", patch)
+                if profile.name == "investment-web":
+                    # Existing rc.6 installations defaulted to Chinese. The
+                    # upstream legacy-settings import can still restore an
+                    # explicit saved preference afterward.
+                    patch.write_text("- id: locale\n  config:\n    preference: zh\n", encoding="utf-8")
             elif "# AI Trading Automation 2.0" in text and "id: investment-tools" in text:
                 raise ValueError(f"Legacy profile {profile.name} contains custom edits; preserve {patch} and migrate its overrides before upgrading")
         for child in profile.iterdir():

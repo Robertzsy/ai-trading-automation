@@ -28,38 +28,46 @@ internal sealed class TrayIcon : IDisposable
         _onExit = onExit;
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("打开主窗口", null, (_, _) => _onOpen());
-        menu.Items.Add("启动服务", null, (_, _) => _onStart());
-        menu.Items.Add("暂停投资", null, (_, _) => _onPause());
-        menu.Items.Add("查看日志", null, (_, _) => _onViewLogs());
-        var autoStartItem = new ToolStripMenuItem("开机自启");
+        menu.Items.Add(Localization.Text("Open_main_window"), null, (_, _) => _onOpen());
+        menu.Items.Add(Localization.Text("Start_services"), null, (_, _) => _onStart());
+        menu.Items.Add(Localization.Text("Pause_investing"), null, (_, _) => _onPause());
+        menu.Items.Add(Localization.Text("View_logs"), null, (_, _) => _onViewLogs());
+        var autoStartItem = new ToolStripMenuItem(Localization.Text("Start_with_Windows"));
         autoStartItem.Click += (_, _) => _setAutoStart(!_isAutoStartEnabled());
         menu.Items.Add(autoStartItem);
         menu.Opening += (_, _) => autoStartItem.Checked = _isAutoStartEnabled();
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add("退出", null, (_, _) => _onExit());
+        menu.Items.Add(Localization.Text("Exit"), null, (_, _) => _onExit());
 
         _icon = new NotifyIcon
         {
-            Text = "AI Trading Automation - AI 自主模拟投资",
+            Text = Localization.Text("AI_Trading_Automation_Automated_paper_investing"),
             Icon = SystemIcons.Application,
             ContextMenuStrip = menu,
             Visible = true,
         };
         _icon.DoubleClick += (_, _) => _onOpen();
+        Localization.Changed += RefreshLanguage;
+    }
+
+    private void RefreshLanguage()
+    {
+        var keys = new[] {"Open_main_window","Start_services","Pause_investing","View_logs","Start_with_Windows","","Exit"};
+        for (var i=0;i<keys.Length;i++) if(keys[i].Length>0) _icon.ContextMenuStrip!.Items[i].Text=Localization.Text(keys[i]);
+        _icon.Text = Localization.Text("AI_Trading_Automation_Automated_paper_investing");
     }
 
     public void ShowMinimizedBalloon()
     {
         _icon.BalloonTipTitle = "AI Trading Automation";
-        _icon.BalloonTipText = "已最小化到托盘，后台自动投资继续运行。";
+        _icon.BalloonTipText = Localization.Text("Minimized_to_the_system_tray_Background_investing_continues");
         _icon.ShowBalloonTip(2500);
     }
 
     public void ShowAutoStartBalloon(bool enabled)
     {
         _icon.BalloonTipTitle = "AI Trading Automation";
-        _icon.BalloonTipText = enabled ? "已开启开机自启。" : "已关闭开机自启。";
+        _icon.BalloonTipText = enabled ? Localization.Text("Start_with_Windows_enabled") : Localization.Text("Start_with_Windows_disabled");
         _icon.ShowBalloonTip(2500);
     }
 
@@ -70,5 +78,5 @@ internal sealed class TrayIcon : IDisposable
         _icon.ShowBalloonTip(4000);
     }
 
-    public void Dispose() => _icon.Dispose();
+    public void Dispose() { Localization.Changed -= RefreshLanguage; _icon.Dispose(); }
 }

@@ -25,13 +25,14 @@ function output(schema, key="", symbol="TEST0") {
 const softFailures = ["research_debate", "portfolio_draft", "risk_review", "final_decision"].flatMap(stage => ["max-tokens", "refusal", "missing-structured"].map(reason => stage + "/" + reason));
 for(const failure of [null,"base_research","research_debate","portfolio_draft","risk_review","final_decision",...softFailures,"partial-base"])test("real PTC process chain / child failure: "+(failure??"none"),{timeout:60000},async()=>{
   const previous=process.env.ATA_AUTONOMOUS_ROUND;process.env.ATA_AUTONOMOUS_ROUND="1";
-  const ctx=new Context(),tools=new Map(),archives={},state={cycle_id:"sdk-20",status:"running",checkpoints:{}},stageStarts=[];
+  const ctx=new Context(),tools=new Map(),archives={},state={cycle_id:"sdk-20",status:"running",checkpoints:{},output_language:failure===null?"en":"zh"},stageStarts=[];
   let currentStage,inject=Boolean(failure),providerCalls=0,ids=0;
   const providerLabels=[];
   ctx.provide("systemPrompt",{tools(){},section(){}});
   ctx.provide("analysisMeter",{begin(){},bind(){},async flush(){return {};}});
   ctx.provide("subagents",{getProvider(){return {capabilities:{outputSchema:true}};},async startActivation({request}){
     providerCalls++;
+    if (!failure) assert.match(request.prompt.map(block=>block.text??"").join(" "),/OUTPUT LANGUAGE CONTRACT: Write all generated prose fields/);
     const [softStage, softReason] = String(failure).split("/");
     if(inject && (currentStage===failure || (softReason && currentStage===softStage) || (failure==="partial-base" && currentStage==="base_research"))){
       inject=false;

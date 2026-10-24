@@ -1,11 +1,11 @@
 {
   "name": "ai-trading-automation-app",
   "private": true,
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "AI Trading Automation 2.0 — DeepSeek Harness application shell (custom profiles, investment agent preset, skills)",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": "^22.19.0 || >=24.0.0"
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.2.1-rc.3"

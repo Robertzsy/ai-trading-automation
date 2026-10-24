@@ -10,9 +10,9 @@
     <AssemblyName>AiTradingAutomation.Desktop</AssemblyName>
     <RootNamespace>AiTradingAutomation.Desktop</RootNamespace>
     <ApplicationIcon>AiTradingAutomation.ico</ApplicationIcon>
-    <Version>2.3.0</Version>
-    <AssemblyVersion>2.3.0.0</AssemblyVersion>
-    <FileVersion>2.3.0.0</FileVersion>
+    <Version>2.4.0</Version>
+    <AssemblyVersion>2.4.0.0</AssemblyVersion>
+    <FileVersion>2.4.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

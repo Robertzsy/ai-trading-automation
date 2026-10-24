@@ -179,6 +179,8 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
         path = _path(cycle_id)
         existing = _read(path)
         if existing is not None:
+            if payload.get("output_language") is not None and payload["output_language"] != existing.get("output_language", "zh"):
+                raise ValueError("output_language cannot change when resuming an existing cycle_id")
             if existing.get("market") != market:
                 raise ValueError("cycle_id 已被其他市场使用")
             if existing.get("status") == "ready_for_execution":
@@ -212,9 +214,15 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             # Legacy records and older callers had no source; infer it from
             # the presence of explicit symbols so stored runs stay truthful.
             symbols_source = "user" if symbols else "autonomous"
+        from engine.localization import output_language, TEMPLATE_VERSION
+        language = payload.get("output_language", output_language())
+        if language not in {"zh", "en"}:
+            raise ValueError("output_language must be zh or en")
         now = _now()
         run = {
             "version": RUN_VERSION,
+            "output_language": language,
+            "prompt_template_version": TEMPLATE_VERSION,
             "cycle_id": cycle_id,
             "market": market,
             "label": str(payload.get("label") or "analysis")[:80],

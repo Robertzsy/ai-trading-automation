@@ -1,15 +1,11 @@
-"""First-run setup page served by the engine API (GET /setup).
+"""Owned bilingual first-run page. Language changes preserve the import form."""
+import json
+from pathlib import Path
+from engine.localization import ui_language
+from engine.version import __version__
 
-The desktop shell opens this page before the wizard finished; completing it
-writes runtime/setup.complete, after which the shell starts the autonomous
-engine and switches the window to the DSH assistant.
-"""
-
-SETUP_PAGE_HTML = """<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<title>AI Trading Automation 2.1 — 首次配置</title>
+_TEMPLATE = r'''<!doctype html>
+<html lang="__LANG__"><head><meta charset="utf-8"><title>AI Trading Automation</title>
 <style>
   body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: #0f1420; color: #e8ecf4;
          display: flex; justify-content: center; padding: 40px 16px; margin: 0; }
@@ -30,73 +26,58 @@ SETUP_PAGE_HTML = """<!doctype html>
   .status.err { color: #ff7b7b; }
   ul { color: #9aa7c7; font-size: 13px; padding-left: 18px; line-height: 1.8; }
   code { background: #0d1220; padding: 2px 6px; border-radius: 4px; color: #7fd4ff; }
-</style>
-</head>
-<body>
-<div class="card">
-  <h1>AI Trading Automation <span class="v2">2.1</span></h1>
-  <p class="sub">多市场模拟投资助手 · 首次配置</p>
-  <ul>
-    <li>初始化四个市场（A股/港股/美股/ETF）的模拟账户，每账户 500,000 初始资金。</li>
-    <li>可选择导入旧版（1.x）数据：账户、报告、记忆、选股缓存与策略授权书，导入前自动备份。</li>
-    <li>模型与 API Key 在完成本页后，于助手「设置 → 模型」中配置。</li>
-    <li>完成配置前不会启动任何自动投资轮次。</li>
-  </ul>
-  <label for="importFrom">旧版数据目录（可选，留空跳过）</label>
-  <input type="text" id="importFrom" placeholder="D:\\ai-trading-automation（自动检测，也可手动填写）">
-  <div class="hint">检测到旧版项目时会自动填入；数据只复制、不删除。</div>
-  <button id="finish">完成初始化</button>
-  <div class="status" id="status"></div>
-</div>
-<script>
-  const params = new URLSearchParams(location.search);
-  const token = params.get("token") || "";
-  const headers = { "Content-Type": "application/json" };
-  if (token) headers["X-ATA-Token"] = token;
+</style></head><body><div class="card">
+<h1>AI Trading Automation <span class="v2">__VERSION__</span></h1>
+<label for="setup-language">简体中文 / English</label>
+<select id="setup-language"><option value="zh">简体中文</option><option value="en">English</option></select>
+<p class="sub" data-i18n="subtitle"></p>
+<ul><li data-i18n="accounts"></li><li data-i18n="import"></li><li data-i18n="models"></li><li data-i18n="boundary"></li></ul>
+<label for="importFrom" data-i18n="directory"></label>
+<input type="text" id="importFrom" placeholder="C:\path\to\legacy-data">
+<div class="hint" data-i18n="hint"></div>
+<button id="finish" data-i18n="finish"></button><div class="status" id="status" role="status"></div>
+</div><script>
+const copy=__COPY__, suggested=__SUGGESTED__;
+let language=__INITIAL__;
+const headers={"Content-Type":"application/json"};
+const token=new URLSearchParams(location.search).get("token");if(token)headers["X-ATA-Token"]=token;
+const t=key=>copy[key][language];
+const select=document.getElementById('setup-language');
+const status=(text,ok)=>{const el=document.getElementById('status');el.textContent=text;el.className='status '+(ok?'ok':'err');};
+function render(){
+ document.documentElement.lang=language==='en'?'en':'zh-CN';document.title='AI Trading Automation — '+t('title');select.value=language;
+ document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
+ window.__DSH_LOCALE__?.onChange(language);
+}
+select.addEventListener('change',async()=>{
+ const previous=language;language=select.value;
+ try{const response=await fetch('/api/locale',{method:'POST',headers,body:JSON.stringify({language})});if(!response.ok)throw Error();render();status('',true);}
+ catch{language=previous;render();status(t('languageFailed'),false);}
+});
+document.getElementById('importFrom').value=suggested;
+document.getElementById('finish').addEventListener('click',async()=>{
+ const button=document.getElementById('finish');button.disabled=true;status(t('starting'),true);
+ try{
+  const response=await fetch('/api/setup/complete',{method:'POST',headers,body:JSON.stringify({import_from:document.getElementById('importFrom').value.trim()})});
+  const payload=await response.json();if(!response.ok)throw Error(payload.error||'HTTP '+response.status);
+  status(t('complete'),true);setTimeout(()=>location.reload(),3000);
+ }catch(error){status(t('failed')+error.message,false);button.disabled=false;}
+});
+render();
+</script></body></html>'''
 
-  async function detectLegacy() {
-    try {
-      const response = await fetch("/api/setup/status", { headers });
-      const payload = await response.json();
-      const input = document.getElementById("importFrom");
-      if (payload.suggested_source && !input.value) input.value = payload.suggested_source;
-      if (payload.first_run === false) {
-        setStatus("已完成初始化，正在切换到助手…", true);
-        setTimeout(() => location.reload(), 2500);
-      }
-    } catch (err) {
-      setStatus("无法连接初始化服务，请稍后重试。", false);
-    }
-  }
 
-  function setStatus(text, ok) {
-    const el = document.getElementById("status");
-    el.textContent = text;
-    el.className = "status " + (ok ? "ok" : "err");
-  }
+def render_setup_page(*, suggested: str = "", language: str | None = None) -> str:
+    language = language or ui_language()
+    if language not in {"zh", "en"}:
+        raise ValueError("unsupported language")
+    copy = (Path(__file__).parents[1] / "locales/setup.json").read_text(encoding="utf-8")
+    # Escape '<' before embedding data in a script; a path is never HTML.
+    return (_TEMPLATE.replace("__COPY__",copy.replace("<", "\\u003c"))
+            .replace("__SUGGESTED__",json.dumps(suggested).replace("<", "\\u003c"))
+            .replace("__INITIAL__",json.dumps(language)).replace("__LANG__",language)
+            .replace("__VERSION__",__version__))
 
-  document.getElementById("finish").addEventListener("click", async () => {
-    const button = document.getElementById("finish");
-    button.disabled = true;
-    setStatus("正在初始化…", true);
-    try {
-      const importFrom = document.getElementById("importFrom").value.trim();
-      const response = await fetch("/api/setup/complete", {
-        method: "POST", headers,
-        body: JSON.stringify({ import_from: importFrom }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || ("HTTP " + response.status));
-      setStatus("初始化完成。桌面窗口即将切换到 AI 助手；模型与 API Key 请在「设置 → 模型」中配置。", true);
-      setTimeout(() => location.reload(), 3000);
-    } catch (err) {
-      setStatus("初始化失败：" + err.message, false);
-      button.disabled = false;
-    }
-  });
 
-  detectLegacy();
-</script>
-</body>
-</html>
-"""
+# Retain the old import for consumers; the HTTP route uses the live renderer.
+SETUP_PAGE_HTML = render_setup_page(language="zh")

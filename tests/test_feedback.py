@@ -161,6 +161,11 @@ def test_finish_writes_feedback_without_worker(monkeypatch, tmp_path):
     assert row["decisions"][0]["confidence"] == 0.6
 
 def test_metrics_counts_each_hold_decision(monkeypatch, tmp_path):
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls.fromisoformat("2026-10-18T12:00:00+08:00").astimezone(tz)
+    monkeypatch.setattr(feedback, "datetime", Clock)
     import json as _json
     import os
     monkeypatch.setattr(paths, "runtime_dir", lambda: tmp_path / "runtime")
