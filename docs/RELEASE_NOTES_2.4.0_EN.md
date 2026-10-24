@@ -18,5 +18,6 @@ This candidate combines bilingual support and an embedded DSH upgrade. These not
 - Shipped definitions and user overrides are separate. Known legacy configurations are backed up before conversion; custom legacy overrides are never silently replaced. DPAPI-encrypted credential records use revision checks to prevent stale concurrent refreshes.
 - Reading legacy sessions preserves source files; the first write publishes an upstream successor generation. Old software may not read newly created sessions or events. Keep both generations and all new business records when planning rollback.
 - Installation paths, data paths and existing business identifiers retain their compatibility rules. Clean-source packaging validates the product allowlist, and the portable package includes the complete DSH application.
+- Upgrade replaces the old application-owned DSH dependency tree before copying the new one. The user-data root is outside this cleanup. Verification requires a matching installer checksum, a nonempty existing data snapshot and the expected DLL; a read-only inspection mode is available.
 
 See [Desktop usage](DESKTOP_USAGE_EN.md), [language rules](LANGUAGE_SUPPORT.md) and [product shell](PRODUCT_SHELL_EN.md).

@@ -1,7 +1,9 @@
 param(
     [string]$Installer = "release\AiTradingAutomation-Setup-x64.exe",
     [string]$AppDir = "$env:LOCALAPPDATA\Programs\InvestmentAuto",
-    [string]$DataDir = "$env:LOCALAPPDATA\InvestmentAuto"
+    [string]$DataDir = "$env:LOCALAPPDATA\InvestmentAuto",
+    [string]$ExpectedPublishDirectory = "",
+    [switch]$InspectOnly
 )
 
 # Upgrade-preserves-data acceptance check (desktop requirement #8):
@@ -26,11 +28,26 @@ function Get-Snapshot([string]$root) {
     return $map
 }
 
-$installer = Join-Path $projectRoot $Installer
+$installer = if ([System.IO.Path]::IsPathRooted($Installer)) { [System.IO.Path]::GetFullPath($Installer) } else { Join-Path $projectRoot $Installer }
 if (-not (Test-Path $installer)) { throw "Installer not found: $installer" }
+$checksumFile = $installer + ".sha256"
+if (-not (Test-Path -LiteralPath $checksumFile)) { throw "Installer checksum is missing: $checksumFile" }
+$expectedHash = ((Get-Content -LiteralPath $checksumFile -Raw).Trim() -split '\s+')[0]
+if ((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash -ne $expectedHash) { throw "Installer checksum does not match" }
+if (-not (Test-Path -LiteralPath $DataDir -PathType Container)) { throw "Existing data directory is required for an upgrade check" }
+if (-not (Test-Path -LiteralPath (Join-Path $AppDir "AiTradingAutomation.Desktop.dll"))) { throw "Existing desktop installation is required" }
+if (-not $ExpectedPublishDirectory) { $ExpectedPublishDirectory = Join-Path $projectRoot "windows/desktop/bin/Release/net8.0-windows/win-x64/publish" }
+$pubDll = Join-Path $ExpectedPublishDirectory "AiTradingAutomation.Desktop.dll"
+if (-not (Test-Path -LiteralPath $pubDll)) { throw "Expected publish DLL is required: $pubDll" }
+$pubDllHash = (Get-FileHash -LiteralPath $pubDll -Algorithm SHA256).Hash
+if ($InspectOnly) {
+    [PSCustomObject]@{ Installer=$installer; SHA256=$expectedHash; AppDir=[System.IO.Path]::GetFullPath($AppDir); DataDir=[System.IO.Path]::GetFullPath($DataDir); ExpectedDllSHA256=$pubDllHash; Mode="INSPECT ONLY - no installation or user-data writes" }
+    return
+}
 
 "== Snapshot user data ($DataDir)"
 $before = Get-Snapshot $DataDir
+if ($before.Count -eq 0) { throw "Upgrade verification refuses an empty data snapshot" }
 "   files: $($before.Count)"
 
 "== Snapshot program dir ($AppDir)"
@@ -42,7 +59,7 @@ $dllBefore = if (Test-Path $dllPath) { (Get-FileHash $dllPath -Algorithm SHA256)
 "   dll hash: $dllBefore"
 
 "== Silent upgrade install"
-$p = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -WindowStyle Hidden -PassThru -Wait
+$p = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/NORESTARTAPPLICATIONS" -WindowStyle Hidden -PassThru -Wait
 "   exit code: $($p.ExitCode)"
 if ($p.ExitCode -ne 0) { throw "Installer exited with code $($p.ExitCode)" }
 
@@ -76,12 +93,6 @@ if ($exeBefore -and $dllBefore -and $exeAfter -eq $exeBefore -and $dllAfter -eq 
 
 # Cross-check against the publish output: the installer must carry what the
 # build pipeline just produced (catches a stale installer).
-$pubDll = Join-Path $projectRoot "windows\desktop\bin\Release\net8.0-windows\win-x64\publish\AiTradingAutomation.Desktop.dll"
-if (Test-Path $pubDll) {
-    $pubDllHash = (Get-FileHash $pubDll -Algorithm SHA256).Hash
-    if ($dllAfter -ne $pubDllHash) {
-        Write-Warning "Installed dll differs from current publish output - installer may be stale, rebuild it"
-    }
-}
+if ($dllAfter -ne $pubDllHash) { throw "Installed DLL differs from the expected candidate; upgrade verification failed" }
 
 "PASS: upgrade preserved all user data."

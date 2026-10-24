@@ -67,6 +67,10 @@ Name: "{localappdata}\InvestmentAuto\runtime"
 Name: "{localappdata}\InvestmentAuto\config"
 
 [InstallDelete]
+; Replace application-owned DSH dependencies as a complete tree. Overlaying
+; rc.3 on rc.6 would retain removed packages and obsolete entry files.
+; User profiles, sessions and credentials live in the separate data root.
+Type: filesandordirs; Name: "{app}\app\node_modules"
 ; Older 2.1 installers accidentally shipped the developer DSH home. It is
 ; never a production data root (production uses {localappdata}\InvestmentAuto)
 ; and may contain development sessions/credentials, so upgrades remove it.
