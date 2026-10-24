@@ -119,13 +119,13 @@ def _round_task(market: str, cycle_type: str, context: Mapping[str, Any]) -> str
     schedule_text = scheduled_at.isoformat(timespec="minutes") if isinstance(scheduled_at, datetime) else str(scheduled_at or "")
     kind = "收盘复盘轮次" if cycle_type == "close" else "盘中轮次"
     return (
-        f"你在执行 AI Trading Automation 2.1 的 {market.upper()} 市场{kind}（计划时间 {schedule_text}，"
+        f"你在执行 AI Trading Automation 的 {market.upper()} 市场{kind}（计划时间 {schedule_text}，"
         f"{'启动补跑' if catch_up else '准时运行'}）。\n\n"
         f"这是自主调度轮次。必须调用一次 investment_analysis_workflow(market=\"{market}\", "
         f"label=\"{context.get('label', 'auto')}\", submit=true)，由固定工作流完成四类基础研究、多空辩论、"
         f"研究经理、个股交易员、组合构建、三方风险辩论、风险经理和最终组合经理。不要自行简化步骤，"
         f"也不要绕过该工具直接调用 investment_submit_decisions。\n\n"
-        f"工具返回的检查点、硬风控结果、成交和拒绝清单是唯一事实。最后用中文简要复述最终决策、"
+        f"工具返回的检查点、硬风控结果、成交和拒绝清单是唯一事实。最后按本轮规定的输出语言简要复述最终决策、"
         f"成交/拒绝、研究失败的故障安全处理和风险提示，不得编造成交。"
     )
 
@@ -160,7 +160,7 @@ def _analysis_task(
     else:
         scope_text = "本轮未指定标的，由固定工作流内部执行选股（最新选股缓存 + 持仓）确定目标。"
     return (
-        f"你在执行 AI Trading Automation 2.1 的 {market.upper()} 市场固定投资分析流程"
+        f"你在执行 AI Trading Automation 的 {market.upper()} 市场固定投资分析流程"
         f"（轮次 id {cycle_id}，标签 {label}）。\n\n"
         f"必须调用一次 investment_analysis_workflow(market=\"{market}\", "
         f"{'symbols=' + symbol_list_json + ', ' if symbols else ''}"
@@ -169,7 +169,7 @@ def _analysis_task(
         f"研究经理、个股交易员、组合草案、三方风险辩论、风险经理和最终组合经理。不要自行简化步骤、"
         f"不要自己调用行情/新闻工具重写这套分析，也不要绕过该工具直接调用 investment_submit_decisions。\n\n"
         f"{scope_text}\n\n"
-        f"工具返回的检查点与最终决策是唯一事实。最后用中文简要复述最终决策、研究失败标的的故障安全处理"
+        f"工具返回的检查点与最终决策是唯一事实。最后按本轮规定的输出语言简要复述最终决策、研究失败标的的故障安全处理"
         f"与风险提示，不得编造成交。"
     )
 
