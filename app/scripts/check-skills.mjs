@@ -16,6 +16,7 @@ import { apply as applyWorkflow } from "../plugins/dsh-investment-workflow/lib/i
 const here = dirname(fileURLToPath(import.meta.url));
 const skillsRoot = join(here, "..", "skills");
 
+const productManifest = JSON.parse(readFileSync(join(here, "..", "product-manifest.json"), "utf-8"));
 const failures = [];
 const check = (ok, message) => {
   if (!ok) failures.push(message);
@@ -33,6 +34,7 @@ const toolNames = new Set(registered.map((tool) => tool.name));
 
 // 2. Walk skills.
 const entries = readdirSync(skillsRoot).filter((name) => {
+  if (!productManifest.skills.includes(name)) return false;
   try {
     return statSync(join(skillsRoot, name)).isDirectory();
   } catch {

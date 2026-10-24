@@ -63,7 +63,7 @@ def _is_product_data_home(path: Path) -> bool:
     several DSH-based projects. See ``_resolve_dsh_home``.
     """
     try:
-        return path.is_dir() and (path / "settings.yaml").is_file()
+        return path.is_dir() and ((path / "settings.yaml").is_file() or ((path / "settings.yaml.imported").is_file() and (path / "profiles/investment-web/package.json").is_file()))
     except OSError:
         return False
 
@@ -268,6 +268,32 @@ def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path, *, 
 
     internal_home.mkdir(parents=True, exist_ok=True)
     dsh_home.seed_dsh_home(app_dir, internal_home, force=True)
+    # rc.3 Settings persists live model/provider choices in the active profile
+    # patch. Copy only shared configuration rows, never Web/session services.
+    import yaml
+
+    shared_ids = {"llm", "llm-deepseek", "llm-pi-ai", "locale", "investment-research-search"}
+    overrides = []
+    for source in (main_home / "profiles" / "investment-web" / "cordis.patch.yml", main_home / "cordis.patch.yml"):
+        if not source.is_file():
+            continue
+        document = source.read_text(encoding="utf-8-sig")
+        tree = yaml.compose(document, Loader=yaml.BaseLoader)
+        if tree is None:
+            continue
+        if not isinstance(tree, yaml.SequenceNode):
+            raise ValueError(f"Invalid DSH configuration patch: {source}")
+        for row in tree.value:
+            if not isinstance(row, yaml.MappingNode):
+                continue
+            row_id = next((value.value for key, value in row.value if key.value == "id"), "")
+            if row_id in shared_ids:
+                overrides.append(document[row.start_mark.index:row.end_mark.index].rstrip())
+    target = internal_home / "profiles" / "investment" / "cordis.patch.yml"
+    if target.parent.is_dir():
+        # Node spans begin after the '- ' list prefix. Rebuild the sequence
+        # without decoding !!js expressions or resolving credential references.
+        target.write_text("\n".join("- " + row for row in overrides) + "\n" if overrides else "[]\n", encoding="utf-8")
     storages_source = main_home / "storages"
     if storages_source.is_dir():
         storages_target = internal_home / "storages"

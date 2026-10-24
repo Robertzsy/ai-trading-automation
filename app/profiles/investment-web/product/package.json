@@ -1,0 +1,5 @@
+{
+  "name": "@ai-trading-automation/investment-web-bundle",
+  "private": true,
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

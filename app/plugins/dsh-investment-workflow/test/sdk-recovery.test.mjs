@@ -4,7 +4,10 @@ import { Context } from "@deepseek-ai/cordis";
 import { AgentRegistry } from "@deepseek-ai/dsh-agent";
 import { ToolRuntime } from "@deepseek-ai/dsh-tools";
 import { createScope } from "@deepseek-ai/dsh-scope";
-import WorkerThreadWorkflowEngine from "@deepseek-ai/dsh-workflow-worker-thread";
+import PtcWorkflowEngine from "@deepseek-ai/dsh-workflow-ptc";
+import NodePtcRuntime from "@deepseek-ai/dsh-ptc-runtime-node";
+import LocalSubprocessRuntime from "@deepseek-ai/dsh-subprocess-local";
+import LocalFileSystem from "@deepseek-ai/dsh-fs-local";
 import { registerAnalysisWorkflow } from "../../dsh-investment-tools/lib/analysis-workflow.js";
 
 const targets=Array.from({length:20},(_,i)=>"TEST"+i);
@@ -20,22 +23,22 @@ function output(schema, key="", symbol="TEST0") {
 }
 
 const softFailures = ["research_debate", "portfolio_draft", "risk_review", "final_decision"].flatMap(stage => ["max-tokens", "refusal", "missing-structured"].map(reason => stage + "/" + reason));
-for(const failure of [null,"base_research","research_debate","portfolio_draft","risk_review","final_decision",...softFailures,"partial-base"])test("real worker-thread chain / child failure: "+(failure??"none"),{timeout:20000},async()=>{
+for(const failure of [null,"base_research","research_debate","portfolio_draft","risk_review","final_decision",...softFailures,"partial-base"])test("real PTC process chain / child failure: "+(failure??"none"),{timeout:60000},async()=>{
   const previous=process.env.ATA_AUTONOMOUS_ROUND;process.env.ATA_AUTONOMOUS_ROUND="1";
   const ctx=new Context(),tools=new Map(),archives={},state={cycle_id:"sdk-20",status:"running",checkpoints:{}},stageStarts=[];
   let currentStage,inject=Boolean(failure),providerCalls=0,ids=0;
   const providerLabels=[];
   ctx.provide("systemPrompt",{tools(){},section(){}});
   ctx.provide("analysisMeter",{begin(){},bind(){},async flush(){return {};}});
-  ctx.provide("subagents",{getProvider(){return {capabilities:{outputSchema:true}};},async start(_provider,request){
+  ctx.provide("subagents",{getProvider(){return {capabilities:{outputSchema:true}};},async startActivation({request}){
     providerCalls++;
     const [softStage, softReason] = String(failure).split("/");
     if(inject && (currentStage===failure || (softReason && currentStage===softStage) || (failure==="partial-base" && currentStage==="base_research"))){
       inject=false;
-      if(softReason || failure==="partial-base")return {id:"bad-child",result:Promise.resolve({stopReason:softReason==="missing-structured"?"completed":softReason??"max-tokens",output:[]}),async dispose(){}};
+      if(softReason || failure==="partial-base")return {childId:"bad-child",result:Promise.resolve({stopReason:softReason==="missing-structured"?"completed":softReason??"max-tokens",output:[]}),async dispose(){}};
       throw new Error("injected child infrastructure failure");
     }
-    return {id:"synthetic-child-"+(++ids),result:Promise.resolve({stopReason:"completed",output:[],structured:output(request.outputSchema)}),async dispose(){}};
+    return {childId:"synthetic-child-"+(++ids),result:Promise.resolve({stopReason:"completed",output:[],structured:output(request.outputSchema)}),async dispose(){}};
   }});
   const client={async get(path){
     if(path==="/api/config")return {config:{autonomous:{max_universe_size:20}}};
@@ -52,7 +55,14 @@ for(const failure of [null,"base_research","research_debate","portfolio_draft","
   }};
   try {
     await ctx.plugin(ToolRuntime);await ctx.plugin(AgentRegistry);
-    await ctx.plugin(WorkerThreadWorkflowEngine,{provider:"synthetic",maxConcurrentAgents:4,maxTotalAgents:500,maxItemsPerCall:4096,syncTimeoutMs:5000,disposeGraceMs:1000});
+    // Real managed Node processes, synthetic research outputs, no provider calls.
+    ctx.provide("sandbox", {});
+    ctx.provide("sandboxPolicy", {defaultMode:"danger-full-access",resolve:()=>({mode:"danger-full-access",workspaceRoot:process.cwd()})});
+    ctx.provide("workingDirectory", {ensure:async()=>process.cwd()});
+    await ctx.plugin(LocalFileSystem, {cwd:process.cwd()});
+    await ctx.plugin(LocalSubprocessRuntime);
+    await ctx.plugin(NodePtcRuntime);
+    await ctx.plugin(PtcWorkflowEngine,{provider:"synthetic",maxConcurrentAgents:4,maxTotalAgents:500,maxItemsPerCall:4096,syncTimeoutMs:5000});
     const parent={id:"parent",session:{id:"parent",events:[],surface:{nodes:[]}}};parent.ctx=createScope(ctx,parent).ctx;ctx.agents.enter(parent);ctx.agents.announce(parent);
     const session=()=>{registerAnalysisWorkflow(ctx,client,(_ctx,name,_description,_schema,execute)=>tools.set(name,execute));return ()=>tools.get("investment_analysis_workflow")({market:"us",symbols:targets,cycle_id:state.cycle_id,submit:false},{agent:parent});};
     const first=session();

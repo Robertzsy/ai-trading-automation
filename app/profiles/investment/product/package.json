@@ -1,0 +1,5 @@
+{
+  "name": "@ai-trading-automation/investment-headless-bundle",
+  "private": true,
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

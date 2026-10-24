@@ -108,3 +108,35 @@ def test_seed_does_not_inspect_unrelated_user_history(monkeypatch, tmp_path):
         str(Path("skills/security-analysis")),
     }
     assert (history / "keep.txt").read_text(encoding="utf-8") == "user data"
+
+
+def test_product_profile_preserves_settings_on_force_and_backs_up_known_legacy(tmp_path):
+    import hashlib
+    app = _make_app(tmp_path)
+    profile = app / "profiles/investment-web"
+    (profile / "product").mkdir()
+    (profile / "product/cordis.patch.yml").write_text("# shipped\n", encoding="utf-8")
+    (profile / "cordis.patch.yml").write_text("[]\n", encoding="utf-8")
+    legacy = "# legacy config\n"
+    (profile / "legacy-profile.sha256").write_text(hashlib.sha256(legacy.encode()).hexdigest(), encoding="ascii")
+    home = tmp_path / "home"
+    dsh_home.seed_dsh_home(app, home, force=True)
+    patch = home / "profiles/investment-web/cordis.patch.yml"
+    patch.write_text(legacy, encoding="utf-8")
+    dsh_home.seed_dsh_home(app, home, force=True)
+    assert patch.read_text(encoding="utf-8") == "[]\n"
+    assert patch.with_name("cordis.patch.yml.pre-0.2.1").read_text(encoding="utf-8") == legacy
+    settings = "- id: llm\n  config:\n    model: selected-model\n"
+    patch.write_text(settings, encoding="utf-8")
+    dsh_home.seed_dsh_home(app, home, force=True)
+    assert patch.read_text(encoding="utf-8") == settings
+    assert (patch.parent / "product/cordis.patch.yml").read_text(encoding="utf-8") == "# shipped\n"
+
+
+def test_product_manifest_excludes_unreleased_plugins_and_skills(tmp_path):
+    app = _make_app(tmp_path)
+    (app / "product-manifest.json").write_text('{"plugins":[],"skills":[]}', encoding="utf-8")
+    home = tmp_path / "home"
+    dsh_home.seed_dsh_home(app, home, force=True)
+    assert not (home / "skills/security-analysis").exists()
+    assert not (home / "profiles/investment-web/node_modules").exists()

@@ -8,7 +8,7 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@deepseek-ai/dsh": "0.1.0-rc.6"
+    "@deepseek-ai/dsh": "0.2.1-rc.3"
   },
   "devDependencies": {
     "lucide-static": "^1.52.0"

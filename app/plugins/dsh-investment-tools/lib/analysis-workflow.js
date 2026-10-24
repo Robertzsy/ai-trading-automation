@@ -516,7 +516,9 @@ const requiredAgent = async (prompt, options) => {
     run = ctx.workflowEngine.start({
       script,
       meta:{name:"investment-" + stage.replaceAll("_", "-"),description:"AI Trading Automation fixed " + stage + " stage",phases:[{title:{base_research:"基础研究",research_debate:"研究辩论与个股决策",portfolio_draft:"组合草案",risk_review:"风险辩论",final_decision:"最终决策"}[stage]}]},
-      args,
+      // Optional fields may be undefined in internal JS objects. The PTC
+      // process channel admits JSON only; omit those fields before crossing it.
+      args: JSON.parse(JSON.stringify(args)),
       parent:exec.agent,
       signal,
       maxTotalAgents:Math.max(1, maxAgents),

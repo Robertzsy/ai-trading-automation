@@ -1,0 +1,19 @@
+{
+  "plugins": [
+    "dsh-dpapi-credentials",
+    "dsh-investment-tools",
+    "dsh-investment-ui",
+    "dsh-investment-workflow",
+    "dsh-product-shell"
+  ],
+  "skills": [
+    "account-management",
+    "complete-investment-cycle",
+    "market-overview",
+    "portfolio-optimization",
+    "portfolio-review",
+    "security-analysis",
+    "self-maintenance",
+    "stock-screening"
+  ]
+}

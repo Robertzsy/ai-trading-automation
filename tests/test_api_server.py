@@ -65,6 +65,19 @@ def test_health_endpoint(api):
     assert payload["service"] == "ai-trading-automation-engine"
 
 
+def test_credential_records_require_revision_and_preserve_concurrent_writes(api, monkeypatch, tmp_path):
+    from engine import paths, secret_store
+    monkeypatch.setattr(paths, "data_root", lambda: tmp_path)
+    monkeypatch.setattr(secret_store, "dpapi_protect", lambda data: b"protected:" + data)
+    monkeypatch.setattr(secret_store, "dpapi_unprotect", lambda data: data.removeprefix(b"protected:"))
+    revision = _get(api, "/api/credentials/records?key=llm/model")["revision"]
+    assert _post(api, "/api/credentials/records", {"key": "llm/model"})[0] == 400
+    payload = {"key": "llm/model", "record": {"kind": "api-key", "key": "private"}, "revision": revision}
+    assert _post(api, "/api/credentials/records", payload)[0] == 200
+    assert _post(api, "/api/credentials/records", payload)[0] == 409
+    assert _get(api, "/api/credentials/records")["records"] == [{"key": "llm/model", "kind": "api-key"}]
+
+
 def test_local_security_lookup_and_explicit_refresh_routes(api, monkeypatch):
     calls = []
     def search(query, market, limit):

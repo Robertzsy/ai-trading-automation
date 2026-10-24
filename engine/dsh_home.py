@@ -11,6 +11,7 @@ contract applies.
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import os
 import shutil
@@ -20,11 +21,47 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger("ai-trading-automation.dsh-home")
 
 
-def _copy_tree(source: Path, target: Path, *, force: bool) -> None:
+def _seed_profiles(source: Path, target: Path, *, force: bool) -> None:
+    """Refresh shipped bundles without overwriting DSH's live settings patch."""
+    if not source.is_dir():
+        return
+    for profile in source.iterdir():
+        if not profile.is_dir():
+            continue
+        destination = target / profile.name
+        if not (profile / "product").is_dir():
+            _copy_tree(profile, destination, force=force)
+            continue
+        destination.mkdir(parents=True, exist_ok=True)
+        patch = destination / "cordis.patch.yml"
+        migration = profile / "legacy-profile.sha256"
+        if patch.is_file() and migration.is_file():
+            text = patch.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
+            digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+            if digest == migration.read_text(encoding="ascii").strip():
+                backup = patch.with_name("cordis.patch.yml.pre-0.2.1")
+                if not backup.exists():
+                    shutil.copy2(patch, backup)
+                shutil.copy2(profile / "cordis.patch.yml", patch)
+            elif "# AI Trading Automation 2.0" in text and "id: investment-tools" in text:
+                raise ValueError(f"Legacy profile {profile.name} contains custom edits; preserve {patch} and migrate its overrides before upgrading")
+        for child in profile.iterdir():
+            if child.name == "cordis.patch.yml" and patch.exists():
+                continue
+            output = destination / child.name
+            if child.is_dir():
+                _copy_tree(child, output, force=force)
+            elif force or not output.exists():
+                shutil.copy2(child, output)
+
+
+def _copy_tree(source: Path, target: Path, *, force: bool, allowed: Optional[list[str]] = None) -> None:
     if not source.exists():
         return
     target.mkdir(parents=True, exist_ok=True)
     for child in source.iterdir():
+        if allowed is not None and child.name not in allowed:
+            continue
         destination = target / child.name
         if destination.exists() and not force:
             continue
@@ -34,10 +71,12 @@ def _copy_tree(source: Path, target: Path, *, force: bool) -> None:
             shutil.copy2(child, destination)
 
 
-def _install_plugins(plugins_root: Path, profiles_root: Path, *, force: bool) -> None:
+def _install_plugins(plugins_root: Path, profiles_root: Path, *, force: bool, allowed: Optional[list[str]] = None) -> None:
     if not plugins_root.exists():
         return
     for plugin in plugins_root.iterdir():
+        if allowed is not None and plugin.name not in allowed:
+            continue
         if not plugin.is_dir():
             continue
         manifest_path = plugin / "package.json"
@@ -66,11 +105,25 @@ def seed_dsh_home(app_dir: str | Path, dsh_home: str | Path, *, force: bool = Fa
     """Seed profiles/presets/skills/plugins from app/ into DSH_HOME."""
     app = Path(app_dir)
     home = Path(dsh_home)
+    manifest_path = app / "product-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+    # The product search wrapper owns the former native search settings. rc.3
+    # imports by entry id; map that one renamed owner before its one-shot import.
+    legacy_settings = home / "settings.yaml"
+    if legacy_settings.is_file():
+        import yaml
+        values = yaml.safe_load(legacy_settings.read_text(encoding="utf-8-sig"))
+        if isinstance(values, dict) and "web-search-deepseek" in values:
+            backup = home / "settings.yaml.pre-0.2.1"
+            if not backup.exists():
+                shutil.copy2(legacy_settings, backup)
+            values.setdefault("investment-research-search", values.pop("web-search-deepseek"))
+            legacy_settings.write_text(yaml.safe_dump(values, allow_unicode=True, sort_keys=False), encoding="utf-8")
     result: Dict[str, List[str]] = {"seeded": [], "kept": []}
-    _copy_tree(app / "profiles", home / "profiles", force=force)
+    _seed_profiles(app / "profiles", home / "profiles", force=force)
     _copy_tree(app / "presets", home / ".agent-presets", force=force)
-    _copy_tree(app / "skills", home / "skills", force=force)
-    _install_plugins(app / "plugins", home / "profiles", force=force)
+    _copy_tree(app / "skills", home / "skills", force=force, allowed=manifest.get("skills"))
+    _install_plugins(app / "plugins", home / "profiles", force=force, allowed=manifest.get("plugins"))
     # Summarise shipped directories only. A home also contains user history,
     # backups and linked SDK trees; walking it can exceed desktop readiness.
     result["seeded"] = sorted(

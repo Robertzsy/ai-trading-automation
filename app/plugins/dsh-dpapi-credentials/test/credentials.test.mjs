@@ -8,11 +8,29 @@ import { apply } from "../lib/index.js";
 
 function startMockEngine() {
   const store = new Map();
+  const records = new Map(), revisions = new Map();
   const server = createServer((req, res) => {
     const send = (payload, status = 200) => {
       res.writeHead(status, { "Content-Type": "application/json" });
       res.end(JSON.stringify(payload));
     };
+    if (req.method === "GET" && req.url.startsWith("/api/credentials/records")) {
+      const key = new URL(req.url, "http://x").searchParams.get("key");
+      return send(key ? { record: records.get(key), revision: String(revisions.get(key) ?? 0) } :
+        { records: [...records].map(([key, record]) => ({ key, kind: record.kind })) });
+    }
+    if (req.method === "POST" && req.url === "/api/credentials/records") {
+      let body = "";
+      req.on("data", chunk => body += chunk);
+      req.on("end", () => {
+        const { key, record, revision } = JSON.parse(body);
+        if (revision !== String(revisions.get(key) ?? 0)) return send({ ok: false }, 409);
+        revisions.set(key, Number(revision) + 1);
+        if (record == null) records.delete(key); else records.set(key, record);
+        send({ ok: true });
+      });
+      return;
+    }
     if (req.method === "GET" && req.url.startsWith("/api/credentials/resolve")) {
       const ref = new URL(req.url, "http://x").searchParams.get("ref");
       const value = store.get(ref);
@@ -82,7 +100,7 @@ test("resolve/describe/set/unset roundtrip through the engine", async () => {
     await service.unset("DEEPSEEK_API_KEY");
     assert.equal(await service.resolve("DEEPSEEK_API_KEY"), undefined);
 
-    assert.deepEqual(ctx.events.map((event) => event[0]), ["credentials/updated", "credentials/updated"]);
+    assert.deepEqual(ctx.events.map((event) => event[0]), ["credentials/reference-updated", "credentials/reference-updated"]);
   } finally {
     server.close();
   }
@@ -133,10 +151,37 @@ test("transient engine failure is retried instead of reported as a missing key",
     const result = await ctx.service.resolve("DEEPSEEK_API_KEY");
     assert.deepEqual(result, { value: "sk-live", source: "dpapi" });
     assert.equal(calls, 2);
-    // A successful resolution is cached, so the next request does not hit the engine again.
+    // Each operation re-resolves: another process may have revoked the key.
     assert.deepEqual(await ctx.service.resolve("DEEPSEEK_API_KEY"), { value: "sk-live", source: "dpapi" });
-    assert.equal(calls, 2);
+    assert.equal(calls, 3);
   } finally {
     server.close();
   }
+});
+
+test("record updates retry a stale revision without losing a concurrent refresh", async () => {
+  const { server, url } = await startMockEngine();
+  const a = fakeCtx(), b = fakeCtx();
+  apply(a, { engineUrl: url }); apply(b, { engineUrl: url });
+  try {
+    const key = "deepseek-account/session";
+    await a.service.modifyRecord(key, () => ({ kind: "grant", payload: { count: 0 } }));
+    const increment = async record => {
+      await new Promise(resolve => setImmediate(resolve));
+      return { kind: "grant", payload: { count: record.payload.count + 1 } };
+    };
+    await Promise.all([a.service.modifyRecord(key, increment), b.service.modifyRecord(key, increment)]);
+    assert.equal((await a.service.readRecord(key)).payload.count, 2);
+    assert.deepEqual(await a.service.listRecords(), [{ key, kind: "grant" }]);
+    assert.deepEqual(await a.service.describeRecord(key), { configured: true, kind: "grant", writable: true });
+    await a.service.modifyRecord(key, () => undefined);
+    assert.equal((await a.service.readRecord(key)).payload.count, 2);
+    await b.service.deleteRecord(key);
+    assert.equal(await a.service.readRecord(key), undefined);
+    assert.ok(a.events.some(([event]) => event === "credentials/record-updated"));
+    await a.service.set("DEEPSEEK_API_KEY", "old");
+    assert.equal((await a.service.resolve("DEEPSEEK_API_KEY")).value, "old");
+    await b.service.unset("DEEPSEEK_API_KEY");
+    assert.equal(await a.service.resolve("DEEPSEEK_API_KEY"), undefined);
+  } finally { server.close(); }
 });

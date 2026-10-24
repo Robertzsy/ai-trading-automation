@@ -1,7 +1,6 @@
 /** Native DeepSeek search with lossless usage and explicit model-derived metadata. */
 import { randomUUID } from "node:crypto";
 import { credentialRef } from "@deepseek-ai/dsh-credentials";
-import { installSettingsSection } from "@deepseek-ai/dsh-settings";
 import { launchEnvironmentOf } from "@deepseek-ai/dsh-launch-environment";
 import { attributionHeaders } from "@deepseek-ai/dsh-llm";
 import { WebError } from "@deepseek-ai/dsh-web";
@@ -93,10 +92,10 @@ export class ResearchSearchProvider {
 }
 
 export function apply(ctx, config) {
-  let current = () => config;
-  installSettingsSection(ctx, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, Config, config, { setSource: source => { current = source; }, onChange() {} });
   ctx.web.registerSearchProvider(new ResearchSearchProvider(() => {
-    const value = current(), ref = credentialRef(value.apiKeyEnv ?? "DEEPSEEK_API_KEY");
+    // DSH volatile fields are live references; Settings owns persistence.
+    const value = Object.fromEntries(Object.entries(config).map(([key, entry]) => [key, typeof entry?.get === "function" ? entry.get() : entry]));
+    const ref = credentialRef(value.apiKeyEnv ?? "DEEPSEEK_API_KEY");
     return { ...value, resolveApiKey: async () => (await ctx.get("credentials")?.resolve(ref))?.value ?? launchEnvironmentOf(ctx).get(ref)?.value,
       baseURL: value.baseURL ?? launchEnvironmentOf(ctx).get("DEEPSEEK_SEARCH_BASE_URL")?.value ?? "https://api.deepseek.com/anthropic/v1",
       model: value.model ?? "deepseek-v4-flash", apiVersion: value.apiVersion ?? "2023-06-01", maxTokens: value.maxTokens ?? 4096, maxUses: value.maxUses ?? 5,

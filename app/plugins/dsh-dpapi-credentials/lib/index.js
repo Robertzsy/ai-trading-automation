@@ -15,7 +15,7 @@
  * Transient engine failures must not be reported as "no API key": a busy
  * engine briefly refusing a connection used to turn one subagent into a
  * MISSING_CREDENTIAL failure. Resolution therefore retries a few times and
- * caches a successful value for a minute.
+ * re-resolves every operation so revocations reach Web and headless together.
  */
 
 export const name = "@ai-trading-automation/dsh-dpapi-credentials";
@@ -23,7 +23,6 @@ export const inject = [];
 
 const RESOLVE_ATTEMPTS = 3;
 const RESOLVE_RETRY_DELAY_MS = 120;
-const CACHE_TTL_MS = 60_000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -42,7 +41,11 @@ function makeClient(baseUrl, token) {
       body: JSON.stringify(payload ?? {}),
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(`engine ${path} -> HTTP ${response.status}: ${body?.error ?? ""}`);
+    if (!response.ok) {
+      const error = new Error(`engine ${path} -> HTTP ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
     return body;
   };
   return { get, post };
@@ -53,31 +56,22 @@ export function apply(ctx, config) {
   const engineUrl = process.env.INVESTMENT_ENGINE_URL ?? (typeof config?.engineUrl === "string" ? config.engineUrl : "http://127.0.0.1:8790");
   const token = process.env.ATA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
   const client = makeClient(engineUrl, token);
-  const cache = new Map();
-
-  const remember = (key, value) => {
-    if (typeof value === "string" && value.length > 0) {
-      cache.set(key, { value, until: Date.now() + CACHE_TTL_MS });
-    } else {
-      cache.delete(key);
-    }
+  const notify = (event, key) => {
+    try { ctx.emit(event, key); }
+    catch { ctx.logger?.warn?.("Credential change listener failed after commit"); }
   };
 
   async function resolveOnce(key) {
     const payload = await client.get(`/api/credentials/resolve?ref=${encodeURIComponent(key)}`);
     if (!payload?.configured || typeof payload.value !== "string" || payload.value.length === 0) {
-      cache.delete(key);
       return undefined;
     }
-    remember(key, payload.value);
     return { value: payload.value, source: "dpapi" };
   }
 
   const service = {
     async resolve(ref) {
       const key = String(ref);
-      const cached = cache.get(key);
-      if (cached && cached.until > Date.now()) return { value: cached.value, source: "dpapi" };
       for (let attempt = 0; attempt < RESOLVE_ATTEMPTS; attempt += 1) {
         try {
           return await resolveOnce(key);
@@ -89,16 +83,12 @@ export function apply(ctx, config) {
     },
     async describe(ref) {
       const key = String(ref);
-      const cached = cache.get(key);
-      if (cached && cached.until > Date.now()) return { configured: true, source: "dpapi", writable: true };
       for (let attempt = 0; attempt < RESOLVE_ATTEMPTS; attempt += 1) {
         try {
           const payload = await client.get(`/api/credentials/resolve?ref=${encodeURIComponent(key)}`);
           if (payload?.configured && typeof payload.value === "string" && payload.value.length > 0) {
-            remember(key, payload.value);
             return { configured: true, source: "dpapi", writable: true };
           }
-          cache.delete(key);
           return { configured: false, writable: true };
         } catch {
           if (attempt + 1 < RESOLVE_ATTEMPTS) await sleep(RESOLVE_RETRY_DELAY_MS * (attempt + 1));
@@ -109,14 +99,47 @@ export function apply(ctx, config) {
     async set(ref, value) {
       const key = String(ref);
       await client.post("/api/credentials/set", { ref: key, value: String(value ?? "") });
-      remember(key, String(value ?? ""));
-      ctx.emit("credentials/updated", ref);
+      notify("credentials/reference-updated", ref);
     },
     async unset(ref) {
       const key = String(ref);
       await client.post("/api/credentials/unset", { ref: key });
-      cache.delete(key);
-      ctx.emit("credentials/updated", ref);
+      notify("credentials/reference-updated", ref);
+    },
+    async readRecord(key) {
+      return (await client.get(`/api/credentials/records?key=${encodeURIComponent(key)}`)).record ?? undefined;
+    },
+    async describeRecord(key) {
+      const record = await service.readRecord(key);
+      return record ? { configured: true, kind: record.kind, writable: true } : { configured: false, writable: true };
+    },
+    async listRecords() {
+      return (await client.get("/api/credentials/records")).records;
+    },
+    async modifyRecord(key, mutate) {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const snapshot = await client.get(`/api/credentials/records?key=${encodeURIComponent(key)}`);
+        const next = await mutate(snapshot.record ?? undefined);
+        if (next === undefined) return snapshot.record ?? undefined;
+        try {
+          await client.post("/api/credentials/records", { key, record: next, revision: snapshot.revision });
+          notify("credentials/record-updated", key);
+          return next;
+        } catch (error) { if (error.status !== 409) throw error; }
+      }
+      throw new Error("Credential record changed concurrently; retry the operation");
+    },
+    async deleteRecord(key) {
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const snapshot = await client.get(`/api/credentials/records?key=${encodeURIComponent(key)}`);
+        if (snapshot.record == null) return;
+        try {
+          await client.post("/api/credentials/records", { key, record: null, revision: snapshot.revision });
+          notify("credentials/record-updated", key);
+          return;
+        } catch (error) { if (error.status !== 409) throw error; }
+      }
+      throw new Error("Credential record changed concurrently; retry the operation");
     },
   };
 

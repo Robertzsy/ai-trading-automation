@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import base64
 import ctypes
+import hashlib
 import json
 import os
 import re
@@ -128,7 +129,7 @@ def load_secret(key: str) -> Optional[str]:
 
 def list_keys() -> list[str]:
     with _store_lock:
-        return sorted(_read_store().keys())
+        return sorted(key for key in _read_store() if not key.startswith(_RECORD_PREFIX))
 
 
 def delete_secret(key: str) -> None:
@@ -136,6 +137,73 @@ def delete_secret(key: str) -> None:
         payload = _read_store()
         payload.pop(str(key or "").strip(), None)
         _write_store(payload)
+
+
+_RECORD_PREFIX = "dsh-record:"
+_RECORD_KEY_RE = re.compile(r"^[a-z][a-z0-9-]*/[a-z][a-z0-9-]*$")
+
+
+def _record_name(key: str) -> str:
+    if not _RECORD_KEY_RE.fullmatch(str(key)):
+        raise ValueError("invalid credential record key")
+    return _RECORD_PREFIX + key
+
+
+def _record_revision(encoded: Any) -> str:
+    return hashlib.sha256(str(encoded or "").encode("utf-8")).hexdigest()
+
+
+def read_credential_record(key: str) -> Dict[str, Any]:
+    """Read an encrypted DSH record and its opaque compare-and-set revision."""
+    name = _record_name(key)
+    with _store_lock:
+        encoded = _read_store().get(name)
+        record = None
+        if encoded:
+            record = json.loads(dpapi_unprotect(base64.b64decode(encoded)).decode("utf-8"))
+        return {"record": record, "revision": _record_revision(encoded)}
+
+
+def write_credential_record(key: str, record: Any, expected_revision: str) -> bool:
+    """CAS serializes Web/headless record updates through the single engine.
+
+    A conflicting revision never overwrites a concurrently refreshed grant.
+    References and structured records occupy separate encrypted namespaces.
+    """
+    name = _record_name(key)
+    if record is not None:
+        if not isinstance(record, dict) or record.get("kind") not in {"api-key", "grant"}:
+            raise ValueError("invalid credential record")
+        if record["kind"] == "api-key":
+            if "key" in record and (not isinstance(record["key"], str) or not record["key"]):
+                raise ValueError("invalid API key record")
+            if "env" in record and (not isinstance(record["env"], dict) or any(
+                not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(k)) or not isinstance(v, str)
+                for k, v in record["env"].items()
+            )):
+                raise ValueError("invalid credential environment")
+        elif "payload" not in record:
+            raise ValueError("grant record requires payload")
+        serialized = json.dumps(record, ensure_ascii=False, allow_nan=False)
+        if len(serialized.encode("utf-8")) > 256_000:
+            raise ValueError("credential record too large")
+    with _store_lock:
+        store = _read_store()
+        if _record_revision(store.get(name)) != expected_revision:
+            return False
+        if record is None:
+            store.pop(name, None)
+        else:
+            store[name] = base64.b64encode(dpapi_protect(serialized.encode("utf-8"))).decode("ascii")
+        _write_store(store)
+        return True
+
+
+def list_credential_records() -> list[Dict[str, str]]:
+    """List addresses and kinds only; values never enter configuration forms."""
+    with _store_lock:
+        keys = [key[len(_RECORD_PREFIX):] for key in _read_store() if key.startswith(_RECORD_PREFIX)]
+        return [{"key": key, "kind": read_credential_record(key)["record"]["kind"]} for key in sorted(keys)]
 
 
 _KEY_SHAPE_RE = re.compile(r"(?<![A-Za-z0-9])(?:sk|key)-[A-Za-z0-9_-]{12,}", re.I)
@@ -162,6 +230,20 @@ def redact_text(value: Any) -> str:
         secret = os.getenv(name, "") or load_secret(name) or ""
         if len(secret) >= 8:
             text = text.replace(secret, "********")
+    # Structured grants may contain tokens that have no recognizable prefix.
+    # Redact every scalar string from their encrypted payload, including env.
+    def redact_record(item: Any) -> None:
+        nonlocal text
+        if isinstance(item, dict):
+            for nested in item.values():
+                redact_record(nested)
+        elif isinstance(item, list):
+            for nested in item:
+                redact_record(nested)
+        elif isinstance(item, str) and len(item) >= 8:
+            text = text.replace(item, "********")
+    for record in list_credential_records():
+        redact_record(read_credential_record(record["key"])["record"])
     text = _KEY_SHAPE_RE.sub("********", text)
     return _LABELLED_SECRET_RE.sub(lambda match: match.group(1) + "********", text)
 

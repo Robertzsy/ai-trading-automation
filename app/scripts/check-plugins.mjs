@@ -21,12 +21,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const pluginsRoot = join(here, "..", "plugins");
 const profilesRoot = join(here, "..", "profiles");
 
+const productManifest = JSON.parse(readFileSync(join(here, "..", "product-manifest.json"), "utf-8"));
 const failures = [];
 const check = (ok, message) => {
   if (!ok) failures.push(message);
 };
 
 const pluginDirs = readdirSync(pluginsRoot).filter((name) => {
+  if (!productManifest.plugins.includes(name)) return false;
   try {
     return statSync(join(pluginsRoot, name)).isDirectory();
   } catch {
@@ -93,10 +95,10 @@ for (const dir of pluginDirs) {
 // Every @ai-trading-automation/* row referenced in the profile patches must exist.
 const referenced = new Set();
 for (const profile of ["investment", "investment-web"]) {
-  const patchPath = join(profilesRoot, profile, "cordis.patch.yml");
-  if (!existsSync(patchPath)) continue;
-  for (const match of readFileSync(patchPath, "utf-8").matchAll(/@ai-trading-automation\/[a-z0-9-]+/g)) {
-    referenced.add(match[0]);
+  for (const relative of ["cordis.patch.yml", "product/cordis.patch.yml"]) {
+    const patchPath = join(profilesRoot, profile, relative);
+    if (!existsSync(patchPath)) continue;
+    for (const match of readFileSync(patchPath, "utf-8").matchAll(/@ai-trading-automation\/[a-z0-9-]+/g)) referenced.add(match[0]);
   }
 }
 for (const name of referenced) {

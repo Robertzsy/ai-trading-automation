@@ -455,6 +455,18 @@ class _Handler(BaseHTTPRequestHandler):
 
             self._send(200, {"ok": True, "rounds": analysis_rounds.active_rounds()})
             return
+        if path == "/api/credentials/records":
+            from engine.secret_store import read_credential_record, list_credential_records
+
+            key = _query(self).get("key", "")
+            try:
+                self._send(200, {"ok": True, **(read_credential_record(key) if key else {"records": list_credential_records()})})
+            except ValueError:
+                self._send(400, {"ok": False, "error": "invalid credential record"})
+            except Exception:
+                logger.exception("credential record read failed")
+                self._send(500, {"ok": False, "error": "credential record read failed"})
+            return
         if path == "/api/credentials/resolve":
             ref = _query(self).get("ref", "").strip()
             if not ref:
@@ -662,6 +674,22 @@ class _Handler(BaseHTTPRequestHandler):
             except Exception as exc:  # noqa: BLE001
                 logger.exception("analysis round stop failed")
                 self._send(500, {"ok": False, "error": str(exc)[:800]})
+            return
+        if self.path == "/api/credentials/records":
+            payload = _read_json(self)
+            if payload is None or not isinstance(payload.get("revision"), str):
+                self._send(400, {"ok": False, "error": "record revision is required"})
+                return
+            from engine.secret_store import write_credential_record
+
+            try:
+                accepted = write_credential_record(str(payload.get("key", "")), payload.get("record"), payload["revision"])
+                self._send(200 if accepted else 409, {"ok": accepted, **({} if accepted else {"error": "credential record changed"})})
+            except (ValueError, TypeError):
+                self._send(400, {"ok": False, "error": "invalid credential record"})
+            except Exception:
+                logger.exception("credential record write failed")
+                self._send(500, {"ok": False, "error": "credential record write failed"})
             return
         if self.path == "/api/credentials/set":
             payload = _read_json(self)

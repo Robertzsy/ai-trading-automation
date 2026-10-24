@@ -574,3 +574,21 @@ def test_product_data_home_marker_requires_settings_yaml(tmp_path):
     assert dsh_bridge._is_product_data_home(ours) is True
     assert dsh_bridge._is_product_data_home(foreign) is False
     assert dsh_bridge._is_product_data_home(tmp_path / "missing") is False
+
+
+def test_internal_home_inherits_only_shared_profile_settings(tmp_path):
+    import yaml
+    app = tmp_path / "app"
+    profile = app / "profiles/investment"
+    profile.mkdir(parents=True)
+    (profile / "cordis.patch.yml").write_text("[]\n", encoding="utf-8")
+    main = tmp_path / "main"
+    web = main / "profiles/investment-web"
+    web.mkdir(parents=True)
+    (web / "cordis.patch.yml").write_text("- id: llm\n  config:\n    model: chosen\n- id: ui-workspace\n  disabled: true\n- id: locale\n  config:\n    preference: en\n", encoding="utf-8")
+    (main / "cordis.patch.yml").write_text("- id: llm-deepseek\n  config:\n    apiKeyEnv: DEEPSEEK_API_KEY\n", encoding="utf-8")
+    internal = tmp_path / "internal"
+    dsh_bridge._sync_internal_home(app, main, internal, file_credentials=False)
+    values = yaml.safe_load((internal / "profiles/investment/cordis.patch.yml").read_text(encoding="utf-8"))
+    assert [row["id"] for row in values] == ["llm", "locale", "llm-deepseek"]
+    assert values[0]["config"]["model"] == "chosen"
