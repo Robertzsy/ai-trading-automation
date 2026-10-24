@@ -117,6 +117,12 @@
     surfaceContext: false
     trustedHosts: !!js ctx.webStartup.trustedHosts
 
+# Product history search is local and opens its index on the first query.
+- id: session-query-sqlite
+  config:
+    path: !!js dshHomePath('runtime/session-query.sqlite')
+    openAt: first-search
+
 # Product shell (client half: root frame + dashboard + settings pages; node
 # half: fixed workspace + /api/investment/* engine proxy).
 - insert:

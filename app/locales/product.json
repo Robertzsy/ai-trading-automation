@@ -2058,5 +2058,9 @@
   "ui.dialog.save": {
     "zh": "保存",
     "en": "Save"
+  },
+  "ui.search.failed": {
+    "zh": "搜索失败：",
+    "en": "Search failed: "
   }
 }
