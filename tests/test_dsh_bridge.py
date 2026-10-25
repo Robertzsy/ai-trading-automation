@@ -590,5 +590,48 @@ def test_internal_home_inherits_only_shared_profile_settings(tmp_path):
     internal = tmp_path / "internal"
     dsh_bridge._sync_internal_home(app, main, internal, file_credentials=False)
     values = yaml.safe_load((internal / "profiles/investment/cordis.patch.yml").read_text(encoding="utf-8"))
-    assert [row["id"] for row in values] == ["llm", "locale", "llm-deepseek"]
+    assert [row["id"] for row in values] == ["llm", "llm-deepseek"]
     assert values[0]["config"]["model"] == "chosen"
+
+
+def test_internal_upgrade_preserves_headless_overrides_plugins_and_history(tmp_path):
+    import hashlib
+    import yaml
+    app = tmp_path / "app"
+    product = app / "profiles/investment/product"
+    product.mkdir(parents=True)
+    (product.parent / "cordis.patch.yml").write_text("[]\n", encoding="utf-8")
+    old = "# AI Trading Automation 2.0\n- id: investment-tools\n  disabled: true\n"
+    (product.parent / "legacy-profile.sha256").write_text(hashlib.sha256(old.encode()).hexdigest(), encoding="ascii")
+    main = tmp_path / "main"
+    headless = main / "profiles/investment"
+    headless.mkdir(parents=True)
+    user = "- id: investment-analysis-workflow\n  config:\n    deduplicateResearch: true\n- insert:\n  - id: user-budget\n    name: '@user/budget'\n    config:\n      maxTokens: 32000\n- id: llm-deepseek\n  config:\n    apiKeyEnv: !!js process.env.API_KEY_NAME\n"
+    (headless / "cordis.patch.yml").write_text(user, encoding="utf-8")
+    custom = headless / "node_modules/@user/budget"
+    custom.mkdir(parents=True)
+    (custom / "package.json").write_text('{"name":"@user/budget"}', encoding="utf-8")
+    web = main / "profiles/investment-web"
+    web.mkdir(parents=True)
+    (web / "cordis.patch.yml").write_text("- id: llm\n  config: {model: chosen}\n- id: ui-workspace\n  disabled: true\n", encoding="utf-8")
+    internal = main / "agent-home"
+    patch = internal / "profiles/investment/cordis.patch.yml"
+    patch.parent.mkdir(parents=True)
+    patch.write_text(old, encoding="utf-8")
+    history = internal / "sessions/keep.txt"
+    history.parent.mkdir()
+    history.write_text("existing research", encoding="utf-8")
+    dsh_bridge._sync_internal_home(app, main, internal, file_credentials=False)
+    result = patch.read_text(encoding="utf-8")
+    values = yaml.load(result, Loader=yaml.BaseLoader)
+    assert values[0]["config"]["deduplicateResearch"] == "true"
+    assert values[1]["insert"][0]["config"]["maxTokens"] == "32000"
+    assert "!!js process.env.API_KEY_NAME" in result
+    assert values[-1]["config"]["model"] == "chosen"
+    assert "ui-workspace" not in result
+    assert (internal / "profiles/investment/node_modules/@user/budget/package.json").read_bytes() == (custom / "package.json").read_bytes()
+    assert patch.with_name("cordis.patch.yml.pre-0.2.1").read_text(encoding="utf-8") == old
+    assert history.read_text(encoding="utf-8") == "existing research"
+    assert (headless / "cordis.patch.yml").read_text(encoding="utf-8") == user
+    dsh_bridge._sync_internal_home(app, main, internal, file_credentials=False)
+    assert patch.read_text(encoding="utf-8") == result

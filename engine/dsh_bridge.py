@@ -255,6 +255,9 @@ def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path, *, 
     - Product-owned trees (profiles/presets/skills/plugins) are force-seeded
       from the shipped app/ — the internal home carries the same composition
       (including the fixed workflow row) as the main home.
+    - Headless user overrides and their declared local plugins follow the
+      main research profile. Live model/provider choices from the web and
+      global settings are applied afterward; Web/session services stay out.
     - The settings storages (model/provider selection) are copied from the
       main home so background rounds use the user's configured model; the
       session-plane files (workspace.json, session projections) are NOT
@@ -269,15 +272,36 @@ def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path, *, 
     internal_home.mkdir(parents=True, exist_ok=True)
     dsh_home.seed_dsh_home(app_dir, internal_home, force=True)
     # rc.3 Settings persists live model/provider choices in the active profile
-    # patch. Copy only shared configuration rows, never Web/session services.
+    # patch. Retain research overrides; only shared rows may come from Web.
     import yaml
 
-    shared_ids = {"llm", "llm-deepseek", "llm-pi-ai", "locale", "investment-research-search"}
+    # Locale is a browser-only entry; research output language is already
+    # frozen on the run and passed explicitly to each headless invocation.
+    shared_ids = {"llm", "llm-deepseek", "llm-pi-ai", "investment-research-search"}
     overrides = []
-    for source in (main_home / "profiles" / "investment-web" / "cordis.patch.yml", main_home / "cordis.patch.yml"):
+    plugin_names: set[str] = set()
+    headless_profile = main_home / "profiles" / "investment"
+
+    def collect_plugins(node):
+        if isinstance(node, yaml.MappingNode):
+            fields = {key.value: value for key, value in node.value}
+            module = fields.get("name")
+            if "id" in fields and isinstance(module, yaml.ScalarNode):
+                if re.fullmatch(r"(?:@[A-Za-z0-9_-][A-Za-z0-9_.-]*/)?[A-Za-z0-9_-][A-Za-z0-9_.-]*", module.value):
+                    plugin_names.add(module.value)
+            for key, value in node.value:
+                if key.value != "config":
+                    collect_plugins(value)
+        elif isinstance(node, yaml.SequenceNode):
+            for child in node.value:
+                collect_plugins(child)
+
+    for source in (headless_profile / "cordis.patch.yml", main_home / "profiles" / "investment-web" / "cordis.patch.yml", main_home / "cordis.patch.yml"):
         if not source.is_file():
             continue
         document = source.read_text(encoding="utf-8-sig")
+        if source.parent == headless_profile and "# AI Trading Automation 2.0" in document and "id: investment-tools" in document:
+            raise ValueError(f"Migrate the main research profile before syncing its overrides: {source}")
         tree = yaml.compose(document, Loader=yaml.BaseLoader)
         if tree is None:
             continue
@@ -287,8 +311,21 @@ def _sync_internal_home(app_dir: Path, main_home: Path, internal_home: Path, *, 
             if not isinstance(row, yaml.MappingNode):
                 continue
             row_id = next((value.value for key, value in row.value if key.value == "id"), "")
-            if row_id in shared_ids:
+            if source.parent == headless_profile or row_id in shared_ids:
                 overrides.append(document[row.start_mark.index:row.end_mark.index].rstrip())
+            if source.parent == headless_profile:
+                collect_plugins(row)
+    # Only explicitly declared headless plugins follow user overrides. Web UI
+    # plugins, sessions and unrelated node_modules are not copied into research.
+    internal_profile = internal_home / "profiles" / "investment"
+    for name in sorted(plugin_names):
+        plugin = headless_profile / "node_modules" / name
+        destination = internal_profile / "node_modules" / name
+        if not plugin.is_dir() or plugin.resolve() == destination.resolve():
+            continue
+        if not destination.resolve().is_relative_to(internal_profile.resolve()):
+            raise ValueError(f"Internal plugin target escapes its profile: {destination}")
+        shutil.copytree(plugin, destination, dirs_exist_ok=True)
     target = internal_home / "profiles" / "investment" / "cordis.patch.yml"
     if target.parent.is_dir():
         # Node spans begin after the '- ' list prefix. Rebuild the sequence

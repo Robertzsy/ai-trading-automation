@@ -140,3 +140,40 @@ def test_product_manifest_excludes_unreleased_plugins_and_skills(tmp_path):
     dsh_home.seed_dsh_home(app, home, force=True)
     assert not (home / "skills/security-analysis").exists()
     assert not (home / "profiles/investment-web/node_modules").exists()
+
+
+def test_known_older_template_migrates_without_replacing_a_different_backup(tmp_path):
+    import hashlib
+    app = _make_app(tmp_path)
+    profile = app / "profiles/investment-web"
+    (profile / "product").mkdir()
+    (profile / "cordis.patch.yml").write_text("[]\n", encoding="utf-8")
+    older = "# AI Trading Automation 2.0\n- id: investment-tools\n  disabled: true\n"
+    digest = hashlib.sha256(older.encode()).hexdigest()
+    (profile / "legacy-profile.sha256").write_text("0" * 64 + "\n" + digest + "\n", encoding="ascii")
+    patch = tmp_path / "home/profiles/investment-web/cordis.patch.yml"
+    patch.parent.mkdir(parents=True)
+    patch.write_text(older, encoding="utf-8")
+    backup = patch.with_name("cordis.patch.yml.pre-0.2.1")
+    backup.write_text("other preserved version", encoding="utf-8")
+    dsh_home.seed_dsh_home(app, tmp_path / "home", force=True)
+    assert "preference: zh" in patch.read_text(encoding="utf-8")
+    assert backup.read_text(encoding="utf-8") == "other preserved version"
+    assert patch.with_name("cordis.patch.yml.pre-0.2.1-" + digest).read_text(encoding="utf-8") == older
+    dsh_home.seed_dsh_home(app, tmp_path / "home", force=True)
+    assert len(list(patch.parent.glob("cordis.patch.yml.pre-*"))) == 2
+
+
+def test_unknown_legacy_custom_edits_remain_protected(tmp_path):
+    import pytest
+    app = _make_app(tmp_path)
+    profile = app / "profiles/investment-web"
+    (profile / "product").mkdir()
+    (profile / "legacy-profile.sha256").write_text("0" * 64 + "\n", encoding="ascii")
+    patch = tmp_path / "home/profiles/investment-web/cordis.patch.yml"
+    patch.parent.mkdir(parents=True)
+    custom = b"# AI Trading Automation 2.0\n- id: investment-tools\n  config: {custom: true}\n"
+    patch.write_bytes(custom)
+    with pytest.raises(ValueError, match="contains custom edits"):
+        dsh_home.seed_dsh_home(app, tmp_path / "home", force=True)
+    assert patch.read_bytes() == custom

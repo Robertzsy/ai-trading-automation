@@ -38,8 +38,13 @@ def _seed_profiles(source: Path, target: Path, *, force: bool) -> None:
         if patch.is_file() and migration.is_file():
             text = patch.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
             digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-            if digest == migration.read_text(encoding="ascii").strip():
+            known_templates = set(migration.read_text(encoding="ascii").split())
+            if digest in known_templates:
                 backup = patch.with_name("cordis.patch.yml.pre-0.2.1")
+                if backup.exists() and backup.read_bytes() != patch.read_bytes():
+                    backup = patch.with_name(f"cordis.patch.yml.pre-0.2.1-{digest}")
+                if backup.exists() and backup.read_bytes() != patch.read_bytes():
+                    raise ValueError(f"Legacy profile backup conflict: {backup}")
                 if not backup.exists():
                     shutil.copy2(patch, backup)
                 shutil.copy2(profile / "cordis.patch.yml", patch)
