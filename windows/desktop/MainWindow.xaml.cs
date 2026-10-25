@@ -54,7 +54,7 @@ public partial class MainWindow : Window
             if (storedLanguage == null) await _processManager.SetUiLanguageAsync(Localization.Language);
             else Localization.Change(storedLanguage);
         }
-        LogLine("start: services ready at " + ready.Url);
+        LogLine("start: services ready at " + ready.Origin);
 
         StartStatusTimer();
 
@@ -153,8 +153,8 @@ public partial class MainWindow : Window
         var firstRun = _processManager.IsFirstRun;
         var startUrl = firstRun
             ? _processManager.EngineUrl + "/setup?token=" + Uri.EscapeDataString(ready.Token)
-            : ready.Url + "/";
-        LogLine("start: navigating to " + (firstRun ? "setup page" : ready.Url));
+            : ready.BrowserUrl;
+        LogLine("start: navigating to " + (firstRun ? "setup page" : ready.Origin));
         WebView.CoreWebView2.Navigate(startUrl);
         LogLine("start: navigation issued");
 
@@ -204,10 +204,11 @@ public partial class MainWindow : Window
                 if (_ready != null && WebView.CoreWebView2 != null)
                 {
                     var current = WebView.Source?.ToString() ?? "";
-                    if (!current.StartsWith(_ready.Url, StringComparison.OrdinalIgnoreCase))
+                    if (!Uri.TryCreate(current, UriKind.Absolute, out var currentUri)
+                        || currentUri.GetLeftPart(UriPartial.Authority) != _ready.Origin)
                     {
-                        LogLine("status: setup done, navigating to " + _ready.Url);
-                        WebView.CoreWebView2.Navigate(_ready.Url + "/");
+                        LogLine("status: setup done, navigating to " + _ready.Origin);
+                        WebView.CoreWebView2.Navigate(_ready.BrowserUrl);
                     }
                 }
             }

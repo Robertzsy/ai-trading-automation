@@ -23,7 +23,7 @@ namespace AiTradingAutomation.Desktop.Services;
 internal sealed class ProcessManager : IDisposable
 {
     private static readonly Regex WebUrlLine = new(
-        @"dsh web:\s*https?://(127\.0\.0\.1|localhost):(\d+)", RegexOptions.Compiled);
+        @"^dsh web:\s*(\S+)\s*$", RegexOptions.Compiled);
 
     private readonly string _appRoot;
     private readonly string _dataRoot;
@@ -261,7 +261,7 @@ internal sealed class ProcessManager : IDisposable
             // flag (--port): everything after it is passed through verbatim.
             Arguments = "\"" + DshBinPath + "\" --profile investment-web"
                 + (File.Exists(DshPatchPath) ? " --patch \"" + DshPatchPath + "\"" : "")
-                + " --port " + _webPort,
+                + " --no-open --port " + _webPort,
             WorkingDirectory = _appRoot,
             UseShellExecute = false,
             CreateNoWindow = true,
@@ -312,12 +312,15 @@ internal sealed class ProcessManager : IDisposable
             {
                 var line = await process.StandardOutput.ReadLineAsync();
                 if (line == null) break;
-                Log("web: " + line);
-                var match = WebUrlLine.Match(line);
-                if (match.Success && int.TryParse(match.Groups[2].Value, out var port))
+                var launchUrl = ParseWebLaunchUrl(line);
+                if (launchUrl != null && launchUrl.Port == _webPort)
                 {
-                    PublishReady(port, process.Id);
+                    // rc.3 authenticates the browser using this URL's query.
+                    // Keep it for navigation, but never write the token to logs.
+                    Log("web: dsh web: " + launchUrl.GetLeftPart(UriPartial.Authority));
+                    PublishReady(launchUrl, process.Id);
                 }
+                else Log("web: " + line);
             }
         }
         catch (IOException) { /* stream closed on exit */ }
@@ -332,16 +335,27 @@ internal sealed class ProcessManager : IDisposable
         catch (InvalidOperationException) { Log("web: process closed during shutdown"); }
     }
 
-    private void PublishReady(int port, int pid)
+    internal static Uri? ParseWebLaunchUrl(string line)
+    {
+        var match = WebUrlLine.Match(line);
+        if (!match.Success || !Uri.TryCreate(match.Groups[1].Value, UriKind.Absolute, out var url)
+            || (url.Scheme != Uri.UriSchemeHttp && url.Scheme != Uri.UriSchemeHttps)
+            || (url.Host != "127.0.0.1" && url.Host != "localhost")
+            || url.UserInfo.Length != 0 || url.AbsolutePath != "/" || url.Fragment.Length != 0)
+            return null;
+        return new UriBuilder(url) { Host = "127.0.0.1" }.Uri;
+    }
+
+    private void PublishReady(Uri launchUrl, int pid)
     {
         try
         {
             var payload = new ChatReady
             {
                 Host = "127.0.0.1",
-                Port = port,
+                Port = launchUrl.Port,
                 Token = _token,
-                Url = "http://127.0.0.1:" + port,
+                Url = launchUrl.AbsoluteUri,
                 Pid = pid,
                 StartedAt = DateTime.Now.ToString("o"),
             };
@@ -350,7 +364,7 @@ internal sealed class ProcessManager : IDisposable
             var temp = path + ".tmp";
             File.WriteAllText(temp, JsonSerializer.Serialize(payload));
             File.Move(temp, path, overwrite: true);
-            Log("web: ready file published at " + payload.Url);
+            Log("web: ready file published at " + payload.Origin);
         }
         catch (Exception ex)
         {
@@ -369,14 +383,14 @@ internal sealed class ProcessManager : IDisposable
         catch { return null; }
     }
 
-    private static async Task<bool> IsHealthyAsync(ChatReady ready, CancellationToken cancellationToken)
+    internal static async Task<bool> IsHealthyAsync(ChatReady ready, CancellationToken cancellationToken)
     {
         try
         {
             using var client = new HttpClient();
             client.Timeout = TimeSpan.FromSeconds(2);
-            using var request = new HttpRequestMessage(HttpMethod.Get, ready.Url + "/");
-            var response = await client.SendAsync(request, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, ready.BrowserUrl);
+            using var response = await client.SendAsync(request, cancellationToken);
             return response.IsSuccessStatusCode;
         }
         catch { return false; }
@@ -587,6 +601,10 @@ internal sealed class ChatReady
     public int Port { get; set; }
     public string Token { get; set; } = "";
     public string Url { get; set; } = "";
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string BrowserUrl => new Uri(Url).AbsoluteUri;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string Origin => new Uri(Url).GetLeftPart(UriPartial.Authority);
     public int Pid { get; set; }
     [System.Text.Json.Serialization.JsonPropertyName("started_at")]
     public string StartedAt { get; set; } = "";

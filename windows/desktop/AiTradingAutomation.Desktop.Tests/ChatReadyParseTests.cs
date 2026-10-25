@@ -67,4 +67,14 @@ public class ChatReadyParseTests
         Assert.NotNull(ready);
         Assert.Equal("http://127.0.0.1:4017", ready!.Url);
     }
+
+    [Fact]
+    public void TryParse_AuthenticatedBrowserUrl_PreservesSeparateWebToken()
+    {
+        var ready = ChatReady.TryParse("{\"port\":4017,\"token\":\"engine-token\",\"url\":\"http://localhost:4017/?token=web-token\"}");
+        Assert.NotNull(ready);
+        Assert.Equal("engine-token", ready!.Token);
+        Assert.Equal("http://127.0.0.1:4017/?token=web-token", ready.BrowserUrl);
+        Assert.Equal("http://127.0.0.1:4017", ready.Origin);
+    }
 }

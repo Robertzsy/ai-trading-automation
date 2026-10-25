@@ -20,6 +20,7 @@ This candidate combines bilingual support and an embedded DSH upgrade. These not
 
 ## DSH upgrade and compatibility
 
+- Desktop startup preserves DSH's authenticated launch URL for readiness checks and WebView2 navigation, fixing a 60-second timeout even after the service has started.
 - Embedded DSH moves from `0.1.0-rc.6` to exactly `0.2.1-rc.3`, an upstream prerelease.
 - The workflow adapts to PTC execution and the new preset registry, Settings, Credentials and UI services.
 - Shipped definitions and user overrides are separate. Known legacy configurations are backed up before conversion; custom legacy overrides are never silently replaced. DPAPI-encrypted credential records use revision checks to prevent stale concurrent refreshes.
