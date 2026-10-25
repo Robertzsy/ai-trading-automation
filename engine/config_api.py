@@ -87,6 +87,7 @@ def _channels(value: Any) -> list[str]:
 # validator here first.
 _PATH_VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "ui.language": _enum("zh", "en"),  # resolved native/Host locale mirror
+    "ui.motion": _enum("system", "standard", "off"),
     "research.output_language": _enum("follow-ui", "zh", "en"),
     "autonomous.operation_mode": _enum("manual", "automatic"),
     "autonomous.enabled": _boolean,

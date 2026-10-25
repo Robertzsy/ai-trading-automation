@@ -144,4 +144,6 @@
   <data name="Round2" xml:space="preserve">
     <value>轮次: -</value>
   </data>
+  <data name="Startup_preparing_workspace" xml:space="preserve"><value>正在准备投资引擎与研究工作区…</value></data>
+  <data name="Startup_loading_interface" xml:space="preserve"><value>对话界面：正在加载…</value></data>
 </root>

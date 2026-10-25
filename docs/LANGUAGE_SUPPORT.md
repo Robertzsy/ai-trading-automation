@@ -6,6 +6,8 @@
 
 One installation provides Simplified Chinese and English. Use Settings → Interface language. Language preferences persist in the active DSH profile and are shared with the desktop through DSH's native locale bridge. The engine stores a resolved mirror for early startup and background output. Changing language does not start research, submit orders or change strategy and risk limits.
 
+The same section includes Motion: Follow system, Standard or Off. The preference is saved as `ui.motion`; system reduced-motion preferences always apply. Switching pages keeps drafts and selections while inactive product pages pause polling. Stage rings show percentages from recorded task counts; unavailable progress is not estimated from elapsed time.
+
 Research output is a separate preference: `follow-ui`, `zh` or `en`. Each new durable round records `output_language` and `prompt_template_version`. Resuming the same `cycle_id` keeps those values. Records without a language field are historical Chinese records. Shared factual snapshots remain reusable; prose research plans are partitioned by language and template version. Search queries keep the source language appropriate to their market.
 
 Generated explanations, report headings, fixed tables, notifications and feedback use the selected output language. Tickers, BUY/SELL/HOLD/WATCH codes, evidence IDs, numerical values, currencies, market identifiers and API keys remain unchanged. Source titles, quotations, user text and company names are original data. Historical artifacts are not silently translated or rewritten.
@@ -15,6 +17,8 @@ The product UI owns its dictionaries, including charts and tool cards. Build gen
 ## 简体中文
 
 同一安装包提供简体中文和 English，在“设置 → 界面语言”切换。DSH 活动 profile 的语言偏好为权威来源，通过原生桥同步桌面；引擎保存启动和后台输出所用的已解析镜像。语言切换不启动研究、不提交订单、不改变策略或风控。
+
+同一区域提供动效偏好：跟随系统、标准、关闭，保存为 `ui.motion`；系统减少动态设置始终生效。切页保留草稿与选择，隐藏的产品页面暂停轮询。阶段环形进度使用实际任务计数，不按耗时估算未知进度。
 
 研究输出可设为跟随界面、中文或英文。新轮次记录 `output_language` 和 `prompt_template_version`；同一 `cycle_id` 续跑沿用原值。无语言字段的历史记录按中文处理。事实快照可复用；自然语言研究计划按语言和模板版本分区，检索关键词保留对应市场的来源语言。
 

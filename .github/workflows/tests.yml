@@ -100,6 +100,9 @@ jobs:
       - name: Generated bilingual dictionaries are current
         run: node app/scripts/generate-i18n.mjs --check
 
+      - name: Generated product motion sources are current
+        run: node app/scripts/generate-shell-motion.mjs --check
+
       - name: Declarative investment preset is current
         run: node app/scripts/generate-preset.mjs --check
 

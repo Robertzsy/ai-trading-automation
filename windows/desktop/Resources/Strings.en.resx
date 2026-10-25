@@ -144,4 +144,6 @@ Diagnostic log: %TEMP%\ia-desktop-boot.log</value>
   <data name="Round2" xml:space="preserve">
     <value>Round: -</value>
   </data>
+  <data name="Startup_preparing_workspace" xml:space="preserve"><value>Preparing the investment engine and research workspace…</value></data>
+  <data name="Startup_loading_interface" xml:space="preserve"><value>Chat interface: loading…</value></data>
 </root>

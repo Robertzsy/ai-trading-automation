@@ -2062,5 +2062,57 @@
   "ui.search.failed": {
     "zh": "搜索失败：",
     "en": "Search failed: "
+  },
+  "motion.title": {
+    "zh": "动效",
+    "en": "Motion"
+  },
+  "motion.system": {
+    "zh": "跟随系统",
+    "en": "Follow system"
+  },
+  "motion.standard": {
+    "zh": "标准",
+    "en": "Standard"
+  },
+  "motion.off": {
+    "zh": "关闭",
+    "en": "Off"
+  },
+  "motion.hint": {
+    "zh": "页面和面板平滑切换；系统减少动态设置始终生效",
+    "en": "Smooth page and panel transitions; system reduced-motion settings are always respected"
+  },
+  "motion.saveFailed": {
+    "zh": "动效设置保存失败，请重试",
+    "en": "Unable to save motion settings. Please try again."
+  },
+  "motion.stageTitle": {
+    "zh": "研究流程",
+    "en": "Research pipeline"
+  },
+  "motion.stageHint": {
+    "zh": "按实际完成任务显示阶段进度",
+    "en": "Stage progress reflects recorded completed tasks"
+  },
+  "motion.stage.base_research": {
+    "zh": "基础研究",
+    "en": "Base research"
+  },
+  "motion.stage.research_debate": {
+    "zh": "研究辩论",
+    "en": "Research debate"
+  },
+  "motion.stage.portfolio_draft": {
+    "zh": "组合草案",
+    "en": "Portfolio draft"
+  },
+  "motion.stage.risk_review": {
+    "zh": "风险复核",
+    "en": "Risk review"
+  },
+  "motion.stage.final_decision": {
+    "zh": "最终决策",
+    "en": "Final decision"
   }
 }

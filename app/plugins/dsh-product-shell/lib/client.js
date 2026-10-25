@@ -6,8 +6,236 @@ window.__ModuleLoader__.load({
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 		let react_jsx_runtime = require("react/jsx-runtime");
 		let react = require("react");
+/* PRODUCT_MOTION:START */
+// Embedded into the script-style client by generate-shell-motion.mjs.
+// These helpers have no browser side effects, so progress and cancellation can
+// also be checked without loading DSH or calling a model.
+const RESEARCH_STAGE_KEYS = Object.freeze([
+  'base_research', 'research_debate', 'portfolio_draft', 'risk_review', 'final_decision'
+]);
+
+function measuredStageFraction(row) {
+  if (row?.status === 'completed') return 1;
+  const total = Number(row?.agents_total);
+  const completed = Number(row?.agents_done ?? 0);
+  if (Number.isFinite(total) && total > 0 && Number.isFinite(completed)) {
+    return Math.min(1, Math.max(0, completed / total));
+  }
+  return row?.status === 'pending' || row?.status === 'idle' ? 0 : null;
+}
+
+function researchStageRows(run) {
+  const stages = run?.stages ?? {};
+  return RESEARCH_STAGE_KEYS.map(stage => {
+    const saved = stages[stage];
+    const row = saved && typeof saved === 'object' ? { ...saved, stage, recorded: true } : { stage, status: 'pending', recorded: false };
+    const tasks = Object.values(run?.agents ?? {}).filter(task => task && task.stage === stage);
+    if (row.status !== 'completed' && tasks.length) {
+      // Saved counters include previous attempts; the role map contains
+      // the current task for each role and is authoritative when present.
+      row.agents_total = tasks.length;
+      row.agents_done = tasks.filter(task => task.status === 'completed').length;
+      row.agents_failed = tasks.filter(task => task.status === 'failed').length;
+    }
+    if (!row.recorded && run?.current_stage === stage) row.status = run.status === 'failed' ? 'failed' : run.status === 'cancelled' ? 'cancelled' : 'running';
+    return row;
+  });
+}
+
+function createMotionController() {
+  let revision = 0;
+  let current = null;
+  function cancel() {
+    revision += 1;
+    current?.cancel();
+    current = null;
+  }
+  function play(element, frames, milliseconds, finished = () => {}) {
+    let visible;
+    if (current && element?.ownerDocument?.defaultView) {
+      const style = element.ownerDocument.defaultView.getComputedStyle(element);
+      visible = { opacity: style.opacity, transform: style.transform };
+    }
+    cancel();
+    const token = revision;
+    if (!element || !element.animate || milliseconds <= 0) {
+      finished();
+      return;
+    }
+    const keyframes = frames.map(frame => ({ ...frame }));
+    if (visible) Object.assign(keyframes[0], visible);
+    const animation = element.animate(keyframes, {
+      duration: milliseconds, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'both'
+    });
+    current = animation;
+    animation.finished.then(() => {
+      if (revision !== token) return;
+      current = null;
+      finished();
+      animation.cancel();
+    }).catch(() => {});
+  }
+  return { play, cancel };
+}
+
+const ProductPageActivity = react.createContext(true);
+const useProductPageActive = () => react.useContext(ProductPageActivity);
+const productMotion = (() => {
+  const listeners = new Set();
+  const media = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  let preference = 'system', revision = 0;
+  try { preference = localStorage.getItem('ata.ui.motion') || 'system'; } catch {}
+  if (!['system','standard','off'].includes(preference)) preference = 'system';
+  let snapshot;
+  const update = () => {
+    const reduced = preference === 'off' || Boolean(media?.matches);
+    snapshot = Object.freeze({ preference, reduced, revision: ++revision });
+    if (typeof document !== 'undefined' && document.body) document.body.dataset.ataMotion = reduced ? 'off' : 'standard';
+    listeners.forEach(listener => listener());
+  };
+  update();
+  media?.addEventListener('change', update);
+  return {
+    getSnapshot: () => snapshot,
+    subscribe: listener => { listeners.add(listener); return () => listeners.delete(listener); },
+    set(value) {
+      if (!['system','standard','off'].includes(value) || value === preference) return;
+      preference = value;
+      try { localStorage.setItem('ata.ui.motion', value); } catch {}
+      update();
+    }
+  };
+})();
+const useProductMotion = () => react.useSyncExternalStore(productMotion.subscribe, productMotion.getSnapshot, productMotion.getSnapshot);
+
+function useMotionPresence(open, distance = 6, axis = 'Y') {
+  const ref = react.useRef(null);
+  const controller = react.useRef(null);
+  if (!controller.current) controller.current = createMotionController();
+  const [present, setPresent] = react.useState(open);
+  const motion = useProductMotion();
+  react.useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    element.inert = !open;
+    if (open) {
+      element.hidden = false;
+      setPresent(true);
+      controller.current.play(element, [{ opacity: 0, transform: `translate${axis}(${distance}px)` }, { opacity: 1, transform: 'none' }], motion.reduced ? 0 : 200);
+    } else if (present) {
+      controller.current.play(element, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translate${axis}(${distance / 2}px)` }], motion.reduced ? 0 : 140, () => { element.hidden = true; setPresent(false); });
+    }
+    return () => controller.current.cancel();
+  }, [open, motion.revision]);
+  return { ref, present, hidden: !open && !present };
+}
+
+function MotionPage({ active, page, children }) {
+  const presence = useMotionPresence(active);
+  return react.createElement(ProductPageActivity.Provider, { value: active },
+    react.createElement('div', {
+      ref: presence.ref, className: 'ia-shell-page', hidden: presence.hidden,
+      'data-page': page, 'data-active': active, 'aria-hidden': !active,
+      style: active ? undefined : { position: 'absolute', inset: 0, pointerEvents: 'none' }
+    }, children));
+}
+
+function MotionPresence({ open, className, children }) {
+  const presence = useMotionPresence(open, 12, 'X');
+  return react.createElement('div', { ref: presence.ref, className, hidden: presence.hidden, 'aria-hidden': !open }, open || presence.present ? children : null);
+}
+
+function useAnimatedProductDialog(ref, open, onClose) {
+  const active = useProductPageActive(), motion = useProductMotion();
+  const close = react.useRef(onClose), opener = react.useRef(null), controller = react.useRef(null);
+  close.current = onClose;
+  if (!controller.current) controller.current = createMotionController();
+  react.useLayoutEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (!active) {
+      controller.current.cancel();
+      if (dialog.open) dialog.close();
+      if (open) close.current?.();
+      return;
+    }
+    if (open) {
+      if (!dialog.open) { opener.current = document.activeElement; dialog.showModal(); }
+      dialog.dataset.closing = 'false';
+      controller.current.play(dialog, [{ opacity: 0, transform: 'translateX(18px)' }, { opacity: 1, transform: 'none' }], motion.reduced ? 0 : 220);
+    } else if (dialog.open) {
+      dialog.dataset.closing = 'true';
+      controller.current.play(dialog, [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(12px)' }], motion.reduced ? 0 : 160, () => {
+        dialog.close();
+        if (opener.current?.isConnected && opener.current.getClientRects().length) opener.current.focus();
+        else document.querySelector('.ia-navbtn[data-active=true]')?.focus();
+      });
+    }
+    return () => controller.current.cancel();
+  }, [open, active, motion.revision]);
+  react.useEffect(() => () => { if (ref.current?.open) ref.current.close(); }, []);
+}
+
+function ProductModal({ open, busy, onClose, label, children }) {
+  const ref = react.useRef(null);
+  useAnimatedProductDialog(ref, open, onClose);
+  return react.createElement('dialog', {
+    ref, className: 'ia-product-modal', 'aria-label': label,
+    onCancel: event => { event.preventDefault(); if (!busy) onClose(); },
+    onClick: event => { if (event.target === ref.current && !busy) onClose(); }
+  }, react.createElement('div', { className: 'ia-product-modal-content' }, children));
+}
+
+function useNavigationIndicator(ref, page, locale) {
+  react.useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const place = () => {
+      const active = element.querySelector('[data-active=true]'), indicator = element.querySelector('.ia-nav-indicator');
+      if (!active || !indicator) return;
+      indicator.style.transform = `translateY(${active.offsetTop}px)`;
+      indicator.style.height = `${active.offsetHeight}px`;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [page, locale]);
+}
+
+function useRightbarTransition(ref, fullscreen, open, visibilityKey) {
+  const previous = react.useRef(null), controller = react.useRef(null), motion = useProductMotion();
+  if (!controller.current) controller.current = createMotionController();
+  react.useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    element.inert = !open;
+    const rect = element.getBoundingClientRect(), old = previous.current;
+    if (open && old?.open && old.fullscreen !== fullscreen && rect.width && rect.height && old.rect.width && old.rect.height) {
+      controller.current.play(element, [
+        { transformOrigin:'top left', transform:`translate(${old.rect.left-rect.left}px,${old.rect.top-rect.top}px) scale(${old.rect.width/rect.width},${old.rect.height/rect.height})` },
+        { transformOrigin:'top left', transform:'none' }
+      ], motion.reduced ? 0 : 240, () => window.dispatchEvent(new Event('resize')));
+    }
+    previous.current = { rect, fullscreen, open };
+    return () => controller.current.cancel();
+  }, [fullscreen, open, visibilityKey, motion.revision]);
+}
+
+function ContentTransition({ identity, children }) {
+  const ref = react.useRef(null), motion = useProductMotion();
+  react.useLayoutEffect(() => {
+    if (motion.reduced || !ref.current?.animate) return;
+    const animation = ref.current.animate([{opacity:.35,transform:'translateY(4px)'},{opacity:1,transform:'none'}], {duration:160,easing:'ease-out'});
+    return () => animation.cancel();
+  }, [identity, motion.revision]);
+  return react.createElement('div', { ref, className:'ia-content-transition' }, children);
+}
+
+const motionCss = "/* Owned product polish. Shared variables also cover newly retained pages. */\n.ia-shell{--ia-fs-body:15px;--ia-fs-body-sm:14px;--ia-fs-caption:13px;--ia-fs-micro:12px;--ia-motion-page:200ms;--ia-motion-panel:240ms;--ia-ease-out:cubic-bezier(.22,1,.36,1)}\n.ia-body{position:relative;overflow:hidden;min-height:0;min-width:0}\n.ia-shell-page{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;height:100%;width:100%}\n.ia-shell-page[hidden],.ia-ctx-drawer[hidden]{display:none!important}\n.ia-shell-page[data-active=false]{pointer-events:none}\n.ia-rail-nav{position:relative;isolation:isolate}\n.ia-nav-indicator{position:absolute;inset:0 0 auto;z-index:0;pointer-events:none;border-radius:13px;background:linear-gradient(145deg,#3d65ec,#2b4dca);box-shadow:0 4px 14px #14398a22;transition:transform var(--ia-motion-page) var(--ia-ease-out),height var(--ia-motion-page) var(--ia-ease-out)}\n.ia-shell .ia-navbtn{z-index:1;transition:color 140ms,background 140ms,transform 120ms;min-height:62px;font-size:12px;letter-spacing:0}\n.ia-shell .ia-navbtn[data-active=true]{background:transparent;box-shadow:none;transform:none}\n.ia-shell .ia-navbtn[data-active=true] .ia-icon{filter:none}\n.ia-shell .ia-navbtn:active{transform:translateY(1px)}\n.ia-shell .ia-rail-brand{box-shadow:0 5px 16px #254acb38,inset 0 1px 0 #ffffff25}\n.ia-shell .ia-page-title{font-size:25px;line-height:1.3;letter-spacing:-.5px}\n.ia-shell .ia-page-sub,.ia-shell .ia-an-note,.ia-shell .ia-form-hint,.ia-shell .ia-form-label,.ia-shell .ia-assist-strip{font-size:13px;line-height:1.6}\n.ia-shell .ia-input,.ia-shell .ia-an-input,.ia-shell .ia-an-select{font-size:14px;min-height:39px;border-radius:10px;transition:border-color 140ms,box-shadow 140ms,background-color 140ms}\n.ia-shell .ia-btn,.ia-shell .ia-an-btn{font-size:14px;min-height:36px;border-radius:10px;transition:background-color 140ms,border-color 140ms,box-shadow 140ms,transform 110ms}\n.ia-shell .ia-btn:active:not(:disabled),.ia-shell .ia-an-btn:active:not(:disabled){transform:translateY(1px)}\n.ia-shell .ia-btn:disabled,.ia-shell .ia-an-btn:disabled{cursor:default;opacity:.55;box-shadow:none;transform:none}\n.ia-shell .ia-card,.ia-shell .ia-an-panel,.ia-shell .ia-db-panel,.ia-shell .ia-db-metric{border-radius:16px;box-shadow:0 2px 7px #1e3a5f05}\n.ia-shell .ia-form-row{gap:16px;min-width:0}\n.ia-shell .ia-form-row>div{min-width:0}\n.ia-shell .ia-form-row label{font-size:14px}\n.ia-shell .ia-settings-nav button{font-size:13px;line-height:1.5;overflow-wrap:anywhere}\n.ia-shell .ia-details{overflow:hidden;opacity:1;transition:width var(--ia-motion-panel) var(--ia-ease-out),opacity 160ms ease}\n.ia-shell .ia-details[aria-hidden=true]{opacity:0;pointer-events:none}\n.ia-shell .ia-details>div{min-width:340px}\n.ia-shell .ia-an-drawer{border:1px solid var(--ia-border-subtle);border-radius:18px 0 0 18px;box-shadow:-12px 0 40px #18355c1f;padding:24px;font-size:14px}\n.ia-an-drawer::backdrop,.ia-product-modal::backdrop{background:#0e183946;transition:opacity 160ms ease}\n.ia-an-drawer[data-closing=true]::backdrop,.ia-product-modal[data-closing=true]::backdrop{opacity:0}\n.ia-product-modal{width:min(460px,calc(100vw - 32px));padding:0;border:1px solid var(--ia-border-subtle);border-radius:16px;background:var(--ia-surface);color:var(--ia-text-1);box-shadow:0 16px 56px #18355c24}\n.ia-product-modal-content{padding:24px;display:flex;flex-direction:column;gap:16px}\n.ia-product-modal h3{margin:0;font-size:18px}\n.ia-product-modal .ia-modal-actions{display:flex;justify-content:flex-end;gap:10px}\n.ia-content-transition{min-width:0;min-height:0}\n.ia-notice{animation:ia-feedback-in 160ms ease-out;line-height:1.6}\n@keyframes ia-feedback-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}\n.ia-research-workspace{container-type:inline-size}\n.ia-research-stage-summary{margin:0;border:1px solid var(--ia-border-subtle);border-radius:16px;background:var(--ia-surface);padding:18px 20px}\n.ia-research-stage-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}\n.ia-research-stage-head h3{font-size:16px;margin:0}\n.ia-research-stage-head>span{font-size:13px;color:var(--ia-text-3);font-variant-numeric:tabular-nums}\n.ia-stage-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:18px}\n.ia-stage-card{box-sizing:border-box;min-width:0;min-height:82px;display:flex;align-items:center;gap:10px;padding:14px 12px;border-radius:12px;background:var(--ia-surface-2);transition:background-color 180ms ease}\n.ia-stage-card[data-status=completed]{background:color-mix(in srgb,var(--ia-ok) 7%,var(--ia-surface))}\n.ia-stage-card[data-status=running]{background:color-mix(in srgb,var(--ia-accent) 8%,var(--ia-surface))}\n.ia-stage-card[data-status=failed],.ia-stage-card[data-status=cancelled]{background:color-mix(in srgb,var(--ia-danger) 6%,var(--ia-surface))}\n.ia-stage-card-label{font-size:15px;font-weight:500;line-height:1.45;min-width:0;overflow-wrap:anywhere}\n.ia-stage-card .ia-an-ring{width:50px;height:50px;flex:0 0 50px}\n.ia-shell .ia-an-ring-mark{font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}\n.ia-an-ring-fill{transition:stroke-dashoffset 200ms ease,stroke 160ms ease}\n.ia-an-ring[data-indeterminate=true] .ia-an-ring-fill{opacity:0}\n.ia-shell .ia-an-stage-name{font-size:15px}\n.ia-shell .ia-an-stage-meta{font-size:13px;line-height:1.55}\n.ia-stage-total{display:flex;justify-content:space-between;gap:12px;color:var(--ia-text-3);font-size:13px;margin-bottom:10px;font-variant-numeric:tabular-nums}\n.ia-stage-total-track{height:5px;background:var(--ia-border-subtle);border-radius:99px;overflow:hidden}\n.ia-stage-total-fill{height:100%;background:var(--ia-accent);transform-origin:left center;transition:transform 200ms ease;border-radius:99px}\n.ia-shell .ia-db-price-line{animation-duration:400ms;animation-delay:0s}\n.ia-shell .ia-db-area{animation-duration:350ms;animation-delay:0s}\n.ia-shell .ia-db-main-chart text{font-size:12px}\n.ia-shell .ia-db-provenance,.ia-shell .ia-db-stock-date{font-size:12px}\n.ia-shell .ia-seg-thumb,.ia-shell .ia-tabs-ink{transition-duration:160ms}\n.ia-motion-save-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:10px}\n.ia-loading-state{min-height:100px;display:flex;align-items:center;justify-content:center;color:var(--ia-text-3);font-size:14px}\n@container(max-width:820px){.ia-stage-cards{grid-template-columns:repeat(3,minmax(0,1fr))}}\n@container(max-width:540px){.ia-stage-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.ia-stage-card{padding:12px 10px}}\n@container(max-width:330px){.ia-stage-cards{grid-template-columns:1fr}}\n.ia-shell-page .ia-an-panel,.ia-shell-page .ia-db-panel,.ia-shell-page .ia-db-metric{animation:none}\nbody[data-ata-motion=off] *,body[data-ata-motion=off] *::before,body[data-ata-motion=off] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}\n@media(prefers-reduced-motion:reduce){.ia-shell *,.ia-shell *::before,.ia-shell *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}\n";
+/* PRODUCT_MOTION:END */
 /* I18N:START */
-const PRODUCT_COPY = {"zh":{"ui.content.is.too.long.display.truncated":"\n\n（内容过长，已截断显示）","ui.mainland.china":"A股","ui.hong.kong":"港股","ui.united.states":"美股","ui.investment.overview":"投资概览","ui.simulated.accounts.paper.trading.public.third.party.market.data.for.research":"模拟账户 · 纸面交易 · 行情来自公开第三方接口，仅供研究","ui.engine.unavailable":"引擎暂不可达：","ui.system.and.risk.status":"系统与风控状态","ui.mode":"模式：","ui.strategy":"策略：","ui.emergency.stop":"紧急停止","ui.paused":"已暂停","ui.risk.controls.active":"风控正常","ui.investment.engine":"投资引擎：","ui.running":"运行中","ui.stopped":"未运行","ui.next.round":" 下一轮次","ui.account.assets":"账户资产","ui.market":"市场","ui.total.assets":"总资产","ui.cash":"现金","ui.holdings":"持仓","ui.trades":"成交数","ui.engine.data.unavailable":"引擎数据暂不可用","ui.recent.round.reports":"最近轮次报告","ui.no.round.reports.yet":"暂无轮次报告","ui.latest.macro.briefing":"最新宏观日报摘要","ui.1.month":"近1个月","ui.3.months":"近3个月","ui.1.year":"近1年","ui.unnamed.security":"未命名标的","ui.price.history.unavailable":"历史行情暂不可用","ui.invalid.price.history.response":"行情返回格式异常","ui.some.invalid.prices.were.skipped":"部分无效行情已跳过","ui.chart.unavailable":"走势暂不可用","ui.insufficient.history":"历史数据不足","ui.loading.chart":"正在加载走势…","ui.daily.prices.over.the.past.month":"近一个月日线走势","ui.at.least.two.trading.days.are.required":"历史数据不足，至少需要两个交易日","ui.current.cost":"当前成本 ","ui.volume":"成交量","ui.buy.sell":"买/卖","ui.b":"买","ui.s":"卖","ui.buy":"买入","ui.sell":"卖出","ui.shares.fill.price":" 股 · 成交价 ","ui.close":"收盘 ","ui.open":"开 ","ui.high":" · 高 ","ui.low":" · 低 ","ui.volume.2":"量 ","ui.daily.price.currency":"日线价格，单位","ui.view.trading.day":"查看交易日","ui.close.2":"，收盘","ui.unknown":"未知","ui.normal":"正常","ui.account.equity":"账户权益","ui.cash.latest.position.valuations":"现金 + 最近持仓估值","ui.unrealized.p.l":"持仓浮动盈亏","ui.calculated.from.recorded.account.prices":"按账户记录价格计算","ui.capital.utilization":"资金使用率","ui.cash.share":"现金占比 ","ui.waiting.for.account.data":"等待账户数据","ui.securities.held":"持有标的","ui.securities":" 只","ui.separate.simulated.account":" · 独立模拟账户","ui.reload":"重新加载","ui.portfolio.overview":"投资总览","ui.track.changes.across.your.portfolio.and.securities":"从组合到个股，看清每一次变化","ui.connecting.to.the.investment.engine":"正在连接投资引擎","ui.paper.trading.risk":"模拟交易 · 风控","ui.cash.2":"现金 ","ui.market.value":" · 市值 ","ui.next.round.2":"下一轮","ui.automatic":"自动运行","ui.manual":"手动运行","ui.view.market":"查看市场","ui.new.research":"＋ 新建研究","ui.my.holdings":"我的持仓","ui.securities.market.value":" 只 · 市值 ","ui.view":"查看","ui.price.chart":"的走势","ui.shares.cost":" 股 · 成本 ","ui.p.l":" · 盈亏 ","ui.loading.holdings":"正在读取持仓…","ui.no.holdings.yet":"暂无持仓","ui.account.data.unavailable":"账户数据暂不可用","ui.daily.prices.1.month.select.to.view.chart":"近1个月日线 · 点击切换右侧走势","ui.price.chart.2":"价格走势","ui.time.range":"时间范围","ui.chart.type":"图表类型","ui.line":"走势线","ui.candlestick":"K 线","ui.this.source.does.not.provide.complete.ohlc.data":"当前来源没有完整的开高低收数据","ui.cost.line":"成本线","ui.trade.dates":"买卖日期","ui.loading.price.history":"正在加载历史行情…","ui.not.enough.price.history.yet":"暂时没有足够的历史行情","ui.quantity.held":"持有数量","ui.shares":" 股","ui.current.position.cost":"当前持仓成本","ui.recorded.account.valuation":"账户记录估值","ui.source":"来源 ","ui.not.provided":"未提供","ui.last.trading.day":" · 最后交易日 ","ui.price.age":" · 行情距今 ","ui.days":" 天","ui.price.notes":" · 行情提示：","ui.a.fallback.price.source.was.used":"已使用备用行情来源","ui.adjustment.status.is.unconfirmed":"复权状态未经确认","ui.select.a.holding.on.the.left.to.view.its.chart":"选择左侧持仓查看走势","ui.select.a.holding.to.view.its.chart":"选中一只持仓即可查看走势","ui.round.timeline":"轮次时间线","ui.latest":"最近 ","ui.rounds":" 轮","ui.security.research":"股票研究","ui.no.previous.rounds":"暂无历史轮次","ui.portfolio.allocation":"组合分布","ui.this.market.including.cash":"本市场 · 含现金","ui.asset.allocation":"资产占比","ui.no.allocation.data.available":"暂无可展示的资产分布","ui.trade.history":"交易记录","ui.latest.5.simulated.fills":"近 5 笔 · 模拟成交","ui.shares.2":" 股 @ ","ui.no.simulated.trades.for.this.security":"该股票暂无模拟成交记录","ui.select.a.holding.to.view.its.trades":"选中持仓后查看成交记录","ui.operations.and.research":"运行与研究","ui.risk":"风控","ui.next.round.3":" 下一轮","ui.not.scheduled":"尚未安排","ui.latest.analysis":"最近分析 · ","ui.open.analysis.workflow.and.reports":"打开分析流程与报告","ui.market.briefing":"市场早报","ui.collected.at.08.00.each.trading.day.asia.shanghai":"每交易日 08:00 采集","ui.01.data.preparation":"01 · 数据准备","ui.market.status":"市场状态","ui.screen.candidates":"筛选候选","ui.holdings.mandate":"持仓 / 授权","ui.02.security.research":"02 · 标的研究","ui.technical.analysis":"技术分析","ui.fundamentals":"基本面","ui.news":"新闻","ui.sentiment":"情绪","ui.four.base.research.roles":"四类基础研究","ui.03.research.review":"03 · 研究裁决","ui.bull.researcher":"多方研究员","ui.bear.researcher":"空方研究员","ui.research.manager":"研究经理","ui.research.debate.and.security.review":"研究辩论与个股裁决","ui.04.portfolio.construction":"04 · 组合构建","ui.security.trader":"标的交易员","ui.portfolio.manager.draft":"组合经理草案","ui.portfolio.draft":"组合草案","ui.05.risk.review":"05 · 风险裁决","ui.aggressive.perspective":"激进视角","ui.conservative.perspective":"保守视角","ui.neutral.perspective":"中性视角","ui.risk.manager":"风险经理","ui.risk.debate":"风险辩论","ui.06.decisions.and.execution":"06 · 决策执行","ui.final.portfolio.decision":"最终组合决策","ui.hard.risk.checks":"硬风险检查","ui.paper.execution.report":"模拟执行 / 报告","ui.final.decision":"最终决策","ui.preparing.data":"准备数据","ui.restoring.checkpoints":"恢复检查点","ui.bull.bear.debate.and.research.review":"多空辩论与研究裁决","ui.risk.debate.and.review":"风险辩论与裁决","ui.hard.risk.controls.and.paper.execution":"硬风控与模拟执行","ui.awaiting.approval":"等待批准","ui.completed":"已完成","ui.failed":"失败","ui.stopped.2":"已停止","ui.not.run.yet":"尚未运行","ui.waiting":"等待中","ui.isolated.roles.and.per.security.research":"角色隔离与逐标的研究","ui.evidence.scope.and.citation.checks":"证据域与引用校验","ui.failure.handling.and.safe.hold":"失败降级与安全 HOLD","ui.stage.checkpoints.and.recovery":"阶段检查点与恢复","ui.investment.context":"投资上下文","ui.collapse.context":"收起上下文","ui.environment":"运行环境","ui.trading.mode":"交易模式","ui.paper.trading":"模拟交易","ui.strategy.2":"策略","ui.autonomous.operation":"自主运行","ui.enabled":"已开启","ui.manual.2":"手动","ui.risk.status":"风险状态","ui.analysis.workflow":"分析流程","ui.current":"当前：","ui.current.no.rounds.yet":"当前：尚无轮次","ui.research.agents":"多角色 Agent ","ui.evidence":"，证据 ","ui.items":" 条。","ui.live.stages.and.checkpoints.appear.when.a.manual.or.automatic.round.starts":"完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。","ui.view.full.analysis.workflow":"查看完整分析流程","ui.recent.activity":"最近动态","ui.latest.report":"最近报告","ui.none.yet":"暂无","ui.disconnected":"未连接","ui.no.rounds.yet":"尚无轮次","ui.strategy.3":"策略 ","ui.risk.2":"风控 ","ui.current.round":"当前轮次 ","ui.evidence.2":"证据 ","ui.context":"上下文","ui.queued":"排队中","ui.not.started":"未开始","ui.s.2":" 秒","ui.min":" 分 ","ui.h":" 时 ","ui.min.2":" 分","ui.tasks":"子任务 ","ui.failed.2":" · 失败 ","ui.in.progress":"进行中","ui.estimated":"%（预计）","ui.stages.completed":" 阶段完成","ui.in.progress.2":" · 进行中","ui.search.security.name.or.ticker":"搜索股票名称或代码","ui.example.tencent.00700.apple":"例如：腾讯、00700、Apple","ui.matching.securities":"股票候选","ui.similar.name.please.verify":" · 近似名称，请核对","ui.searching.the.local.directory":"正在匹配本地目录…","ui.security.directory.unavailable":"股票目录不可用：","ui.no.local.matches.enter.an.exact.ticker.or.update.the.directory":"未找到本地候选，可输入准确代码或手动更新目录。","ui.select.a.match.to.add.it.similar.names.are.never.substituted.automatically":"点选候选加入清单；近似名称不会自动替换。","ui.local.directory":"本地 ","ui.securities.2":" 个标的","ui.limited.directory.coverage":" · 目录覆盖有限","ui.local.security.directory":"本地股票目录","ui.updating.directory":"目录更新中…","ui.update.directory.online":"更新目录（联网）","ui.stage.evidence":"阶段证据","ui.complete.saved.stage.materials.verify.unknown.dates.sources.and.valuation.bases.again":"已保存的完整阶段材料；未知日期、来源与估值口径请结合报告核对。","ui.select.stage":"选择阶段","ui.no.saved.stage.evidence.yet":"尚无已保存的阶段证据","ui.failed.to.read.evidence":"读取证据失败：","ui.loading.evidence":"正在读取证据…","ui.expand.original.materials":"展开原始材料","ui.round":"轮次 ","ui.failed.to.read.round":"读取轮次失败：","ui.warnings":"警告 ","ui.items.2":" 条：","ui.round.status":"轮次状态","ui.current.stage":"当前阶段","ui.tasks.complete.expected":"子任务 完成/预期","ui.evidence.count":"证据条数","ui.label":" · 标签 ","ui.securities.3":" · 标的 ","ui.items.3":" 个","ui.no.record.returned.by.the.engine":"：引擎尚未返回记录","ui.no.analysis.round.started":"尚未启动分析轮次","ui.historical.starts":"历史启动 ","ui.including.retries.current.progress.deduplicates.roles.original.timestamps.and.failure":" 次（含重试），当前进度按角色去重；原始轮次时间和失败记录保留。","ui.this.attempt":"本次 ","ui.loading.stages":"正在读取阶段…","ui.no.stage.records.saved.for.this.round":"该轮次尚未写入阶段记录","ui.round.report":"轮次报告：","ui.run.logs":"运行日志 · ","ui.entries":" 条","ui.showing.latest":"（显示最近 ","ui.entries.2":" 条）","ui.collapse.logs":"收起日志","ui.expand.logs":"展开日志","ui.no.logs.yet":"暂无日志","ui.export.failed":"导出失败：","ui.round.reports":"轮次报告","ui.rounds.2":" 个轮次","ui.filter.reports.by.market":"按市场筛选轮次报告","ui.all.markets":"全部市场","ui.refreshing":"刷新中…","ui.refresh":"刷新","ui.report.index.unavailable":"报告索引不可用：","ui.duration":" · 耗时 ","ui.evidence.3":" · 证据 ","ui.decisions":" · 决策 ","ui.loading.report.index":"正在读取报告索引…","ui.export.md":"导出 .md","ui.loading.report":"正在读取报告正文…","ui.failed.to.read.report":"读取报告失败：","ui.select.a.round.above.to.read.its.report":"选择上方轮次查看报告正文","ui.valid.tickers":"股票代码有效","ui.please.verify":"请核对：","ui.select.security.names.from.the.search.results":"；股票名称请从搜索候选选择","ui.recognized":"已识别 ","ui.no.securities.entered":"尚未填写标的","ui.maximum":"不超过 ","ui.limit.exceeded":" · 超出上限","ui.emergency.stop.is.off":"风控未紧急停止","ui.emergency.stop.is.active":"紧急停止已开启","ui.engine.is.paused.research.may.still.start":"引擎已暂停（分析仍可启动）","ui.no.round.running":"无运行中的轮次","ui.is.running":" 正在运行","ui.none":"无","ui.engine.reachable":"引擎可达","ui.connected.to.the.investment.engine":"已连接投资引擎","ui.unavailable":"不可达：","ui.submitting":"正在提交…","ui.verify.tickers.select.security.names.from.the.search.results":"请核对股票代码；名称请从搜索候选选择","ui.enter.a.security.list.first":"请先填写标的清单","ui.security.count.exceeds":"标的数量超过 ","ui.emergency.stop.is.active.analysis.cannot.start":"风控紧急停止已开启，禁止启动分析","ui.an.analysis.round.is.already.running":"已有分析轮次正在运行","ui.investment.engine.unavailable.analysis.cannot.start":"投资引擎不可达：无法启动分析","ui.round.resumed.from.checkpoints.with.the.same.cycle.id":"已从检查点恢复该轮次（沿用同一 cycle_id）。","ui.this.round.was.interrupted.select.retry.to.resume.explicitly":"该轮次已中断，请点击重试以明确续跑。","ui.this.round.is.still.leased.retry.was.deferred.try.again.later":"该轮次的租约仍被占用，重试已延后；稍后再试。","ui.this.cycle.id.already.exists.no.duplicate.round.was.started":"该 cycle_id 已存在，引擎未重复启动。","ui.analysis.started.fetching.live.progress":"分析轮次已启动，正在拉取实时进度。","ui.start.failed":"启动失败：","ui.screening.results.are.older.than":"选股结果已超过 ","ui.minutes.refreshed.screening.found.no.securities.enter.tickers.manually.or.try.later":" 分钟，重新选股未选出标的；请手动填写或稍后重试。","ui.automatic.screening.refresh.failed":"自动重新选股失败：","ui.another.quick.action.is.in.progress":"另一个一键操作正在进行…","ui.investment.engine.unavailable.action.cannot.run":"投资引擎不可达：无法执行","ui.screening.returned.no.selections.discovered":"选股完成但没有选出标的：发现 ","ui.securities.candidates":" 只、候选 ","ui.screening.complete.discovered":"选股完成：发现 ","ui.securities.candidates.2":" 只 · 候选 ","ui.securities.selected":" 只 · 选出 ","ui.securities.source":" 只（数据源 ","ui.the.security.list.is.populated":"）。已填入标的清单。","ui.screening.failed":"选股失败：","ui.verify.the.security.list.remove.invalid.names.and.stay.within.the.limit":"请先核对股票清单，不能包含无效名称或超过数量上限。","ui.workflow.not.started.screening.returned.no.selections.enter.securities.manually":"全流程未启动：选股没有产出标的，请先手动填写标的清单。","ui.workflow.start.failed":"全流程启动失败：","ui.user.stopped.the.analysis.round.from.the.product.interface":"用户在产品壳手动停止分析轮次","ui.stop.requested.for.round":"已请求停止轮次 ","ui.analysis.only.accounts.are.unaffected":"（仅影响分析，不影响账户）。","ui.stop.failed":"停止失败：","ui.the.latest.screening.is.older.than":"最近一次选股已超过 ","ui.minutes.screening.will.refresh.before.analysis.starts":" 分钟，开始分析前会自动重新选股。","ui.from.screening":"来自选股：","ui.candidates":" 个候选 · ","ui.within":"未超过 ","ui.minutes.reuse.directly":" 分钟，直接复用","ui.expired.screening.will.refresh.before.analysis.starts":"已过期，开始分析前会自动重新选股","ui.from.this.screening.candidates.are.in.the.list.below.ready.to.analyze":"来自本次选股：候选已填入下方清单，可直接分析。","ui.no.screening.results.yet.screen.securities.or.switch.to.manual.entry":"尚无选股结果，请点击一键筛选股票，或切回手动输入。","ui.manual.entry.separate.with.commas.spaces.or.newlines.duplicates.are.removed.maximum":"手动输入：逗号、空格或换行分隔，自动去重，上限 ","ui.securities.4":" 个。","ui.start.analysis":"开始分析","ui.not.started.2":"未启动","ui.run.screening.then.the.fixed.analysis.workflow.research.only.no.orders":"一键运行全流程：先选股，再对选出的标的跑固定分析流程（只分析，绝不下单）","ui.starting.workflow":"全流程启动中…","ui.run.full.workflow":"一键全流程","ui.scan.the.market.for.liquidity.and.factor.candidates.then.populate.the.security.list":"一键筛选股票：扫描全市场并按流动性与因子选出候选，结果填入标的清单","ui.screening.may.take.tens.of.seconds":"选股中…（数十秒）","ui.screen.securities":"一键筛选股票","ui.run.the.fixed.workflow.for.the.listed.securities.research.only.no.orders":"一键分析指定股票：对下方清单里的标的跑固定分析流程（只分析，绝不下单）","ui.submitting.2":"提交中…","ui.analyze.listed.securities":"一键分析指定股票","ui.round.label.a.za.z0.9.only":"轮次标签（仅 [A-Za-z0-9_.-]）","ui.security.source":"标的来源","ui.manual.entry":"手动输入","ui.from.screening.2":"来自选股","ui.security.list.comma.space.newline.separated.deduplicated":"标的清单（逗号 / 空格 / 换行分隔，去重）","ui.exceeds.maximum":"（超出上限 ","ui.securities.5":" 个）","ui.linked.goal.optional.goal.id.from.a.previous.round":"绑定目标（可选，取自历史轮次记录的目标 ID）","ui.no.linked.goal":"（不绑定目标）","ui.preflight":"预检 ","ui.ready":" 就绪","ui.checks.unmet":" 项未满足","ui.collapse":"收起","ui.expand":"展开","ui.stop.current.round.analysis.only.accounts.are.unaffected":"停止当前轮次（只影响分析，绝不影响账户）","ui.no.round.is.currently.running":"当前没有运行中的轮次","ui.stop":"停止","ui.retry.with.the.same.cycle.id.resume.from.saved.checkpoints":"沿用同一个 cycle_id 重试（引擎从检查点续跑）","ui.no.retryable.round.only.failed.stopped.or.unsubmitted.rounds.can.be.retried":"没有可重试的轮次：仅已失败 / 已停止的轮次或尚未提交成功的轮次可重试","ui.retry":"重试","ui.running.2":"进行中：","ui.poll.every":" · 轮询 ","ui.this.round.has.ended.polling.stopped":"轮次已进入终态，已停止轮询。","ui.no.round.is.currently.running.2":"当前没有运行中的轮次。","ui.research.and.execution":"研究与执行","ui.analysis.produces.research.and.trade.recommendations.execution.requires.separate.appr":"分析只生成研究报告和交易建议。交易执行仍需另行批准。","ui.investment.research":"投资研究","ui.security.research.progress.and.historical.reports":"股票研究、分析过程与历史报告","ui.investment.engine.unavailable":"投资引擎不可达","ui.no.research.rounds.yet":"尚无研究轮次","ui.research.actions":"研究操作","ui.stages":" 阶段","ui.evidence.items":" 条证据","ui.resume":"续跑","ui.research.produces.recommendations.execution.requires.separate.approval":"分析生成建议，交易需另行批准。","ui.research.history":"研究记录","ui.failed.to.read.history":"历史读取失败：","ui.loading.research.history":"正在读取研究记录…","ui.no.research.yet.select.new.research.to.begin":"还没有研究，点击新建研究开始","ui.research.workspace":"研究工作区","ui.awaiting.screening":"等待选股","ui.select.a.round.on.the.left.or.create.new.research":"选择左侧记录，或新建研究","ui.research.stopped":"研究已停止：","ui.saved":"。已保存 ","ui.stages.resume.manually.to.continue":" 个阶段；续跑需要手动操作。","ui.research.content":"研究内容","ui.research.report":"研究报告","ui.research.progress":"研究过程","ui.new.research.2":"新建研究","ui.close.3":"关闭","ui.strategy.changed.to":"策略已切换为 ","ui.applies.to.subsequent.rounds.immediately":"，立即作用于后续轮次。","ui.switch.failed":"切换失败：","ui.settings.saved.and.applied":"设置已保存并生效。","ui.save.failed":"保存失败：","ui.minimum.confidence":"最低置信度","ui.max.security.weight":"单股仓位上限 %","ui.max.total.exposure":"总仓位上限 %","ui.minimum.cash.reserve":"最低现金储备 %","ui.maximum.drawdown":"最大回撤 %","ui.max.daily.trades":"当日最大交易数","ui.strategy.and.risk.controls":"投资策略与风控","ui.strategy.profiles.set.prompt.objectives.and.hard.limits.for.weights.cash.drawdown.and":"策略档位同时决定提示词目标与硬风险边界（仓位/现金/回撤/换手），由引擎强制执行。","ui.strategy.profile":"策略档位","ui.conservative":"保守","ui.neutral":"中立","ui.aggressive":"激进","ui.operation.mode":"运行模式","ui.manual.run.only.when.triggered.automatic.run.according.to.the.schedule":"手动：仅当你触发时执行轮次；自动：按调度计划自动执行。","ui.automatic.2":"自动","ui.autonomous.investing.master.switch":"自动投资总开关","ui.when.disabled.the.engine.runs.no.automatic.rounds":"关闭后引擎不再执行任何自动轮次。","ui.enable":"启用","ui.disable":"停用","ui.current.hard.limits":"当前硬边界（","ui.schedule.saved":"调度设置已保存。","ui.automatic.rounds.and.scheduling":"自动轮次与调度","ui.intraday.and.closing.rounds.run.in.asia.shanghai.time.the.engine.applies.saved.schedu":"盘中与收盘轮次按北京时间触发；保存后由引擎调度器生效。","ui.market.briefing.time":"市场早报时间","ui.generate.a.briefing.each.trading.day.using.news.from.the.previous.trading.day":"每个交易日生成一次市场早报（内容为前一交易日的新闻）。","ui.intraday.rounds.hh.mm.comma.separated":" 盘中轮次（HH:MM 逗号分隔）","ui.closing.round":"收盘轮次：","ui.market.settings.saved":"市场设置已保存。","ui.markets.and.screening":"市场与选股","ui.enabled.markets.set.the.scheduling.and.screening.scope.screening.parameters.control.m":"启用市场决定调度与选股范围；选股参数控制全市场候选筛选。","ui.enabled.markets":"启用市场","ui.candidate.pool.size":"候选池大小","ui.maximum.securities.in.each.market.s.screening.pool":"每个市场选股池的标的数量上限。","ui.screening.refresh.interval.minutes":"选股刷新间隔（分钟）","ui.cache.lifetime.the.next.round.refreshes.expired.results":"缓存有效期，超期后下一轮次自动刷新。","ui.notification.settings.saved.webhook.address.encrypted.with.dpapi":"通知设置已保存（Webhook 地址经 DPAPI 加密存储）。","ui.notifications":"通知","ui.send.completed.round.reports.through.a.webhook":"轮次报告完成后通过 Webhook 推送。","ui.webhook.notifications":"Webhook 通知","ui.enabled.2":"已启用","ui.disabled":"未启用","ui.webhook.address":"Webhook 地址","ui.configured.existing.address.hidden.leave.blank.to.retain.it":"已配置（出于安全考虑不显示现有地址，留空保存则保持不变）","ui.must.start.with.https.encrypted.in.the.local.dpapi.store":"以 https:// 开头；地址加密保存在本机 DPAPI 库中。","ui.configured":"已配置","ui.save.notification.settings":"保存通知设置","ui.application.settings":"应用设置","ui.version.information":"版本信息","ui.product":"产品","ui.engine.version":"引擎版本","ui.paper.trading.paper":"纸面模拟（paper）","ui.safety.information":"安全说明","ui.this.product.supports.paper.trading.only.and.has.no.live.broker.connection.all.orders":"本产品仅支持模拟交易，不连接真实券商。所有订单经引擎硬风控与纸面撮合，AI 无法绕过。行情来自公开第三方接口，仅供研究与模拟。","ui.no.settings.available":"暂无设置项","ui.settings":"设置","ui.models.strategy.risk.autonomous.operation.and.desktop.configuration":"模型、策略、风险、自主运行与桌面应用配置","ui.secure.local.storage":"本机安全存储","ui.sessions":"会话","ui.new.session":"新会话","ui.create.session":"新建会话","ui.search.sessions":"搜索会话","ui.search.results":"搜索结果","ui.recent.sessions":"最近会话","ui.no.matching.sessions":"没有匹配的会话","ui.no.sessions.yet.create.one.above":"还没有会话，点击上方新建","ui.rename.session":"重命名会话","ui.rename":"重命名","ui.archive.this.session":"归档该会话？","ui.archive":"归档","ui.awaiting.your.question":"等待提问","ui.investment.session":"投资会话","ui.describe.what.you.want.to.build":"描述你想要构建的内容","ui.ask.an.investment.question.or.start.a.complete.analysis":"输入投资问题，或启动完整分析流程","ui.explore.the.unknown":"探索未至之境","ui.your.investment.research.assistant":"你的投资分析助手","ui.overview":"总览","ui.investment.assistant":"投资助手","ui.product.navigation":"产品导航","ui.command.failed":"命令失败","ui.save.failed.2":"保存失败","ui.session.not.found":"会话不存在","ui.investment.engine.2":"投资引擎","ui.mode.2":"模式","ui.time":"时间","ui.portfolio":"组合 ","ui.portfolio.2":"组合","ui.trades.2":"成交","ui.investment.mandate":"授权书","ui.min.confidence":"最低置信","ui.max.security.weight.2":"单股上限","ui.max.drawdown":"最大回撤","language.title":"界面语言","language.output":"研究输出语言","language.follow":"跟随界面（新轮次生效）","language.history":"历史内容与原始资料保留原文","language.saveFailed":"语言设置保存失败，请重试","punctuation.closeParen":"）","punctuation.openParen":"（","punctuation.comma":"、","punctuation.fullStop":"。","punctuation.colon":"：","ui.source.commit":"源码提交","ui.nav.assistant":"投资助手","ui.nav.research":"投资研究","ui.dialog.cancel":"取消","ui.dialog.save":"保存","ui.search.failed":"搜索失败："},"en":{"ui.content.is.too.long.display.truncated":"\n\n(Content is too long; display truncated.)","ui.mainland.china":"Mainland China","ui.hong.kong":"Hong Kong","ui.united.states":"United States","ui.investment.overview":"Investment overview","ui.simulated.accounts.paper.trading.public.third.party.market.data.for.research":"Simulated accounts · Paper trading · Public third-party market data for research","ui.engine.unavailable":"Engine unavailable: ","ui.system.and.risk.status":"System and risk status","ui.mode":"Mode: ","ui.strategy":"Strategy: ","ui.emergency.stop":"Emergency stop","ui.paused":"Paused","ui.risk.controls.active":"Risk controls active","ui.investment.engine":"Investment engine: ","ui.running":"Running","ui.stopped":"Stopped","ui.next.round":" Next round","ui.account.assets":"Account assets","ui.market":"Market","ui.total.assets":"Total assets","ui.cash":"Cash","ui.holdings":"Holdings","ui.trades":"Trades","ui.engine.data.unavailable":"Engine data unavailable","ui.recent.round.reports":"Recent round reports","ui.no.round.reports.yet":"No round reports yet","ui.latest.macro.briefing":"Latest macro briefing","ui.1.month":"1 month","ui.3.months":"3 months","ui.1.year":"1 year","ui.unnamed.security":"Unnamed security","ui.price.history.unavailable":"Price history unavailable","ui.invalid.price.history.response":"Invalid price history response","ui.some.invalid.prices.were.skipped":"Some invalid prices were skipped","ui.chart.unavailable":"Chart unavailable","ui.insufficient.history":"Insufficient history","ui.loading.chart":"Loading chart…","ui.daily.prices.over.the.past.month":"Daily prices over the past month","ui.at.least.two.trading.days.are.required":"At least two trading days are required","ui.current.cost":"Current cost ","ui.volume":"Volume","ui.buy.sell":"Buy/Sell","ui.b":"B","ui.s":"S","ui.buy":"Buy","ui.sell":"Sell","ui.shares.fill.price":" shares · Fill price ","ui.close":"Close ","ui.open":"Open ","ui.high":" · High ","ui.low":" · Low ","ui.volume.2":"Volume ","ui.daily.price.currency":"Daily price, currency ","ui.view.trading.day":"View trading day ","ui.close.2":", close ","ui.unknown":"Unknown","ui.normal":"Normal","ui.account.equity":"Account equity","ui.cash.latest.position.valuations":"Cash + latest position valuations","ui.unrealized.p.l":"Unrealized P&L","ui.calculated.from.recorded.account.prices":"Calculated from recorded account prices","ui.capital.utilization":"Capital utilization","ui.cash.share":"Cash share ","ui.waiting.for.account.data":"Waiting for account data","ui.securities.held":"Securities held","ui.securities":" securities","ui.separate.simulated.account":" · Separate simulated account","ui.reload":"Reload","ui.portfolio.overview":"Portfolio overview","ui.track.changes.across.your.portfolio.and.securities":"Track changes across your portfolio and securities","ui.connecting.to.the.investment.engine":"Connecting to the investment engine","ui.paper.trading.risk":"Paper trading · Risk ","ui.cash.2":"Cash ","ui.market.value":" · Market value ","ui.next.round.2":"Next round","ui.automatic":"Automatic","ui.manual":"Manual","ui.view.market":"View market","ui.new.research":"＋ New research","ui.my.holdings":"My holdings","ui.securities.market.value":" securities · Market value ","ui.view":"View ","ui.price.chart":" price chart","ui.shares.cost":" shares · Cost ","ui.p.l":" · P&L ","ui.loading.holdings":"Loading holdings…","ui.no.holdings.yet":"No holdings yet","ui.account.data.unavailable":"Account data unavailable","ui.daily.prices.1.month.select.to.view.chart":"Daily prices, 1 month · Select to view chart","ui.price.chart.2":"Price chart","ui.time.range":"Time range","ui.chart.type":"Chart type","ui.line":"Line","ui.candlestick":"Candlestick","ui.this.source.does.not.provide.complete.ohlc.data":"This source does not provide complete OHLC data","ui.cost.line":"Cost line","ui.trade.dates":"Trade dates","ui.loading.price.history":"Loading price history…","ui.not.enough.price.history.yet":"Not enough price history yet","ui.quantity.held":"Quantity held","ui.shares":" shares","ui.current.position.cost":"Current position cost","ui.recorded.account.valuation":"Recorded account valuation","ui.source":"Source ","ui.not.provided":"Not provided","ui.last.trading.day":" · Last trading day ","ui.price.age":" · Price age ","ui.days":" days","ui.price.notes":" · Price notes: ","ui.a.fallback.price.source.was.used":"A fallback price source was used","ui.adjustment.status.is.unconfirmed":"Adjustment status is unconfirmed","ui.select.a.holding.on.the.left.to.view.its.chart":"Select a holding on the left to view its chart","ui.select.a.holding.to.view.its.chart":"Select a holding to view its chart","ui.round.timeline":"Round timeline","ui.latest":"Latest ","ui.rounds":" rounds","ui.security.research":"Security research","ui.no.previous.rounds":"No previous rounds","ui.portfolio.allocation":"Portfolio allocation","ui.this.market.including.cash":"This market · Including cash","ui.asset.allocation":"Asset allocation","ui.no.allocation.data.available":"No allocation data available","ui.trade.history":"Trade history","ui.latest.5.simulated.fills":"Latest 5 · Simulated fills","ui.shares.2":" shares @ ","ui.no.simulated.trades.for.this.security":"No simulated trades for this security","ui.select.a.holding.to.view.its.trades":"Select a holding to view its trades","ui.operations.and.research":"Operations and research","ui.risk":"Risk","ui.next.round.3":" Next round","ui.not.scheduled":"Not scheduled","ui.latest.analysis":"Latest analysis · ","ui.open.analysis.workflow.and.reports":"Open analysis workflow and reports","ui.market.briefing":"Market briefing","ui.collected.at.08.00.each.trading.day.asia.shanghai":"Collected at 08:00 each trading day (Asia/Shanghai)","ui.01.data.preparation":"01 · Data preparation","ui.market.status":"Market status","ui.screen.candidates":"Screen candidates","ui.holdings.mandate":"Holdings / mandate","ui.02.security.research":"02 · Security research","ui.technical.analysis":"Technical analysis","ui.fundamentals":"Fundamentals","ui.news":"News","ui.sentiment":"Sentiment","ui.four.base.research.roles":"Four base research roles","ui.03.research.review":"03 · Research review","ui.bull.researcher":"Bull researcher","ui.bear.researcher":"Bear researcher","ui.research.manager":"Research manager","ui.research.debate.and.security.review":"Research debate and security review","ui.04.portfolio.construction":"04 · Portfolio construction","ui.security.trader":"Security trader","ui.portfolio.manager.draft":"Portfolio manager draft","ui.portfolio.draft":"Portfolio draft","ui.05.risk.review":"05 · Risk review","ui.aggressive.perspective":"Aggressive perspective","ui.conservative.perspective":"Conservative perspective","ui.neutral.perspective":"Neutral perspective","ui.risk.manager":"Risk manager","ui.risk.debate":"Risk debate","ui.06.decisions.and.execution":"06 · Decisions and execution","ui.final.portfolio.decision":"Final portfolio decision","ui.hard.risk.checks":"Hard risk checks","ui.paper.execution.report":"Paper execution / report","ui.final.decision":"Final decision","ui.preparing.data":"Preparing data","ui.restoring.checkpoints":"Restoring checkpoints","ui.bull.bear.debate.and.research.review":"Bull/bear debate and research review","ui.risk.debate.and.review":"Risk debate and review","ui.hard.risk.controls.and.paper.execution":"Hard risk controls and paper execution","ui.awaiting.approval":"Awaiting approval","ui.completed":"Completed","ui.failed":"Failed","ui.stopped.2":"Stopped","ui.not.run.yet":"Not run yet","ui.waiting":"Waiting","ui.isolated.roles.and.per.security.research":"Isolated roles and per-security research","ui.evidence.scope.and.citation.checks":"Evidence scope and citation checks","ui.failure.handling.and.safe.hold":"Failure handling and safe HOLD","ui.stage.checkpoints.and.recovery":"Stage checkpoints and recovery","ui.investment.context":"Investment context","ui.collapse.context":"Collapse context","ui.environment":"Environment","ui.trading.mode":"Trading mode","ui.paper.trading":"Paper trading","ui.strategy.2":"Strategy","ui.autonomous.operation":"Autonomous operation","ui.enabled":"Enabled","ui.manual.2":"Manual","ui.risk.status":"Risk status","ui.analysis.workflow":"Analysis workflow","ui.current":"Current: ","ui.current.no.rounds.yet":"Current: no rounds yet","ui.research.agents":"Research agents ","ui.evidence":", evidence ","ui.items":" items.","ui.live.stages.and.checkpoints.appear.when.a.manual.or.automatic.round.starts":"Live stages and checkpoints appear when a manual or automatic round starts.","ui.view.full.analysis.workflow":"View full analysis workflow","ui.recent.activity":"Recent activity","ui.latest.report":"Latest report","ui.none.yet":"None yet","ui.disconnected":"Disconnected","ui.no.rounds.yet":"No rounds yet","ui.strategy.3":"Strategy ","ui.risk.2":"Risk ","ui.current.round":"Current round ","ui.evidence.2":"Evidence ","ui.context":"Context","ui.queued":"Queued","ui.not.started":"Not started","ui.s.2":" s","ui.min":" min ","ui.h":" h ","ui.min.2":" min","ui.tasks":"Tasks ","ui.failed.2":" · Failed ","ui.in.progress":"In progress","ui.estimated":"% (estimated)","ui.stages.completed":" stages completed","ui.in.progress.2":" · In progress","ui.search.security.name.or.ticker":"Search security name or ticker","ui.example.tencent.00700.apple":"Example: Tencent, 00700, Apple","ui.matching.securities":"Matching securities","ui.similar.name.please.verify":" · Similar name, please verify","ui.searching.the.local.directory":"Searching the local directory…","ui.security.directory.unavailable":"Security directory unavailable: ","ui.no.local.matches.enter.an.exact.ticker.or.update.the.directory":"No local matches. Enter an exact ticker or update the directory.","ui.select.a.match.to.add.it.similar.names.are.never.substituted.automatically":"Select a match to add it. Similar names are never substituted automatically.","ui.local.directory":"Local directory: ","ui.securities.2":" securities","ui.limited.directory.coverage":" · Limited directory coverage","ui.local.security.directory":"Local security directory","ui.updating.directory":"Updating directory…","ui.update.directory.online":"Update directory (online)","ui.stage.evidence":"Stage evidence","ui.complete.saved.stage.materials.verify.unknown.dates.sources.and.valuation.bases.again":"Complete saved stage materials. Verify unknown dates, sources and valuation bases against the report.","ui.select.stage":"Select stage","ui.no.saved.stage.evidence.yet":"No saved stage evidence yet","ui.failed.to.read.evidence":"Failed to read evidence: ","ui.loading.evidence":"Loading evidence…","ui.expand.original.materials":"Expand original materials","ui.round":"Round ","ui.failed.to.read.round":"Failed to read round: ","ui.warnings":"Warnings: ","ui.items.2":" items: ","ui.round.status":"Round status","ui.current.stage":"Current stage","ui.tasks.complete.expected":"Tasks complete / expected","ui.evidence.count":"Evidence count","ui.label":" · Label ","ui.securities.3":" · Securities ","ui.items.3":" items","ui.no.record.returned.by.the.engine":": no record returned by the engine","ui.no.analysis.round.started":"No analysis round started","ui.historical.starts":"Historical starts: ","ui.including.retries.current.progress.deduplicates.roles.original.timestamps.and.failure":" (including retries). Current progress deduplicates roles; original timestamps and failures are retained.","ui.this.attempt":"This attempt ","ui.loading.stages":"Loading stages…","ui.no.stage.records.saved.for.this.round":"No stage records saved for this round","ui.round.report":"Round report: ","ui.run.logs":"Run logs · ","ui.entries":" entries","ui.showing.latest":" (showing latest ","ui.entries.2":" entries)","ui.collapse.logs":"Collapse logs","ui.expand.logs":"Expand logs","ui.no.logs.yet":"No logs yet","ui.export.failed":"Export failed: ","ui.round.reports":"Round reports","ui.rounds.2":" rounds","ui.filter.reports.by.market":"Filter reports by market","ui.all.markets":"All markets","ui.refreshing":"Refreshing…","ui.refresh":"Refresh","ui.report.index.unavailable":"Report index unavailable: ","ui.duration":" · Duration ","ui.evidence.3":" · Evidence ","ui.decisions":" · Decisions ","ui.loading.report.index":"Loading report index…","ui.export.md":"Export .md","ui.loading.report":"Loading report…","ui.failed.to.read.report":"Failed to read report: ","ui.select.a.round.above.to.read.its.report":"Select a round above to read its report","ui.valid.tickers":"Valid tickers","ui.please.verify":"Please verify: ","ui.select.security.names.from.the.search.results":"; select security names from the search results","ui.recognized":"Recognized ","ui.no.securities.entered":"No securities entered","ui.maximum":"Maximum ","ui.limit.exceeded":" · Limit exceeded","ui.emergency.stop.is.off":"Emergency stop is off","ui.emergency.stop.is.active":"Emergency stop is active","ui.engine.is.paused.research.may.still.start":"Engine is paused (research may still start)","ui.no.round.running":"No round running","ui.is.running":" is running","ui.none":"None","ui.engine.reachable":"Engine reachable","ui.connected.to.the.investment.engine":"Connected to the investment engine","ui.unavailable":"Unavailable: ","ui.submitting":"Submitting…","ui.verify.tickers.select.security.names.from.the.search.results":"Verify tickers; select security names from the search results","ui.enter.a.security.list.first":"Enter a security list first","ui.security.count.exceeds":"Security count exceeds ","ui.emergency.stop.is.active.analysis.cannot.start":"Emergency stop is active; analysis cannot start","ui.an.analysis.round.is.already.running":"An analysis round is already running","ui.investment.engine.unavailable.analysis.cannot.start":"Investment engine unavailable: analysis cannot start","ui.round.resumed.from.checkpoints.with.the.same.cycle.id":"Round resumed from checkpoints with the same cycle_id.","ui.this.round.was.interrupted.select.retry.to.resume.explicitly":"This round was interrupted. Select Retry to resume explicitly.","ui.this.round.is.still.leased.retry.was.deferred.try.again.later":"This round is still leased. Retry was deferred; try again later.","ui.this.cycle.id.already.exists.no.duplicate.round.was.started":"This cycle_id already exists; no duplicate round was started.","ui.analysis.started.fetching.live.progress":"Analysis started. Fetching live progress.","ui.start.failed":"Start failed: ","ui.screening.results.are.older.than":"Screening results are older than ","ui.minutes.refreshed.screening.found.no.securities.enter.tickers.manually.or.try.later":" minutes; refreshed screening found no securities. Enter tickers manually or try later.","ui.automatic.screening.refresh.failed":"Automatic screening refresh failed: ","ui.another.quick.action.is.in.progress":"Another quick action is in progress…","ui.investment.engine.unavailable.action.cannot.run":"Investment engine unavailable: action cannot run","ui.screening.returned.no.selections.discovered":"Screening returned no selections. Discovered ","ui.securities.candidates":" securities, candidates ","ui.screening.complete.discovered":"Screening complete: discovered ","ui.securities.candidates.2":" securities · Candidates ","ui.securities.selected":" securities · Selected ","ui.securities.source":" securities (source ","ui.the.security.list.is.populated":"). The security list is populated.","ui.screening.failed":"Screening failed: ","ui.verify.the.security.list.remove.invalid.names.and.stay.within.the.limit":"Verify the security list: remove invalid names and stay within the limit.","ui.workflow.not.started.screening.returned.no.selections.enter.securities.manually":"Workflow not started: screening returned no selections. Enter securities manually.","ui.workflow.start.failed":"Workflow start failed: ","ui.user.stopped.the.analysis.round.from.the.product.interface":"User stopped the analysis round from the product interface","ui.stop.requested.for.round":"Stop requested for round ","ui.analysis.only.accounts.are.unaffected":" (analysis only; accounts are unaffected).","ui.stop.failed":"Stop failed: ","ui.the.latest.screening.is.older.than":"The latest screening is older than ","ui.minutes.screening.will.refresh.before.analysis.starts":" minutes. Screening will refresh before analysis starts.","ui.from.screening":"From screening: ","ui.candidates":" candidates · ","ui.within":"Within ","ui.minutes.reuse.directly":" minutes; reuse directly","ui.expired.screening.will.refresh.before.analysis.starts":"Expired; screening will refresh before analysis starts","ui.from.this.screening.candidates.are.in.the.list.below.ready.to.analyze":"From this screening: candidates are in the list below, ready to analyze.","ui.no.screening.results.yet.screen.securities.or.switch.to.manual.entry":"No screening results yet. Screen securities or switch to manual entry.","ui.manual.entry.separate.with.commas.spaces.or.newlines.duplicates.are.removed.maximum":"Manual entry: separate with commas, spaces or newlines. Duplicates are removed. Maximum ","ui.securities.4":" securities.","ui.start.analysis":"Start analysis","ui.not.started.2":"Not started","ui.run.screening.then.the.fixed.analysis.workflow.research.only.no.orders":"Run screening, then the fixed analysis workflow (research only; no orders)","ui.starting.workflow":"Starting workflow…","ui.run.full.workflow":"Run full workflow","ui.scan.the.market.for.liquidity.and.factor.candidates.then.populate.the.security.list":"Scan the market for liquidity and factor candidates, then populate the security list","ui.screening.may.take.tens.of.seconds":"Screening… (may take tens of seconds)","ui.screen.securities":"Screen securities","ui.run.the.fixed.workflow.for.the.listed.securities.research.only.no.orders":"Run the fixed workflow for the listed securities (research only; no orders)","ui.submitting.2":"Submitting…","ui.analyze.listed.securities":"Analyze listed securities","ui.round.label.a.za.z0.9.only":"Round label ([A-Za-z0-9_.-] only)","ui.security.source":"Security source","ui.manual.entry":"Manual entry","ui.from.screening.2":"From screening","ui.security.list.comma.space.newline.separated.deduplicated":"Security list (comma / space / newline separated; deduplicated)","ui.exceeds.maximum":" (exceeds maximum ","ui.securities.5":" securities)","ui.linked.goal.optional.goal.id.from.a.previous.round":"Linked goal (optional; goal ID from a previous round)","ui.no.linked.goal":"(No linked goal)","ui.preflight":"Preflight ","ui.ready":" ready","ui.checks.unmet":" checks unmet","ui.collapse":"Collapse","ui.expand":"Expand","ui.stop.current.round.analysis.only.accounts.are.unaffected":"Stop current round (analysis only; accounts are unaffected)","ui.no.round.is.currently.running":"No round is currently running","ui.stop":"Stop","ui.retry.with.the.same.cycle.id.resume.from.saved.checkpoints":"Retry with the same cycle_id (resume from saved checkpoints)","ui.no.retryable.round.only.failed.stopped.or.unsubmitted.rounds.can.be.retried":"No retryable round: only failed, stopped or unsubmitted rounds can be retried","ui.retry":"Retry","ui.running.2":"Running: ","ui.poll.every":" · Poll every ","ui.this.round.has.ended.polling.stopped":"This round has ended; polling stopped.","ui.no.round.is.currently.running.2":"No round is currently running.","ui.research.and.execution":"Research and execution","ui.analysis.produces.research.and.trade.recommendations.execution.requires.separate.appr":"Analysis produces research and trade recommendations. Execution requires separate approval.","ui.investment.research":"Investment research","ui.security.research.progress.and.historical.reports":"Security research, progress and historical reports","ui.investment.engine.unavailable":"Investment engine unavailable","ui.no.research.rounds.yet":"No research rounds yet","ui.research.actions":"Research actions","ui.stages":" stages","ui.evidence.items":" evidence items","ui.resume":"Resume","ui.research.produces.recommendations.execution.requires.separate.approval":"Research produces recommendations; execution requires separate approval.","ui.research.history":"Research history","ui.failed.to.read.history":"Failed to read history: ","ui.loading.research.history":"Loading research history…","ui.no.research.yet.select.new.research.to.begin":"No research yet. Select New research to begin.","ui.research.workspace":"Research workspace","ui.awaiting.screening":"Awaiting screening","ui.select.a.round.on.the.left.or.create.new.research":"Select a round on the left, or create new research","ui.research.stopped":"Research stopped: ","ui.saved":". Saved ","ui.stages.resume.manually.to.continue":" stages; resume manually to continue.","ui.research.content":"Research content","ui.research.report":"Research report","ui.research.progress":"Research progress","ui.new.research.2":"New research","ui.close.3":"Close","ui.strategy.changed.to":"Strategy changed to ","ui.applies.to.subsequent.rounds.immediately":"; applies to subsequent rounds immediately.","ui.switch.failed":"Switch failed: ","ui.settings.saved.and.applied":"Settings saved and applied.","ui.save.failed":"Save failed: ","ui.minimum.confidence":"Minimum confidence","ui.max.security.weight":"Max security weight %","ui.max.total.exposure":"Max total exposure %","ui.minimum.cash.reserve":"Minimum cash reserve %","ui.maximum.drawdown":"Maximum drawdown %","ui.max.daily.trades":"Max daily trades","ui.strategy.and.risk.controls":"Strategy and risk controls","ui.strategy.profiles.set.prompt.objectives.and.hard.limits.for.weights.cash.drawdown.and":"Strategy profiles set prompt objectives and hard limits for weights, cash, drawdown and turnover. The engine enforces them.","ui.strategy.profile":"Strategy profile","ui.conservative":"Conservative","ui.neutral":"Neutral","ui.aggressive":"Aggressive","ui.operation.mode":"Operation mode","ui.manual.run.only.when.triggered.automatic.run.according.to.the.schedule":"Manual: run only when triggered. Automatic: run according to the schedule.","ui.automatic.2":"Automatic","ui.autonomous.investing.master.switch":"Autonomous investing master switch","ui.when.disabled.the.engine.runs.no.automatic.rounds":"When disabled, the engine runs no automatic rounds.","ui.enable":"Enable","ui.disable":"Disable","ui.current.hard.limits":"Current hard limits (","ui.schedule.saved":"Schedule saved.","ui.automatic.rounds.and.scheduling":"Automatic rounds and scheduling","ui.intraday.and.closing.rounds.run.in.asia.shanghai.time.the.engine.applies.saved.schedu":"Intraday and closing rounds run in Asia/Shanghai time. The engine applies saved schedules.","ui.market.briefing.time":"Market briefing time","ui.generate.a.briefing.each.trading.day.using.news.from.the.previous.trading.day":"Generate a briefing each trading day using news from the previous trading day.","ui.intraday.rounds.hh.mm.comma.separated":" intraday rounds (HH:MM, comma separated)","ui.closing.round":"Closing round: ","ui.market.settings.saved":"Market settings saved.","ui.markets.and.screening":"Markets and screening","ui.enabled.markets.set.the.scheduling.and.screening.scope.screening.parameters.control.m":"Enabled markets set the scheduling and screening scope; screening parameters control market-wide selection.","ui.enabled.markets":"Enabled markets","ui.candidate.pool.size":"Candidate pool size","ui.maximum.securities.in.each.market.s.screening.pool":"Maximum securities in each market's screening pool.","ui.screening.refresh.interval.minutes":"Screening refresh interval (minutes)","ui.cache.lifetime.the.next.round.refreshes.expired.results":"Cache lifetime; the next round refreshes expired results.","ui.notification.settings.saved.webhook.address.encrypted.with.dpapi":"Notification settings saved (Webhook address encrypted with DPAPI).","ui.notifications":"Notifications","ui.send.completed.round.reports.through.a.webhook":"Send completed round reports through a Webhook.","ui.webhook.notifications":"Webhook notifications","ui.enabled.2":"Enabled","ui.disabled":"Disabled","ui.webhook.address":"Webhook address","ui.configured.existing.address.hidden.leave.blank.to.retain.it":"Configured (existing address hidden; leave blank to retain it)","ui.must.start.with.https.encrypted.in.the.local.dpapi.store":"Must start with https://. Encrypted in the local DPAPI store.","ui.configured":"Configured","ui.save.notification.settings":"Save notification settings","ui.application.settings":"Application settings","ui.version.information":"Version information","ui.product":"Product","ui.engine.version":"Engine version","ui.paper.trading.paper":"Paper trading (paper)","ui.safety.information":"Safety information","ui.this.product.supports.paper.trading.only.and.has.no.live.broker.connection.all.orders":"This product supports paper trading only and has no live broker connection. All orders pass engine-enforced risk checks and simulated matching. AI cannot bypass these checks. Public third-party prices are for research and simulation.","ui.no.settings.available":"No settings available","ui.settings":"Settings","ui.models.strategy.risk.autonomous.operation.and.desktop.configuration":"Models, strategy, risk, autonomous operation and desktop configuration","ui.secure.local.storage":"Secure local storage","ui.sessions":"Sessions","ui.new.session":"New session","ui.create.session":"Create session","ui.search.sessions":"Search sessions","ui.search.results":"Search results","ui.recent.sessions":"Recent sessions","ui.no.matching.sessions":"No matching sessions","ui.no.sessions.yet.create.one.above":"No sessions yet. Create one above.","ui.rename.session":"Rename session","ui.rename":"Rename","ui.archive.this.session":"Archive this session?","ui.archive":"Archive","ui.awaiting.your.question":"Awaiting your question","ui.investment.session":"Investment session","ui.describe.what.you.want.to.build":"Describe what you want to build","ui.ask.an.investment.question.or.start.a.complete.analysis":"Ask an investment question, or start a complete analysis","ui.explore.the.unknown":"Explore the unknown","ui.your.investment.research.assistant":"Your investment research assistant","ui.overview":"Overview","ui.investment.assistant":"Investment assistant","ui.product.navigation":"Product navigation","ui.command.failed":"Command failed","ui.save.failed.2":"Save failed","ui.session.not.found":"Session not found","ui.investment.engine.2":"Investment engine","ui.mode.2":"Mode","ui.time":"Time","ui.portfolio":"Portfolio ","ui.portfolio.2":"Portfolio","ui.trades.2":"Trades","ui.investment.mandate":"Investment mandate","ui.min.confidence":"Min confidence","ui.max.security.weight.2":"Max security weight","ui.max.drawdown":"Max drawdown","language.title":"Interface language","language.output":"Research output language","language.follow":"Follow interface (new rounds)","language.history":"Historical content and source materials remain in their original language","language.saveFailed":"Language preference could not be saved. Please retry.","punctuation.closeParen":")","punctuation.openParen":"(","punctuation.comma":", ","punctuation.fullStop":".","punctuation.colon":": ","ui.source.commit":"Source commit","ui.nav.assistant":"Assistant","ui.nav.research":"Research","ui.dialog.cancel":"Cancel","ui.dialog.save":"Save","ui.search.failed":"Search failed: "}};
+const PRODUCT_COPY = {"zh":{"ui.content.is.too.long.display.truncated":"\n\n（内容过长，已截断显示）","ui.mainland.china":"A股","ui.hong.kong":"港股","ui.united.states":"美股","ui.investment.overview":"投资概览","ui.simulated.accounts.paper.trading.public.third.party.market.data.for.research":"模拟账户 · 纸面交易 · 行情来自公开第三方接口，仅供研究","ui.engine.unavailable":"引擎暂不可达：","ui.system.and.risk.status":"系统与风控状态","ui.mode":"模式：","ui.strategy":"策略：","ui.emergency.stop":"紧急停止","ui.paused":"已暂停","ui.risk.controls.active":"风控正常","ui.investment.engine":"投资引擎：","ui.running":"运行中","ui.stopped":"未运行","ui.next.round":" 下一轮次","ui.account.assets":"账户资产","ui.market":"市场","ui.total.assets":"总资产","ui.cash":"现金","ui.holdings":"持仓","ui.trades":"成交数","ui.engine.data.unavailable":"引擎数据暂不可用","ui.recent.round.reports":"最近轮次报告","ui.no.round.reports.yet":"暂无轮次报告","ui.latest.macro.briefing":"最新宏观日报摘要","ui.1.month":"近1个月","ui.3.months":"近3个月","ui.1.year":"近1年","ui.unnamed.security":"未命名标的","ui.price.history.unavailable":"历史行情暂不可用","ui.invalid.price.history.response":"行情返回格式异常","ui.some.invalid.prices.were.skipped":"部分无效行情已跳过","ui.chart.unavailable":"走势暂不可用","ui.insufficient.history":"历史数据不足","ui.loading.chart":"正在加载走势…","ui.daily.prices.over.the.past.month":"近一个月日线走势","ui.at.least.two.trading.days.are.required":"历史数据不足，至少需要两个交易日","ui.current.cost":"当前成本 ","ui.volume":"成交量","ui.buy.sell":"买/卖","ui.b":"买","ui.s":"卖","ui.buy":"买入","ui.sell":"卖出","ui.shares.fill.price":" 股 · 成交价 ","ui.close":"收盘 ","ui.open":"开 ","ui.high":" · 高 ","ui.low":" · 低 ","ui.volume.2":"量 ","ui.daily.price.currency":"日线价格，单位","ui.view.trading.day":"查看交易日","ui.close.2":"，收盘","ui.unknown":"未知","ui.normal":"正常","ui.account.equity":"账户权益","ui.cash.latest.position.valuations":"现金 + 最近持仓估值","ui.unrealized.p.l":"持仓浮动盈亏","ui.calculated.from.recorded.account.prices":"按账户记录价格计算","ui.capital.utilization":"资金使用率","ui.cash.share":"现金占比 ","ui.waiting.for.account.data":"等待账户数据","ui.securities.held":"持有标的","ui.securities":" 只","ui.separate.simulated.account":" · 独立模拟账户","ui.reload":"重新加载","ui.portfolio.overview":"投资总览","ui.track.changes.across.your.portfolio.and.securities":"从组合到个股，看清每一次变化","ui.connecting.to.the.investment.engine":"正在连接投资引擎","ui.paper.trading.risk":"模拟交易 · 风控","ui.cash.2":"现金 ","ui.market.value":" · 市值 ","ui.next.round.2":"下一轮","ui.automatic":"自动运行","ui.manual":"手动运行","ui.view.market":"查看市场","ui.new.research":"＋ 新建研究","ui.my.holdings":"我的持仓","ui.securities.market.value":" 只 · 市值 ","ui.view":"查看","ui.price.chart":"的走势","ui.shares.cost":" 股 · 成本 ","ui.p.l":" · 盈亏 ","ui.loading.holdings":"正在读取持仓…","ui.no.holdings.yet":"暂无持仓","ui.account.data.unavailable":"账户数据暂不可用","ui.daily.prices.1.month.select.to.view.chart":"近1个月日线 · 点击切换右侧走势","ui.price.chart.2":"价格走势","ui.time.range":"时间范围","ui.chart.type":"图表类型","ui.line":"走势线","ui.candlestick":"K 线","ui.this.source.does.not.provide.complete.ohlc.data":"当前来源没有完整的开高低收数据","ui.cost.line":"成本线","ui.trade.dates":"买卖日期","ui.loading.price.history":"正在加载历史行情…","ui.not.enough.price.history.yet":"暂时没有足够的历史行情","ui.quantity.held":"持有数量","ui.shares":" 股","ui.current.position.cost":"当前持仓成本","ui.recorded.account.valuation":"账户记录估值","ui.source":"来源 ","ui.not.provided":"未提供","ui.last.trading.day":" · 最后交易日 ","ui.price.age":" · 行情距今 ","ui.days":" 天","ui.price.notes":" · 行情提示：","ui.a.fallback.price.source.was.used":"已使用备用行情来源","ui.adjustment.status.is.unconfirmed":"复权状态未经确认","ui.select.a.holding.on.the.left.to.view.its.chart":"选择左侧持仓查看走势","ui.select.a.holding.to.view.its.chart":"选中一只持仓即可查看走势","ui.round.timeline":"轮次时间线","ui.latest":"最近 ","ui.rounds":" 轮","ui.security.research":"股票研究","ui.no.previous.rounds":"暂无历史轮次","ui.portfolio.allocation":"组合分布","ui.this.market.including.cash":"本市场 · 含现金","ui.asset.allocation":"资产占比","ui.no.allocation.data.available":"暂无可展示的资产分布","ui.trade.history":"交易记录","ui.latest.5.simulated.fills":"近 5 笔 · 模拟成交","ui.shares.2":" 股 @ ","ui.no.simulated.trades.for.this.security":"该股票暂无模拟成交记录","ui.select.a.holding.to.view.its.trades":"选中持仓后查看成交记录","ui.operations.and.research":"运行与研究","ui.risk":"风控","ui.next.round.3":" 下一轮","ui.not.scheduled":"尚未安排","ui.latest.analysis":"最近分析 · ","ui.open.analysis.workflow.and.reports":"打开分析流程与报告","ui.market.briefing":"市场早报","ui.collected.at.08.00.each.trading.day.asia.shanghai":"每交易日 08:00 采集","ui.01.data.preparation":"01 · 数据准备","ui.market.status":"市场状态","ui.screen.candidates":"筛选候选","ui.holdings.mandate":"持仓 / 授权","ui.02.security.research":"02 · 标的研究","ui.technical.analysis":"技术分析","ui.fundamentals":"基本面","ui.news":"新闻","ui.sentiment":"情绪","ui.four.base.research.roles":"四类基础研究","ui.03.research.review":"03 · 研究裁决","ui.bull.researcher":"多方研究员","ui.bear.researcher":"空方研究员","ui.research.manager":"研究经理","ui.research.debate.and.security.review":"研究辩论与个股裁决","ui.04.portfolio.construction":"04 · 组合构建","ui.security.trader":"标的交易员","ui.portfolio.manager.draft":"组合经理草案","ui.portfolio.draft":"组合草案","ui.05.risk.review":"05 · 风险裁决","ui.aggressive.perspective":"激进视角","ui.conservative.perspective":"保守视角","ui.neutral.perspective":"中性视角","ui.risk.manager":"风险经理","ui.risk.debate":"风险辩论","ui.06.decisions.and.execution":"06 · 决策执行","ui.final.portfolio.decision":"最终组合决策","ui.hard.risk.checks":"硬风险检查","ui.paper.execution.report":"模拟执行 / 报告","ui.final.decision":"最终决策","ui.preparing.data":"准备数据","ui.restoring.checkpoints":"恢复检查点","ui.bull.bear.debate.and.research.review":"多空辩论与研究裁决","ui.risk.debate.and.review":"风险辩论与裁决","ui.hard.risk.controls.and.paper.execution":"硬风控与模拟执行","ui.awaiting.approval":"等待批准","ui.completed":"已完成","ui.failed":"失败","ui.stopped.2":"已停止","ui.not.run.yet":"尚未运行","ui.waiting":"等待中","ui.isolated.roles.and.per.security.research":"角色隔离与逐标的研究","ui.evidence.scope.and.citation.checks":"证据域与引用校验","ui.failure.handling.and.safe.hold":"失败降级与安全 HOLD","ui.stage.checkpoints.and.recovery":"阶段检查点与恢复","ui.investment.context":"投资上下文","ui.collapse.context":"收起上下文","ui.environment":"运行环境","ui.trading.mode":"交易模式","ui.paper.trading":"模拟交易","ui.strategy.2":"策略","ui.autonomous.operation":"自主运行","ui.enabled":"已开启","ui.manual.2":"手动","ui.risk.status":"风险状态","ui.analysis.workflow":"分析流程","ui.current":"当前：","ui.current.no.rounds.yet":"当前：尚无轮次","ui.research.agents":"多角色 Agent ","ui.evidence":"，证据 ","ui.items":" 条。","ui.live.stages.and.checkpoints.appear.when.a.manual.or.automatic.round.starts":"完整多角色研究会在手动触发或自动轮次后显示实时阶段与检查点。","ui.view.full.analysis.workflow":"查看完整分析流程","ui.recent.activity":"最近动态","ui.latest.report":"最近报告","ui.none.yet":"暂无","ui.disconnected":"未连接","ui.no.rounds.yet":"尚无轮次","ui.strategy.3":"策略 ","ui.risk.2":"风控 ","ui.current.round":"当前轮次 ","ui.evidence.2":"证据 ","ui.context":"上下文","ui.queued":"排队中","ui.not.started":"未开始","ui.s.2":" 秒","ui.min":" 分 ","ui.h":" 时 ","ui.min.2":" 分","ui.tasks":"子任务 ","ui.failed.2":" · 失败 ","ui.in.progress":"进行中","ui.estimated":"%（预计）","ui.stages.completed":" 阶段完成","ui.in.progress.2":" · 进行中","ui.search.security.name.or.ticker":"搜索股票名称或代码","ui.example.tencent.00700.apple":"例如：腾讯、00700、Apple","ui.matching.securities":"股票候选","ui.similar.name.please.verify":" · 近似名称，请核对","ui.searching.the.local.directory":"正在匹配本地目录…","ui.security.directory.unavailable":"股票目录不可用：","ui.no.local.matches.enter.an.exact.ticker.or.update.the.directory":"未找到本地候选，可输入准确代码或手动更新目录。","ui.select.a.match.to.add.it.similar.names.are.never.substituted.automatically":"点选候选加入清单；近似名称不会自动替换。","ui.local.directory":"本地 ","ui.securities.2":" 个标的","ui.limited.directory.coverage":" · 目录覆盖有限","ui.local.security.directory":"本地股票目录","ui.updating.directory":"目录更新中…","ui.update.directory.online":"更新目录（联网）","ui.stage.evidence":"阶段证据","ui.complete.saved.stage.materials.verify.unknown.dates.sources.and.valuation.bases.again":"已保存的完整阶段材料；未知日期、来源与估值口径请结合报告核对。","ui.select.stage":"选择阶段","ui.no.saved.stage.evidence.yet":"尚无已保存的阶段证据","ui.failed.to.read.evidence":"读取证据失败：","ui.loading.evidence":"正在读取证据…","ui.expand.original.materials":"展开原始材料","ui.round":"轮次 ","ui.failed.to.read.round":"读取轮次失败：","ui.warnings":"警告 ","ui.items.2":" 条：","ui.round.status":"轮次状态","ui.current.stage":"当前阶段","ui.tasks.complete.expected":"子任务 完成/预期","ui.evidence.count":"证据条数","ui.label":" · 标签 ","ui.securities.3":" · 标的 ","ui.items.3":" 个","ui.no.record.returned.by.the.engine":"：引擎尚未返回记录","ui.no.analysis.round.started":"尚未启动分析轮次","ui.historical.starts":"历史启动 ","ui.including.retries.current.progress.deduplicates.roles.original.timestamps.and.failure":" 次（含重试），当前进度按角色去重；原始轮次时间和失败记录保留。","ui.this.attempt":"本次 ","ui.loading.stages":"正在读取阶段…","ui.no.stage.records.saved.for.this.round":"该轮次尚未写入阶段记录","ui.round.report":"轮次报告：","ui.run.logs":"运行日志 · ","ui.entries":" 条","ui.showing.latest":"（显示最近 ","ui.entries.2":" 条）","ui.collapse.logs":"收起日志","ui.expand.logs":"展开日志","ui.no.logs.yet":"暂无日志","ui.export.failed":"导出失败：","ui.round.reports":"轮次报告","ui.rounds.2":" 个轮次","ui.filter.reports.by.market":"按市场筛选轮次报告","ui.all.markets":"全部市场","ui.refreshing":"刷新中…","ui.refresh":"刷新","ui.report.index.unavailable":"报告索引不可用：","ui.duration":" · 耗时 ","ui.evidence.3":" · 证据 ","ui.decisions":" · 决策 ","ui.loading.report.index":"正在读取报告索引…","ui.export.md":"导出 .md","ui.loading.report":"正在读取报告正文…","ui.failed.to.read.report":"读取报告失败：","ui.select.a.round.above.to.read.its.report":"选择上方轮次查看报告正文","ui.valid.tickers":"股票代码有效","ui.please.verify":"请核对：","ui.select.security.names.from.the.search.results":"；股票名称请从搜索候选选择","ui.recognized":"已识别 ","ui.no.securities.entered":"尚未填写标的","ui.maximum":"不超过 ","ui.limit.exceeded":" · 超出上限","ui.emergency.stop.is.off":"风控未紧急停止","ui.emergency.stop.is.active":"紧急停止已开启","ui.engine.is.paused.research.may.still.start":"引擎已暂停（分析仍可启动）","ui.no.round.running":"无运行中的轮次","ui.is.running":" 正在运行","ui.none":"无","ui.engine.reachable":"引擎可达","ui.connected.to.the.investment.engine":"已连接投资引擎","ui.unavailable":"不可达：","ui.submitting":"正在提交…","ui.verify.tickers.select.security.names.from.the.search.results":"请核对股票代码；名称请从搜索候选选择","ui.enter.a.security.list.first":"请先填写标的清单","ui.security.count.exceeds":"标的数量超过 ","ui.emergency.stop.is.active.analysis.cannot.start":"风控紧急停止已开启，禁止启动分析","ui.an.analysis.round.is.already.running":"已有分析轮次正在运行","ui.investment.engine.unavailable.analysis.cannot.start":"投资引擎不可达：无法启动分析","ui.round.resumed.from.checkpoints.with.the.same.cycle.id":"已从检查点恢复该轮次（沿用同一 cycle_id）。","ui.this.round.was.interrupted.select.retry.to.resume.explicitly":"该轮次已中断，请点击重试以明确续跑。","ui.this.round.is.still.leased.retry.was.deferred.try.again.later":"该轮次的租约仍被占用，重试已延后；稍后再试。","ui.this.cycle.id.already.exists.no.duplicate.round.was.started":"该 cycle_id 已存在，引擎未重复启动。","ui.analysis.started.fetching.live.progress":"分析轮次已启动，正在拉取实时进度。","ui.start.failed":"启动失败：","ui.screening.results.are.older.than":"选股结果已超过 ","ui.minutes.refreshed.screening.found.no.securities.enter.tickers.manually.or.try.later":" 分钟，重新选股未选出标的；请手动填写或稍后重试。","ui.automatic.screening.refresh.failed":"自动重新选股失败：","ui.another.quick.action.is.in.progress":"另一个一键操作正在进行…","ui.investment.engine.unavailable.action.cannot.run":"投资引擎不可达：无法执行","ui.screening.returned.no.selections.discovered":"选股完成但没有选出标的：发现 ","ui.securities.candidates":" 只、候选 ","ui.screening.complete.discovered":"选股完成：发现 ","ui.securities.candidates.2":" 只 · 候选 ","ui.securities.selected":" 只 · 选出 ","ui.securities.source":" 只（数据源 ","ui.the.security.list.is.populated":"）。已填入标的清单。","ui.screening.failed":"选股失败：","ui.verify.the.security.list.remove.invalid.names.and.stay.within.the.limit":"请先核对股票清单，不能包含无效名称或超过数量上限。","ui.workflow.not.started.screening.returned.no.selections.enter.securities.manually":"全流程未启动：选股没有产出标的，请先手动填写标的清单。","ui.workflow.start.failed":"全流程启动失败：","ui.user.stopped.the.analysis.round.from.the.product.interface":"用户在产品壳手动停止分析轮次","ui.stop.requested.for.round":"已请求停止轮次 ","ui.analysis.only.accounts.are.unaffected":"（仅影响分析，不影响账户）。","ui.stop.failed":"停止失败：","ui.the.latest.screening.is.older.than":"最近一次选股已超过 ","ui.minutes.screening.will.refresh.before.analysis.starts":" 分钟，开始分析前会自动重新选股。","ui.from.screening":"来自选股：","ui.candidates":" 个候选 · ","ui.within":"未超过 ","ui.minutes.reuse.directly":" 分钟，直接复用","ui.expired.screening.will.refresh.before.analysis.starts":"已过期，开始分析前会自动重新选股","ui.from.this.screening.candidates.are.in.the.list.below.ready.to.analyze":"来自本次选股：候选已填入下方清单，可直接分析。","ui.no.screening.results.yet.screen.securities.or.switch.to.manual.entry":"尚无选股结果，请点击一键筛选股票，或切回手动输入。","ui.manual.entry.separate.with.commas.spaces.or.newlines.duplicates.are.removed.maximum":"手动输入：逗号、空格或换行分隔，自动去重，上限 ","ui.securities.4":" 个。","ui.start.analysis":"开始分析","ui.not.started.2":"未启动","ui.run.screening.then.the.fixed.analysis.workflow.research.only.no.orders":"一键运行全流程：先选股，再对选出的标的跑固定分析流程（只分析，绝不下单）","ui.starting.workflow":"全流程启动中…","ui.run.full.workflow":"一键全流程","ui.scan.the.market.for.liquidity.and.factor.candidates.then.populate.the.security.list":"一键筛选股票：扫描全市场并按流动性与因子选出候选，结果填入标的清单","ui.screening.may.take.tens.of.seconds":"选股中…（数十秒）","ui.screen.securities":"一键筛选股票","ui.run.the.fixed.workflow.for.the.listed.securities.research.only.no.orders":"一键分析指定股票：对下方清单里的标的跑固定分析流程（只分析，绝不下单）","ui.submitting.2":"提交中…","ui.analyze.listed.securities":"一键分析指定股票","ui.round.label.a.za.z0.9.only":"轮次标签（仅 [A-Za-z0-9_.-]）","ui.security.source":"标的来源","ui.manual.entry":"手动输入","ui.from.screening.2":"来自选股","ui.security.list.comma.space.newline.separated.deduplicated":"标的清单（逗号 / 空格 / 换行分隔，去重）","ui.exceeds.maximum":"（超出上限 ","ui.securities.5":" 个）","ui.linked.goal.optional.goal.id.from.a.previous.round":"绑定目标（可选，取自历史轮次记录的目标 ID）","ui.no.linked.goal":"（不绑定目标）","ui.preflight":"预检 ","ui.ready":" 就绪","ui.checks.unmet":" 项未满足","ui.collapse":"收起","ui.expand":"展开","ui.stop.current.round.analysis.only.accounts.are.unaffected":"停止当前轮次（只影响分析，绝不影响账户）","ui.no.round.is.currently.running":"当前没有运行中的轮次","ui.stop":"停止","ui.retry.with.the.same.cycle.id.resume.from.saved.checkpoints":"沿用同一个 cycle_id 重试（引擎从检查点续跑）","ui.no.retryable.round.only.failed.stopped.or.unsubmitted.rounds.can.be.retried":"没有可重试的轮次：仅已失败 / 已停止的轮次或尚未提交成功的轮次可重试","ui.retry":"重试","ui.running.2":"进行中：","ui.poll.every":" · 轮询 ","ui.this.round.has.ended.polling.stopped":"轮次已进入终态，已停止轮询。","ui.no.round.is.currently.running.2":"当前没有运行中的轮次。","ui.research.and.execution":"研究与执行","ui.analysis.produces.research.and.trade.recommendations.execution.requires.separate.appr":"分析只生成研究报告和交易建议。交易执行仍需另行批准。","ui.investment.research":"投资研究","ui.security.research.progress.and.historical.reports":"股票研究、分析过程与历史报告","ui.investment.engine.unavailable":"投资引擎不可达","ui.no.research.rounds.yet":"尚无研究轮次","ui.research.actions":"研究操作","ui.stages":" 阶段","ui.evidence.items":" 条证据","ui.resume":"续跑","ui.research.produces.recommendations.execution.requires.separate.approval":"分析生成建议，交易需另行批准。","ui.research.history":"研究记录","ui.failed.to.read.history":"历史读取失败：","ui.loading.research.history":"正在读取研究记录…","ui.no.research.yet.select.new.research.to.begin":"还没有研究，点击新建研究开始","ui.research.workspace":"研究工作区","ui.awaiting.screening":"等待选股","ui.select.a.round.on.the.left.or.create.new.research":"选择左侧记录，或新建研究","ui.research.stopped":"研究已停止：","ui.saved":"。已保存 ","ui.stages.resume.manually.to.continue":" 个阶段；续跑需要手动操作。","ui.research.content":"研究内容","ui.research.report":"研究报告","ui.research.progress":"研究过程","ui.new.research.2":"新建研究","ui.close.3":"关闭","ui.strategy.changed.to":"策略已切换为 ","ui.applies.to.subsequent.rounds.immediately":"，立即作用于后续轮次。","ui.switch.failed":"切换失败：","ui.settings.saved.and.applied":"设置已保存并生效。","ui.save.failed":"保存失败：","ui.minimum.confidence":"最低置信度","ui.max.security.weight":"单股仓位上限 %","ui.max.total.exposure":"总仓位上限 %","ui.minimum.cash.reserve":"最低现金储备 %","ui.maximum.drawdown":"最大回撤 %","ui.max.daily.trades":"当日最大交易数","ui.strategy.and.risk.controls":"投资策略与风控","ui.strategy.profiles.set.prompt.objectives.and.hard.limits.for.weights.cash.drawdown.and":"策略档位同时决定提示词目标与硬风险边界（仓位/现金/回撤/换手），由引擎强制执行。","ui.strategy.profile":"策略档位","ui.conservative":"保守","ui.neutral":"中立","ui.aggressive":"激进","ui.operation.mode":"运行模式","ui.manual.run.only.when.triggered.automatic.run.according.to.the.schedule":"手动：仅当你触发时执行轮次；自动：按调度计划自动执行。","ui.automatic.2":"自动","ui.autonomous.investing.master.switch":"自动投资总开关","ui.when.disabled.the.engine.runs.no.automatic.rounds":"关闭后引擎不再执行任何自动轮次。","ui.enable":"启用","ui.disable":"停用","ui.current.hard.limits":"当前硬边界（","ui.schedule.saved":"调度设置已保存。","ui.automatic.rounds.and.scheduling":"自动轮次与调度","ui.intraday.and.closing.rounds.run.in.asia.shanghai.time.the.engine.applies.saved.schedu":"盘中与收盘轮次按北京时间触发；保存后由引擎调度器生效。","ui.market.briefing.time":"市场早报时间","ui.generate.a.briefing.each.trading.day.using.news.from.the.previous.trading.day":"每个交易日生成一次市场早报（内容为前一交易日的新闻）。","ui.intraday.rounds.hh.mm.comma.separated":" 盘中轮次（HH:MM 逗号分隔）","ui.closing.round":"收盘轮次：","ui.market.settings.saved":"市场设置已保存。","ui.markets.and.screening":"市场与选股","ui.enabled.markets.set.the.scheduling.and.screening.scope.screening.parameters.control.m":"启用市场决定调度与选股范围；选股参数控制全市场候选筛选。","ui.enabled.markets":"启用市场","ui.candidate.pool.size":"候选池大小","ui.maximum.securities.in.each.market.s.screening.pool":"每个市场选股池的标的数量上限。","ui.screening.refresh.interval.minutes":"选股刷新间隔（分钟）","ui.cache.lifetime.the.next.round.refreshes.expired.results":"缓存有效期，超期后下一轮次自动刷新。","ui.notification.settings.saved.webhook.address.encrypted.with.dpapi":"通知设置已保存（Webhook 地址经 DPAPI 加密存储）。","ui.notifications":"通知","ui.send.completed.round.reports.through.a.webhook":"轮次报告完成后通过 Webhook 推送。","ui.webhook.notifications":"Webhook 通知","ui.enabled.2":"已启用","ui.disabled":"未启用","ui.webhook.address":"Webhook 地址","ui.configured.existing.address.hidden.leave.blank.to.retain.it":"已配置（出于安全考虑不显示现有地址，留空保存则保持不变）","ui.must.start.with.https.encrypted.in.the.local.dpapi.store":"以 https:// 开头；地址加密保存在本机 DPAPI 库中。","ui.configured":"已配置","ui.save.notification.settings":"保存通知设置","ui.application.settings":"应用设置","ui.version.information":"版本信息","ui.product":"产品","ui.engine.version":"引擎版本","ui.paper.trading.paper":"纸面模拟（paper）","ui.safety.information":"安全说明","ui.this.product.supports.paper.trading.only.and.has.no.live.broker.connection.all.orders":"本产品仅支持模拟交易，不连接真实券商。所有订单经引擎硬风控与纸面撮合，AI 无法绕过。行情来自公开第三方接口，仅供研究与模拟。","ui.no.settings.available":"暂无设置项","ui.settings":"设置","ui.models.strategy.risk.autonomous.operation.and.desktop.configuration":"模型、策略、风险、自主运行与桌面应用配置","ui.secure.local.storage":"本机安全存储","ui.sessions":"会话","ui.new.session":"新会话","ui.create.session":"新建会话","ui.search.sessions":"搜索会话","ui.search.results":"搜索结果","ui.recent.sessions":"最近会话","ui.no.matching.sessions":"没有匹配的会话","ui.no.sessions.yet.create.one.above":"还没有会话，点击上方新建","ui.rename.session":"重命名会话","ui.rename":"重命名","ui.archive.this.session":"归档该会话？","ui.archive":"归档","ui.awaiting.your.question":"等待提问","ui.investment.session":"投资会话","ui.describe.what.you.want.to.build":"描述你想要构建的内容","ui.ask.an.investment.question.or.start.a.complete.analysis":"输入投资问题，或启动完整分析流程","ui.explore.the.unknown":"探索未至之境","ui.your.investment.research.assistant":"你的投资分析助手","ui.overview":"总览","ui.investment.assistant":"投资助手","ui.product.navigation":"产品导航","ui.command.failed":"命令失败","ui.save.failed.2":"保存失败","ui.session.not.found":"会话不存在","ui.investment.engine.2":"投资引擎","ui.mode.2":"模式","ui.time":"时间","ui.portfolio":"组合 ","ui.portfolio.2":"组合","ui.trades.2":"成交","ui.investment.mandate":"授权书","ui.min.confidence":"最低置信","ui.max.security.weight.2":"单股上限","ui.max.drawdown":"最大回撤","language.title":"界面语言","language.output":"研究输出语言","language.follow":"跟随界面（新轮次生效）","language.history":"历史内容与原始资料保留原文","language.saveFailed":"语言设置保存失败，请重试","punctuation.closeParen":"）","punctuation.openParen":"（","punctuation.comma":"、","punctuation.fullStop":"。","punctuation.colon":"：","ui.source.commit":"源码提交","ui.nav.assistant":"投资助手","ui.nav.research":"投资研究","ui.dialog.cancel":"取消","ui.dialog.save":"保存","ui.search.failed":"搜索失败：","motion.title":"动效","motion.system":"跟随系统","motion.standard":"标准","motion.off":"关闭","motion.hint":"页面和面板平滑切换；系统减少动态设置始终生效","motion.saveFailed":"动效设置保存失败，请重试","motion.stageTitle":"研究流程","motion.stageHint":"按实际完成任务显示阶段进度","motion.stage.base_research":"基础研究","motion.stage.research_debate":"研究辩论","motion.stage.portfolio_draft":"组合草案","motion.stage.risk_review":"风险复核","motion.stage.final_decision":"最终决策"},"en":{"ui.content.is.too.long.display.truncated":"\n\n(Content is too long; display truncated.)","ui.mainland.china":"Mainland China","ui.hong.kong":"Hong Kong","ui.united.states":"United States","ui.investment.overview":"Investment overview","ui.simulated.accounts.paper.trading.public.third.party.market.data.for.research":"Simulated accounts · Paper trading · Public third-party market data for research","ui.engine.unavailable":"Engine unavailable: ","ui.system.and.risk.status":"System and risk status","ui.mode":"Mode: ","ui.strategy":"Strategy: ","ui.emergency.stop":"Emergency stop","ui.paused":"Paused","ui.risk.controls.active":"Risk controls active","ui.investment.engine":"Investment engine: ","ui.running":"Running","ui.stopped":"Stopped","ui.next.round":" Next round","ui.account.assets":"Account assets","ui.market":"Market","ui.total.assets":"Total assets","ui.cash":"Cash","ui.holdings":"Holdings","ui.trades":"Trades","ui.engine.data.unavailable":"Engine data unavailable","ui.recent.round.reports":"Recent round reports","ui.no.round.reports.yet":"No round reports yet","ui.latest.macro.briefing":"Latest macro briefing","ui.1.month":"1 month","ui.3.months":"3 months","ui.1.year":"1 year","ui.unnamed.security":"Unnamed security","ui.price.history.unavailable":"Price history unavailable","ui.invalid.price.history.response":"Invalid price history response","ui.some.invalid.prices.were.skipped":"Some invalid prices were skipped","ui.chart.unavailable":"Chart unavailable","ui.insufficient.history":"Insufficient history","ui.loading.chart":"Loading chart…","ui.daily.prices.over.the.past.month":"Daily prices over the past month","ui.at.least.two.trading.days.are.required":"At least two trading days are required","ui.current.cost":"Current cost ","ui.volume":"Volume","ui.buy.sell":"Buy/Sell","ui.b":"B","ui.s":"S","ui.buy":"Buy","ui.sell":"Sell","ui.shares.fill.price":" shares · Fill price ","ui.close":"Close ","ui.open":"Open ","ui.high":" · High ","ui.low":" · Low ","ui.volume.2":"Volume ","ui.daily.price.currency":"Daily price, currency ","ui.view.trading.day":"View trading day ","ui.close.2":", close ","ui.unknown":"Unknown","ui.normal":"Normal","ui.account.equity":"Account equity","ui.cash.latest.position.valuations":"Cash + latest position valuations","ui.unrealized.p.l":"Unrealized P&L","ui.calculated.from.recorded.account.prices":"Calculated from recorded account prices","ui.capital.utilization":"Capital utilization","ui.cash.share":"Cash share ","ui.waiting.for.account.data":"Waiting for account data","ui.securities.held":"Securities held","ui.securities":" securities","ui.separate.simulated.account":" · Separate simulated account","ui.reload":"Reload","ui.portfolio.overview":"Portfolio overview","ui.track.changes.across.your.portfolio.and.securities":"Track changes across your portfolio and securities","ui.connecting.to.the.investment.engine":"Connecting to the investment engine","ui.paper.trading.risk":"Paper trading · Risk ","ui.cash.2":"Cash ","ui.market.value":" · Market value ","ui.next.round.2":"Next round","ui.automatic":"Automatic","ui.manual":"Manual","ui.view.market":"View market","ui.new.research":"＋ New research","ui.my.holdings":"My holdings","ui.securities.market.value":" securities · Market value ","ui.view":"View ","ui.price.chart":" price chart","ui.shares.cost":" shares · Cost ","ui.p.l":" · P&L ","ui.loading.holdings":"Loading holdings…","ui.no.holdings.yet":"No holdings yet","ui.account.data.unavailable":"Account data unavailable","ui.daily.prices.1.month.select.to.view.chart":"Daily prices, 1 month · Select to view chart","ui.price.chart.2":"Price chart","ui.time.range":"Time range","ui.chart.type":"Chart type","ui.line":"Line","ui.candlestick":"Candlestick","ui.this.source.does.not.provide.complete.ohlc.data":"This source does not provide complete OHLC data","ui.cost.line":"Cost line","ui.trade.dates":"Trade dates","ui.loading.price.history":"Loading price history…","ui.not.enough.price.history.yet":"Not enough price history yet","ui.quantity.held":"Quantity held","ui.shares":" shares","ui.current.position.cost":"Current position cost","ui.recorded.account.valuation":"Recorded account valuation","ui.source":"Source ","ui.not.provided":"Not provided","ui.last.trading.day":" · Last trading day ","ui.price.age":" · Price age ","ui.days":" days","ui.price.notes":" · Price notes: ","ui.a.fallback.price.source.was.used":"A fallback price source was used","ui.adjustment.status.is.unconfirmed":"Adjustment status is unconfirmed","ui.select.a.holding.on.the.left.to.view.its.chart":"Select a holding on the left to view its chart","ui.select.a.holding.to.view.its.chart":"Select a holding to view its chart","ui.round.timeline":"Round timeline","ui.latest":"Latest ","ui.rounds":" rounds","ui.security.research":"Security research","ui.no.previous.rounds":"No previous rounds","ui.portfolio.allocation":"Portfolio allocation","ui.this.market.including.cash":"This market · Including cash","ui.asset.allocation":"Asset allocation","ui.no.allocation.data.available":"No allocation data available","ui.trade.history":"Trade history","ui.latest.5.simulated.fills":"Latest 5 · Simulated fills","ui.shares.2":" shares @ ","ui.no.simulated.trades.for.this.security":"No simulated trades for this security","ui.select.a.holding.to.view.its.trades":"Select a holding to view its trades","ui.operations.and.research":"Operations and research","ui.risk":"Risk","ui.next.round.3":" Next round","ui.not.scheduled":"Not scheduled","ui.latest.analysis":"Latest analysis · ","ui.open.analysis.workflow.and.reports":"Open analysis workflow and reports","ui.market.briefing":"Market briefing","ui.collected.at.08.00.each.trading.day.asia.shanghai":"Collected at 08:00 each trading day (Asia/Shanghai)","ui.01.data.preparation":"01 · Data preparation","ui.market.status":"Market status","ui.screen.candidates":"Screen candidates","ui.holdings.mandate":"Holdings / mandate","ui.02.security.research":"02 · Security research","ui.technical.analysis":"Technical analysis","ui.fundamentals":"Fundamentals","ui.news":"News","ui.sentiment":"Sentiment","ui.four.base.research.roles":"Four base research roles","ui.03.research.review":"03 · Research review","ui.bull.researcher":"Bull researcher","ui.bear.researcher":"Bear researcher","ui.research.manager":"Research manager","ui.research.debate.and.security.review":"Research debate and security review","ui.04.portfolio.construction":"04 · Portfolio construction","ui.security.trader":"Security trader","ui.portfolio.manager.draft":"Portfolio manager draft","ui.portfolio.draft":"Portfolio draft","ui.05.risk.review":"05 · Risk review","ui.aggressive.perspective":"Aggressive perspective","ui.conservative.perspective":"Conservative perspective","ui.neutral.perspective":"Neutral perspective","ui.risk.manager":"Risk manager","ui.risk.debate":"Risk debate","ui.06.decisions.and.execution":"06 · Decisions and execution","ui.final.portfolio.decision":"Final portfolio decision","ui.hard.risk.checks":"Hard risk checks","ui.paper.execution.report":"Paper execution / report","ui.final.decision":"Final decision","ui.preparing.data":"Preparing data","ui.restoring.checkpoints":"Restoring checkpoints","ui.bull.bear.debate.and.research.review":"Bull/bear debate and research review","ui.risk.debate.and.review":"Risk debate and review","ui.hard.risk.controls.and.paper.execution":"Hard risk controls and paper execution","ui.awaiting.approval":"Awaiting approval","ui.completed":"Completed","ui.failed":"Failed","ui.stopped.2":"Stopped","ui.not.run.yet":"Not run yet","ui.waiting":"Waiting","ui.isolated.roles.and.per.security.research":"Isolated roles and per-security research","ui.evidence.scope.and.citation.checks":"Evidence scope and citation checks","ui.failure.handling.and.safe.hold":"Failure handling and safe HOLD","ui.stage.checkpoints.and.recovery":"Stage checkpoints and recovery","ui.investment.context":"Investment context","ui.collapse.context":"Collapse context","ui.environment":"Environment","ui.trading.mode":"Trading mode","ui.paper.trading":"Paper trading","ui.strategy.2":"Strategy","ui.autonomous.operation":"Autonomous operation","ui.enabled":"Enabled","ui.manual.2":"Manual","ui.risk.status":"Risk status","ui.analysis.workflow":"Analysis workflow","ui.current":"Current: ","ui.current.no.rounds.yet":"Current: no rounds yet","ui.research.agents":"Research agents ","ui.evidence":", evidence ","ui.items":" items.","ui.live.stages.and.checkpoints.appear.when.a.manual.or.automatic.round.starts":"Live stages and checkpoints appear when a manual or automatic round starts.","ui.view.full.analysis.workflow":"View full analysis workflow","ui.recent.activity":"Recent activity","ui.latest.report":"Latest report","ui.none.yet":"None yet","ui.disconnected":"Disconnected","ui.no.rounds.yet":"No rounds yet","ui.strategy.3":"Strategy ","ui.risk.2":"Risk ","ui.current.round":"Current round ","ui.evidence.2":"Evidence ","ui.context":"Context","ui.queued":"Queued","ui.not.started":"Not started","ui.s.2":" s","ui.min":" min ","ui.h":" h ","ui.min.2":" min","ui.tasks":"Tasks ","ui.failed.2":" · Failed ","ui.in.progress":"In progress","ui.estimated":"% (estimated)","ui.stages.completed":" stages completed","ui.in.progress.2":" · In progress","ui.search.security.name.or.ticker":"Search security name or ticker","ui.example.tencent.00700.apple":"Example: Tencent, 00700, Apple","ui.matching.securities":"Matching securities","ui.similar.name.please.verify":" · Similar name, please verify","ui.searching.the.local.directory":"Searching the local directory…","ui.security.directory.unavailable":"Security directory unavailable: ","ui.no.local.matches.enter.an.exact.ticker.or.update.the.directory":"No local matches. Enter an exact ticker or update the directory.","ui.select.a.match.to.add.it.similar.names.are.never.substituted.automatically":"Select a match to add it. Similar names are never substituted automatically.","ui.local.directory":"Local directory: ","ui.securities.2":" securities","ui.limited.directory.coverage":" · Limited directory coverage","ui.local.security.directory":"Local security directory","ui.updating.directory":"Updating directory…","ui.update.directory.online":"Update directory (online)","ui.stage.evidence":"Stage evidence","ui.complete.saved.stage.materials.verify.unknown.dates.sources.and.valuation.bases.again":"Complete saved stage materials. Verify unknown dates, sources and valuation bases against the report.","ui.select.stage":"Select stage","ui.no.saved.stage.evidence.yet":"No saved stage evidence yet","ui.failed.to.read.evidence":"Failed to read evidence: ","ui.loading.evidence":"Loading evidence…","ui.expand.original.materials":"Expand original materials","ui.round":"Round ","ui.failed.to.read.round":"Failed to read round: ","ui.warnings":"Warnings: ","ui.items.2":" items: ","ui.round.status":"Round status","ui.current.stage":"Current stage","ui.tasks.complete.expected":"Tasks complete / expected","ui.evidence.count":"Evidence count","ui.label":" · Label ","ui.securities.3":" · Securities ","ui.items.3":" items","ui.no.record.returned.by.the.engine":": no record returned by the engine","ui.no.analysis.round.started":"No analysis round started","ui.historical.starts":"Historical starts: ","ui.including.retries.current.progress.deduplicates.roles.original.timestamps.and.failure":" (including retries). Current progress deduplicates roles; original timestamps and failures are retained.","ui.this.attempt":"This attempt ","ui.loading.stages":"Loading stages…","ui.no.stage.records.saved.for.this.round":"No stage records saved for this round","ui.round.report":"Round report: ","ui.run.logs":"Run logs · ","ui.entries":" entries","ui.showing.latest":" (showing latest ","ui.entries.2":" entries)","ui.collapse.logs":"Collapse logs","ui.expand.logs":"Expand logs","ui.no.logs.yet":"No logs yet","ui.export.failed":"Export failed: ","ui.round.reports":"Round reports","ui.rounds.2":" rounds","ui.filter.reports.by.market":"Filter reports by market","ui.all.markets":"All markets","ui.refreshing":"Refreshing…","ui.refresh":"Refresh","ui.report.index.unavailable":"Report index unavailable: ","ui.duration":" · Duration ","ui.evidence.3":" · Evidence ","ui.decisions":" · Decisions ","ui.loading.report.index":"Loading report index…","ui.export.md":"Export .md","ui.loading.report":"Loading report…","ui.failed.to.read.report":"Failed to read report: ","ui.select.a.round.above.to.read.its.report":"Select a round above to read its report","ui.valid.tickers":"Valid tickers","ui.please.verify":"Please verify: ","ui.select.security.names.from.the.search.results":"; select security names from the search results","ui.recognized":"Recognized ","ui.no.securities.entered":"No securities entered","ui.maximum":"Maximum ","ui.limit.exceeded":" · Limit exceeded","ui.emergency.stop.is.off":"Emergency stop is off","ui.emergency.stop.is.active":"Emergency stop is active","ui.engine.is.paused.research.may.still.start":"Engine is paused (research may still start)","ui.no.round.running":"No round running","ui.is.running":" is running","ui.none":"None","ui.engine.reachable":"Engine reachable","ui.connected.to.the.investment.engine":"Connected to the investment engine","ui.unavailable":"Unavailable: ","ui.submitting":"Submitting…","ui.verify.tickers.select.security.names.from.the.search.results":"Verify tickers; select security names from the search results","ui.enter.a.security.list.first":"Enter a security list first","ui.security.count.exceeds":"Security count exceeds ","ui.emergency.stop.is.active.analysis.cannot.start":"Emergency stop is active; analysis cannot start","ui.an.analysis.round.is.already.running":"An analysis round is already running","ui.investment.engine.unavailable.analysis.cannot.start":"Investment engine unavailable: analysis cannot start","ui.round.resumed.from.checkpoints.with.the.same.cycle.id":"Round resumed from checkpoints with the same cycle_id.","ui.this.round.was.interrupted.select.retry.to.resume.explicitly":"This round was interrupted. Select Retry to resume explicitly.","ui.this.round.is.still.leased.retry.was.deferred.try.again.later":"This round is still leased. Retry was deferred; try again later.","ui.this.cycle.id.already.exists.no.duplicate.round.was.started":"This cycle_id already exists; no duplicate round was started.","ui.analysis.started.fetching.live.progress":"Analysis started. Fetching live progress.","ui.start.failed":"Start failed: ","ui.screening.results.are.older.than":"Screening results are older than ","ui.minutes.refreshed.screening.found.no.securities.enter.tickers.manually.or.try.later":" minutes; refreshed screening found no securities. Enter tickers manually or try later.","ui.automatic.screening.refresh.failed":"Automatic screening refresh failed: ","ui.another.quick.action.is.in.progress":"Another quick action is in progress…","ui.investment.engine.unavailable.action.cannot.run":"Investment engine unavailable: action cannot run","ui.screening.returned.no.selections.discovered":"Screening returned no selections. Discovered ","ui.securities.candidates":" securities, candidates ","ui.screening.complete.discovered":"Screening complete: discovered ","ui.securities.candidates.2":" securities · Candidates ","ui.securities.selected":" securities · Selected ","ui.securities.source":" securities (source ","ui.the.security.list.is.populated":"). The security list is populated.","ui.screening.failed":"Screening failed: ","ui.verify.the.security.list.remove.invalid.names.and.stay.within.the.limit":"Verify the security list: remove invalid names and stay within the limit.","ui.workflow.not.started.screening.returned.no.selections.enter.securities.manually":"Workflow not started: screening returned no selections. Enter securities manually.","ui.workflow.start.failed":"Workflow start failed: ","ui.user.stopped.the.analysis.round.from.the.product.interface":"User stopped the analysis round from the product interface","ui.stop.requested.for.round":"Stop requested for round ","ui.analysis.only.accounts.are.unaffected":" (analysis only; accounts are unaffected).","ui.stop.failed":"Stop failed: ","ui.the.latest.screening.is.older.than":"The latest screening is older than ","ui.minutes.screening.will.refresh.before.analysis.starts":" minutes. Screening will refresh before analysis starts.","ui.from.screening":"From screening: ","ui.candidates":" candidates · ","ui.within":"Within ","ui.minutes.reuse.directly":" minutes; reuse directly","ui.expired.screening.will.refresh.before.analysis.starts":"Expired; screening will refresh before analysis starts","ui.from.this.screening.candidates.are.in.the.list.below.ready.to.analyze":"From this screening: candidates are in the list below, ready to analyze.","ui.no.screening.results.yet.screen.securities.or.switch.to.manual.entry":"No screening results yet. Screen securities or switch to manual entry.","ui.manual.entry.separate.with.commas.spaces.or.newlines.duplicates.are.removed.maximum":"Manual entry: separate with commas, spaces or newlines. Duplicates are removed. Maximum ","ui.securities.4":" securities.","ui.start.analysis":"Start analysis","ui.not.started.2":"Not started","ui.run.screening.then.the.fixed.analysis.workflow.research.only.no.orders":"Run screening, then the fixed analysis workflow (research only; no orders)","ui.starting.workflow":"Starting workflow…","ui.run.full.workflow":"Run full workflow","ui.scan.the.market.for.liquidity.and.factor.candidates.then.populate.the.security.list":"Scan the market for liquidity and factor candidates, then populate the security list","ui.screening.may.take.tens.of.seconds":"Screening… (may take tens of seconds)","ui.screen.securities":"Screen securities","ui.run.the.fixed.workflow.for.the.listed.securities.research.only.no.orders":"Run the fixed workflow for the listed securities (research only; no orders)","ui.submitting.2":"Submitting…","ui.analyze.listed.securities":"Analyze listed securities","ui.round.label.a.za.z0.9.only":"Round label ([A-Za-z0-9_.-] only)","ui.security.source":"Security source","ui.manual.entry":"Manual entry","ui.from.screening.2":"From screening","ui.security.list.comma.space.newline.separated.deduplicated":"Security list (comma / space / newline separated; deduplicated)","ui.exceeds.maximum":" (exceeds maximum ","ui.securities.5":" securities)","ui.linked.goal.optional.goal.id.from.a.previous.round":"Linked goal (optional; goal ID from a previous round)","ui.no.linked.goal":"(No linked goal)","ui.preflight":"Preflight ","ui.ready":" ready","ui.checks.unmet":" checks unmet","ui.collapse":"Collapse","ui.expand":"Expand","ui.stop.current.round.analysis.only.accounts.are.unaffected":"Stop current round (analysis only; accounts are unaffected)","ui.no.round.is.currently.running":"No round is currently running","ui.stop":"Stop","ui.retry.with.the.same.cycle.id.resume.from.saved.checkpoints":"Retry with the same cycle_id (resume from saved checkpoints)","ui.no.retryable.round.only.failed.stopped.or.unsubmitted.rounds.can.be.retried":"No retryable round: only failed, stopped or unsubmitted rounds can be retried","ui.retry":"Retry","ui.running.2":"Running: ","ui.poll.every":" · Poll every ","ui.this.round.has.ended.polling.stopped":"This round has ended; polling stopped.","ui.no.round.is.currently.running.2":"No round is currently running.","ui.research.and.execution":"Research and execution","ui.analysis.produces.research.and.trade.recommendations.execution.requires.separate.appr":"Analysis produces research and trade recommendations. Execution requires separate approval.","ui.investment.research":"Investment research","ui.security.research.progress.and.historical.reports":"Security research, progress and historical reports","ui.investment.engine.unavailable":"Investment engine unavailable","ui.no.research.rounds.yet":"No research rounds yet","ui.research.actions":"Research actions","ui.stages":" stages","ui.evidence.items":" evidence items","ui.resume":"Resume","ui.research.produces.recommendations.execution.requires.separate.approval":"Research produces recommendations; execution requires separate approval.","ui.research.history":"Research history","ui.failed.to.read.history":"Failed to read history: ","ui.loading.research.history":"Loading research history…","ui.no.research.yet.select.new.research.to.begin":"No research yet. Select New research to begin.","ui.research.workspace":"Research workspace","ui.awaiting.screening":"Awaiting screening","ui.select.a.round.on.the.left.or.create.new.research":"Select a round on the left, or create new research","ui.research.stopped":"Research stopped: ","ui.saved":". Saved ","ui.stages.resume.manually.to.continue":" stages; resume manually to continue.","ui.research.content":"Research content","ui.research.report":"Research report","ui.research.progress":"Research progress","ui.new.research.2":"New research","ui.close.3":"Close","ui.strategy.changed.to":"Strategy changed to ","ui.applies.to.subsequent.rounds.immediately":"; applies to subsequent rounds immediately.","ui.switch.failed":"Switch failed: ","ui.settings.saved.and.applied":"Settings saved and applied.","ui.save.failed":"Save failed: ","ui.minimum.confidence":"Minimum confidence","ui.max.security.weight":"Max security weight %","ui.max.total.exposure":"Max total exposure %","ui.minimum.cash.reserve":"Minimum cash reserve %","ui.maximum.drawdown":"Maximum drawdown %","ui.max.daily.trades":"Max daily trades","ui.strategy.and.risk.controls":"Strategy and risk controls","ui.strategy.profiles.set.prompt.objectives.and.hard.limits.for.weights.cash.drawdown.and":"Strategy profiles set prompt objectives and hard limits for weights, cash, drawdown and turnover. The engine enforces them.","ui.strategy.profile":"Strategy profile","ui.conservative":"Conservative","ui.neutral":"Neutral","ui.aggressive":"Aggressive","ui.operation.mode":"Operation mode","ui.manual.run.only.when.triggered.automatic.run.according.to.the.schedule":"Manual: run only when triggered. Automatic: run according to the schedule.","ui.automatic.2":"Automatic","ui.autonomous.investing.master.switch":"Autonomous investing master switch","ui.when.disabled.the.engine.runs.no.automatic.rounds":"When disabled, the engine runs no automatic rounds.","ui.enable":"Enable","ui.disable":"Disable","ui.current.hard.limits":"Current hard limits (","ui.schedule.saved":"Schedule saved.","ui.automatic.rounds.and.scheduling":"Automatic rounds and scheduling","ui.intraday.and.closing.rounds.run.in.asia.shanghai.time.the.engine.applies.saved.schedu":"Intraday and closing rounds run in Asia/Shanghai time. The engine applies saved schedules.","ui.market.briefing.time":"Market briefing time","ui.generate.a.briefing.each.trading.day.using.news.from.the.previous.trading.day":"Generate a briefing each trading day using news from the previous trading day.","ui.intraday.rounds.hh.mm.comma.separated":" intraday rounds (HH:MM, comma separated)","ui.closing.round":"Closing round: ","ui.market.settings.saved":"Market settings saved.","ui.markets.and.screening":"Markets and screening","ui.enabled.markets.set.the.scheduling.and.screening.scope.screening.parameters.control.m":"Enabled markets set the scheduling and screening scope; screening parameters control market-wide selection.","ui.enabled.markets":"Enabled markets","ui.candidate.pool.size":"Candidate pool size","ui.maximum.securities.in.each.market.s.screening.pool":"Maximum securities in each market's screening pool.","ui.screening.refresh.interval.minutes":"Screening refresh interval (minutes)","ui.cache.lifetime.the.next.round.refreshes.expired.results":"Cache lifetime; the next round refreshes expired results.","ui.notification.settings.saved.webhook.address.encrypted.with.dpapi":"Notification settings saved (Webhook address encrypted with DPAPI).","ui.notifications":"Notifications","ui.send.completed.round.reports.through.a.webhook":"Send completed round reports through a Webhook.","ui.webhook.notifications":"Webhook notifications","ui.enabled.2":"Enabled","ui.disabled":"Disabled","ui.webhook.address":"Webhook address","ui.configured.existing.address.hidden.leave.blank.to.retain.it":"Configured (existing address hidden; leave blank to retain it)","ui.must.start.with.https.encrypted.in.the.local.dpapi.store":"Must start with https://. Encrypted in the local DPAPI store.","ui.configured":"Configured","ui.save.notification.settings":"Save notification settings","ui.application.settings":"Application settings","ui.version.information":"Version information","ui.product":"Product","ui.engine.version":"Engine version","ui.paper.trading.paper":"Paper trading (paper)","ui.safety.information":"Safety information","ui.this.product.supports.paper.trading.only.and.has.no.live.broker.connection.all.orders":"This product supports paper trading only and has no live broker connection. All orders pass engine-enforced risk checks and simulated matching. AI cannot bypass these checks. Public third-party prices are for research and simulation.","ui.no.settings.available":"No settings available","ui.settings":"Settings","ui.models.strategy.risk.autonomous.operation.and.desktop.configuration":"Models, strategy, risk, autonomous operation and desktop configuration","ui.secure.local.storage":"Secure local storage","ui.sessions":"Sessions","ui.new.session":"New session","ui.create.session":"Create session","ui.search.sessions":"Search sessions","ui.search.results":"Search results","ui.recent.sessions":"Recent sessions","ui.no.matching.sessions":"No matching sessions","ui.no.sessions.yet.create.one.above":"No sessions yet. Create one above.","ui.rename.session":"Rename session","ui.rename":"Rename","ui.archive.this.session":"Archive this session?","ui.archive":"Archive","ui.awaiting.your.question":"Awaiting your question","ui.investment.session":"Investment session","ui.describe.what.you.want.to.build":"Describe what you want to build","ui.ask.an.investment.question.or.start.a.complete.analysis":"Ask an investment question, or start a complete analysis","ui.explore.the.unknown":"Explore the unknown","ui.your.investment.research.assistant":"Your investment research assistant","ui.overview":"Overview","ui.investment.assistant":"Investment assistant","ui.product.navigation":"Product navigation","ui.command.failed":"Command failed","ui.save.failed.2":"Save failed","ui.session.not.found":"Session not found","ui.investment.engine.2":"Investment engine","ui.mode.2":"Mode","ui.time":"Time","ui.portfolio":"Portfolio ","ui.portfolio.2":"Portfolio","ui.trades.2":"Trades","ui.investment.mandate":"Investment mandate","ui.min.confidence":"Min confidence","ui.max.security.weight.2":"Max security weight","ui.max.drawdown":"Max drawdown","language.title":"Interface language","language.output":"Research output language","language.follow":"Follow interface (new rounds)","language.history":"Historical content and source materials remain in their original language","language.saveFailed":"Language preference could not be saved. Please retry.","punctuation.closeParen":")","punctuation.openParen":"(","punctuation.comma":", ","punctuation.fullStop":".","punctuation.colon":": ","ui.source.commit":"Source commit","ui.nav.assistant":"Assistant","ui.nav.research":"Research","ui.dialog.cancel":"Cancel","ui.dialog.save":"Save","ui.search.failed":"Search failed: ","motion.title":"Motion","motion.system":"Follow system","motion.standard":"Standard","motion.off":"Off","motion.hint":"Smooth page and panel transitions; system reduced-motion settings are always respected","motion.saveFailed":"Unable to save motion settings. Please try again.","motion.stageTitle":"Research pipeline","motion.stageHint":"Stage progress reflects recorded completed tasks","motion.stage.base_research":"Base research","motion.stage.research_debate":"Research debate","motion.stage.portfolio_draft":"Portfolio draft","motion.stage.risk_review":"Risk review","motion.stage.final_decision":"Final decision"}};
 const COPY_NS = "dsh-product-shell";
 let productLocale;
 const tr = (key, params = {}) => {
@@ -991,6 +1219,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 		};
 		injectSheet(CSS_ID, css + productCss);
 		injectSheet(CSS_ID + "/tokens", tokenCss);
+		injectSheet(CSS_ID + "/motion", motionCss);
 
 		// ── helpers ────────────────────────────────────────────────────────
 		const jsonFetch = async (url, options = {}) => {
@@ -1142,24 +1371,28 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 		}
 
 		function useInvestmentSummary(intervalMs = 30000) {
+            const active=useProductPageActive();
 			const [state, setState] = react.useState({ data: null, error: "", loading: true });
 			react.useEffect(() => {
-				let cancelled = false;
-				const load = async () => {
-					try {
-						const data = await jsonFetch("/api/investment/summary");
+                if(!active)return;
+                let cancelled = false;
+                const controller=new AbortController();
+                const load = async () => {
+                    try {
+                        const data = await jsonFetch("/api/investment/summary",{signal:controller.signal});
 						if (!cancelled) setState({ data, error: "", loading: false });
 					} catch (error) {
-						if (!cancelled) setState({ data: null, error: String(error?.message ?? error), loading: false });
+						if (!cancelled && error?.name!=="AbortError") setState(previous=>({...previous,error:String(error?.message??error),loading:false}));
 					}
 				};
 				load();
 				const timer = setInterval(load, intervalMs);
 				return () => {
 					cancelled = true;
-					clearInterval(timer);
-				};
-			}, [intervalMs]);
+                    clearInterval(timer);
+                    controller.abort();
+                };
+            }, [intervalMs,active]);
 			return state;
 		}
 
@@ -1741,6 +1974,8 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 		const analysisTerminalStatuses = ["completed", "failed", "cancelled"];
 		const analysisStatusNames = {
 			get queued(){return tr("ui.queued");},
+			get pending(){return tr("ui.not.started");},
+			get idle(){return tr("ui.not.started");},
 			get running(){return tr("ui.running");},
 			get ready_for_execution(){return tr("ui.awaiting.approval");},
 			get completed(){return tr("ui.completed");},
@@ -1852,92 +2087,39 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			if (typeof row.result_digest === "string" && row.result_digest.trim()) parts.push(row.result_digest.trim().slice(0, 140));
 			return parts.join(" · ");
 		}
-		function stageFraction(row) {
-			// How far through ONE stage we are. Subagent counts are the only real
-			// progress signal a stage carries, so use them when present; otherwise
-			// fall back to a terminal/pending 0-or-1. Never invent a percentage:
-			// an indeterminate stage renders as an empty ring, not a fake number.
-			const status = String(row?.status ?? "");
-			if (status === "completed") return 1;
-			if (status === "failed" || status === "cancelled") return 1;
-			const total = Number(row?.agents_total ?? 0);
-			const done = Number(row?.agents_done ?? 0) + Number(row?.agents_failed ?? 0);
-			if (total > 0) return Math.max(0, Math.min(1, done / total));
-			return status === "running" ? 0.35 : 0;
-		}
 
-		const STAGE_ETA_SECONDS = {
-			preparing: 120,
-			resuming: 45,
-			base_research: 300,
-			research_debate: 210,
-			portfolio_draft: 40,
-			risk_review: 95,
-			final_decision: 45,
-			execution: 30
-		};
+        function stageFraction(row) { return measuredStageFraction(row); }
+        function StageDot({ status, fraction, stage }) {
+            const size=50, stroke=3.5, radius=(size-stroke)/2, circumference=2*Math.PI*radius;
+            const kind=String(status??''), known=fraction!==null&&fraction!==undefined&&Number.isFinite(Number(fraction));
+            const value=kind==='completed'?1:known?Math.max(0,Math.min(1,Number(fraction))):0;
+            const stateKind=kind==='completed'?'ok':['failed','cancelled'].includes(kind)?'danger':kind==='running'?'accent':'idle';
+            const color=stateKind==='ok'?'var(--ia-ok)':stateKind==='danger'?'var(--ia-danger)':stateKind==='accent'?'var(--ia-accent)':'var(--ia-idle)';
+            const label=analysisStatusLabel(kind||'idle'), percent=Math.round(value*100);
+            const mark=known||kind==='completed'?percent+'%':kind==='pending'||!kind?'0%':'—';
+            return react.createElement('span',{
+                className:'ia-an-ring','data-kind':stateKind,'data-status':kind,'data-indeterminate':!known&&kind!=='completed',
+                role:'progressbar','aria-label':(stage?analysisStageLabel(stage)+' · ':'')+label,
+                'aria-valuemin':0,'aria-valuemax':100,'aria-valuenow':known||kind==='completed'?percent:undefined,
+                'aria-valuetext':known||kind==='completed'?percent+'%':label
+            },react.createElement('svg',{width:size,height:size,viewBox:`0 0 ${size} ${size}`,'aria-hidden':true},
+                react.createElement('circle',{className:'ia-an-ring-track',cx:size/2,cy:size/2,r:radius,fill:'none',strokeWidth:stroke}),
+                react.createElement('circle',{className:'ia-an-ring-fill',cx:size/2,cy:size/2,r:radius,fill:'none',strokeWidth:stroke,stroke:color,strokeDasharray:String(circumference),strokeDashoffset:String(circumference*(1-value)),strokeLinecap:'round'})),
+                react.createElement('span',{className:'ia-an-ring-mark','aria-hidden':true},mark));
+        }
+        function ResearchStageCards({run}) {
+            const h=react.createElement, rows=researchStageRows(run);
+            const completed=rows.filter(row=>row.status==='completed').length;
+            const progress=rows.reduce((sum,row)=>sum+(stageFraction(row)??0),0)/rows.length;
+            const percent=Math.round(progress*100);
+            return h('section',{className:'ia-research-stage-summary','aria-label':tr('motion.stageTitle')},
+                h('div',{className:'ia-research-stage-head'},h('h3',null,tr('motion.stageTitle')),h('span',null,completed+' / '+rows.length)),
+                h('div',{className:'ia-stage-cards'},...rows.map(row=>h('div',{key:row.stage,className:'ia-stage-card','data-status':row.status},
+                    h(StageDot,{status:row.status,fraction:stageFraction(row),stage:row.stage}),h('span',{className:'ia-stage-card-label'},tr('motion.stage.'+row.stage))))),
+                h('div',{className:'ia-stage-total'},h('span',null,run&&!rows.some(row=>row.recorded)?tr('ui.no.stage.records.saved.for.this.round'):tr('motion.stageHint')),h('span',null,percent+'%')),
+                h('div',{className:'ia-stage-total-track',role:'progressbar','aria-label':tr('motion.stageTitle'),'aria-valuemin':0,'aria-valuemax':100,'aria-valuenow':percent},h('div',{className:'ia-stage-total-fill',style:{transform:`scaleX(${progress})`}})));
+        }
 
-		function StageDot({ status, fraction, startedAt, stage }) {
-			// A circular progress ring replaces the static ✓ / ↻ / × glyph. A
-			// running stage eases forward on an estimated clock instead of spinning:
-			// constant rotation reads as anxiety, and a hard-coded 35% reads as a
-			// lie. Once the stage reports real sub-task counts those take over.
-			const size = 50;
-			const stroke = 3.5;
-			const radius = (size - stroke) / 2;
-			const circumference = 2 * Math.PI * radius;
-			const kind = String(status ?? "");
-			const running = kind === "running";
-			const [, setTick] = react.useState(0);
-			react.useEffect(() => {
-				if (!running) return undefined;
-				const timer = setInterval(() => setTick((value) => value + 1), 1000);
-				return () => clearInterval(timer);
-			}, [running]);
-			const actual = Math.max(0, Math.min(1, Number(fraction) || 0));
-			let value = actual;
-			if (running && actual <= 0) {
-				const startedMs = Date.parse(String(startedAt ?? ""));
-				const elapsed = Number.isFinite(startedMs) ? Math.max(0, (Date.now() - startedMs) / 1000) : 0;
-				const eta = Math.max(20, Number(STAGE_ETA_SECONDS[String(stage ?? "")]) || 120);
-				// Asymptotic: eases out and never claims completion before it happens.
-				value = Math.min(0.94, 0.92 * (1 - Math.exp(-elapsed / eta)));
-			}
-			const stateKind = kind === "completed" ? "ok" : kind === "failed" || kind === "cancelled" ? "danger" : running ? "accent" : "idle";
-			const strokeColor = stateKind === "ok"
-				? "var(--ia-ok)"
-				: stateKind === "danger"
-					? "var(--ia-danger)"
-					: stateKind === "accent"
-						? "var(--ia-accent)"
-						: "var(--ia-idle)";
-			const percent = Math.round(value * 100);
-			const markText = kind === "failed" || kind === "cancelled" ? "×" : running || kind === "completed" || value > 0 ? percent + "%" : "0%";
-			const label = kind === "completed" ? tr("ui.completed") : running ? tr("ui.in.progress") : kind === "failed" ? tr("ui.failed") : kind === "cancelled" ? tr("ui.stopped.2") : tr("ui.not.started");
-			return react_jsx_runtime.jsxs("span", {
-				className: "ia-an-ring",
-				"data-kind": stateKind,
-				"data-status": kind,
-				role: "img",
-				"aria-label": label + (running ? " " + percent + tr("ui.estimated") : ""),
-				children: [
-					react_jsx_runtime.jsxs("svg", {
-						width: size, height: size, viewBox: "0 0 " + size + " " + size, "aria-hidden": "true",
-						children: [
-							react_jsx_runtime.jsx("circle", { className: "ia-an-ring-track", cx: size / 2, cy: size / 2, r: radius, fill: "none", "stroke-width": stroke }),
-							react_jsx_runtime.jsx("circle", {
-								className: "ia-an-ring-fill", cx: size / 2, cy: size / 2, r: radius, fill: "none",
-								"stroke-width": stroke, stroke: strokeColor,
-								"stroke-dasharray": String(circumference),
-								"stroke-dashoffset": String(circumference * (1 - value)),
-								"stroke-linecap": "round"
-							})
-						]
-					}),
-					react_jsx_runtime.jsx("span", { className: "ia-an-ring-mark", children: markText })
-				]
-			});
-		}
 		function RoundProgress({ stages }) {
 			// Round-level progress: completed stages over total stages, plus a
 			// running pulse. Text-only status ("3/5 完成") stays in the header so a
@@ -1947,7 +2129,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			const done = rows.filter((row) => String(row?.status ?? "") === "completed").length;
 			const failed = rows.filter((row) => String(row?.status ?? "") === "failed").length;
 			const running = rows.some((row) => String(row?.status ?? "") === "running");
-			const value = Math.max(0, Math.min(1, done / rows.length));
+			const value = rows.reduce((sum, row) => sum + (stageFraction(row) ?? 0), 0) / rows.length;
 			const label = done + "/" + rows.length + tr("ui.stages.completed") + (failed > 0 ? tr("ui.failed.2") + failed : "") + (running ? tr("ui.in.progress.2") : "");
 			return react_jsx_runtime.jsxs("div", {
 				className: "ia-an-progress",
@@ -1971,10 +2153,10 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			if (Number.isFinite(start) && Number.isFinite(end) && end >= start) return formatDuration(end - start);
 			return "-";
 		}
-		async function fetchAnalysisRun(cycleId) {
+		async function fetchAnalysisRun(cycleId,signal) {
 			if (!cycleId) return null;
 			try {
-				const payload = await jsonFetch("/api/investment/analysis?action=run&cycle_id=" + encodeURIComponent(cycleId));
+				const payload = await jsonFetch("/api/investment/analysis?action=run&cycle_id=" + encodeURIComponent(cycleId),{signal});
 				return payload?.analysis ?? null;
 			} catch (error) {
 				// 404 = the engine has not written the record yet (round spinning up).
@@ -1983,67 +2165,60 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			}
 		}
 
-		function useAnalysisRun(cycleId) {
-			const [state, setState] = react.useState({ data: null, error: "", loading: false });
-			const cycleRef = react.useRef(cycleId);
-			const previousCycle = react.useRef(cycleId);
-			const status = String(state.data?.status ?? "");
-			// 2s while a round runs, 8s otherwise, and no timer at all once the
-			// round reached a terminal state.
-			const intervalMs = isAnalysisTerminal(status) ? 0 : status === "running" ? ANALYSIS_POLL_RUNNING_MS : ANALYSIS_POLL_IDLE_MS;
-			const load = react.useCallback(async () => {
-				const target = cycleRef.current;
-				if (!target) return;
-				// document.hidden pauses the loop; the next tick after the tab
-				// becomes visible again performs the refresh.
-				if (typeof document !== "undefined" && document.hidden) return;
-				try {
-					const record = await fetchAnalysisRun(target);
-					if (cycleRef.current === target) setState({ data: record, error: "", loading: false });
-				} catch (error) {
-					if (cycleRef.current === target) setState((previous) => ({ ...previous, error: String(error?.message ?? error), loading: false }));
-				}
-			}, []);
-			react.useEffect(() => {
-				cycleRef.current = cycleId;
-				if (previousCycle.current !== cycleId) {
-					previousCycle.current = cycleId;
-					setState({ data: null, error: "", loading: Boolean(cycleId) });
-				}
-				if (!cycleId || intervalMs <= 0) return undefined;
-				load();
-				const timer = setInterval(load, intervalMs);
-				return () => clearInterval(timer);
-			}, [cycleId, intervalMs, load]);
-			react.useEffect(() => {
-				if (typeof document === "undefined") return undefined;
-				const onVisibility = () => {
-					if (!document.hidden) load();
-				};
-				document.addEventListener("visibilitychange", onVisibility);
-				return () => document.removeEventListener("visibilitychange", onVisibility);
-			}, [load]);
-			return { ...state, reload: load };
-		}
 
-		function useActiveRounds(intervalMs) {
-			const [state, setState] = react.useState({ rounds: [], error: "" });
-			const load = react.useCallback(async () => {
-				if (typeof document !== "undefined" && document.hidden) return;
-				try {
-					const payload = await jsonFetch("/api/investment/analysis?action=active");
-					setState({ rounds: Array.isArray(payload?.rounds) ? payload.rounds : [], error: "" });
-				} catch (error) {
-					setState((previous) => ({ rounds: previous.rounds, error: String(error?.message ?? error) }));
-				}
-			}, []);
-			react.useEffect(() => {
-				load();
-				const timer = setInterval(load, Math.max(ANALYSIS_POLL_RUNNING_MS, Number(intervalMs) || ANALYSIS_POLL_IDLE_MS));
-				return () => clearInterval(timer);
-			}, [load, intervalMs]);
-			return { ...state, reload: load };
-		}
+        function useAnalysisRun(cycleId) {
+            const active=useProductPageActive(),activeRef=react.useRef(active);activeRef.current=active;
+            const [state,setState]=react.useState({data:null,error:'',loading:false});
+            const cycleRef=react.useRef(cycleId),previousCycle=react.useRef(cycleId),requestRef=react.useRef(null);
+            const status=String(state.data?.status??'');
+            const intervalMs=isAnalysisTerminal(status)?0:status==='running'?ANALYSIS_POLL_RUNNING_MS:ANALYSIS_POLL_IDLE_MS;
+            const load=react.useCallback(async()=>{
+                const target=cycleRef.current;
+                if(!target||!activeRef.current||document.hidden)return;
+                if(requestRef.current?.target===target)return;
+                requestRef.current?.controller.abort();
+                const request={target,controller:new AbortController()};requestRef.current=request;
+                try {
+                    const record=await fetchAnalysisRun(target,request.controller.signal);
+                    if(requestRef.current===request&&cycleRef.current===target&&activeRef.current)setState({data:record,error:'',loading:false});
+                } catch(error) {
+                    if(error?.name!=='AbortError'&&requestRef.current===request&&activeRef.current)setState(previous=>({...previous,error:String(error?.message??error),loading:false}));
+                } finally {if(requestRef.current===request)requestRef.current=null;}
+            },[]);
+            react.useEffect(()=>{
+                cycleRef.current=cycleId;
+                if(previousCycle.current!==cycleId){previousCycle.current=cycleId;setState({data:null,error:'',loading:Boolean(cycleId)});}
+                if(!active||!cycleId)return;
+                load();
+                const timer=intervalMs>0?setInterval(load,intervalMs):null;
+                return()=>{if(timer)clearInterval(timer);requestRef.current?.controller.abort();requestRef.current=null;};
+            },[cycleId,intervalMs,load,active]);
+            react.useEffect(()=>{
+                const onVisibility=()=>{if(!document.hidden)load();};
+                document.addEventListener('visibilitychange',onVisibility);
+                return()=>document.removeEventListener('visibilitychange',onVisibility);
+            },[load]);
+            return {...state,reload:load};
+        }
+
+
+        function useActiveRounds(intervalMs) {
+            const active=useProductPageActive(),activeRef=react.useRef(active);activeRef.current=active;
+            const requestRef=react.useRef(null),[state,setState]=react.useState({rounds:[],error:''});
+            const load=react.useCallback(async()=>{
+                if(!activeRef.current||document.hidden||requestRef.current)return;
+                const controller=new AbortController();requestRef.current=controller;
+                try {const payload=await jsonFetch('/api/investment/analysis?action=active',{signal:controller.signal});if(requestRef.current===controller&&activeRef.current)setState({rounds:Array.isArray(payload?.rounds)?payload.rounds:[],error:''});}
+                catch(error){if(error?.name!=='AbortError'&&requestRef.current===controller&&activeRef.current)setState(previous=>({...previous,error:String(error?.message??error)}));}
+                finally{if(requestRef.current===controller)requestRef.current=null;}
+            },[]);
+            react.useEffect(()=>{
+                if(!active)return;
+                load();const timer=setInterval(load,Math.max(ANALYSIS_POLL_RUNNING_MS,Number(intervalMs)||ANALYSIS_POLL_IDLE_MS));
+                return()=>{clearInterval(timer);requestRef.current?.abort();requestRef.current=null;};
+            },[load,intervalMs,active]);
+            return {...state,reload:load};
+        }
 
 		function StockLookup({ market, onSelect }) {
 			const h = react.createElement;
@@ -2106,7 +2281,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			const [logsOpen, setLogsOpen] = react.useState(false);
 			const stages = run && run.stages && typeof run.stages === "object" ? run.stages : {};
 			const stateMarkers = ["ready_for_execution", "completed", "failed", "cancelled"];
-			const stageRows = Object.keys(stages).filter(stage => !stateMarkers.includes(stage)).map((stage) => Object.assign({ stage }, stages[stage] ?? {}));
+			const stageRows = researchStageRows(run).concat(Object.keys(stages).filter(stage => !stateMarkers.includes(stage) && !RESEARCH_STAGE_KEYS.includes(stage)).map(stage => Object.assign({ stage }, stages[stage] ?? {})));
 			stageRows.sort((a, b) => {
 				const left = analysisStageOrder.indexOf(a.stage);
 				const right = analysisStageOrder.indexOf(b.stage);
@@ -2174,7 +2349,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 								className: "ia-an-note",
 								children: run ? tr("ui.round") + String(run.cycle_id ?? cycleId ?? "-") + " · " + (marketName[run.market] ?? run.market ?? "-") + tr("ui.label") + String(run.label ?? "-") + tr("ui.securities.3") + (Array.isArray(run.symbols) ? run.symbols.length : 0) + tr("ui.items.3") : (cycleId ? tr("ui.round") + cycleId + tr("ui.no.record.returned.by.the.engine") : tr("ui.no.analysis.round.started"))
 							}),
-							react_jsx_runtime.jsx(RoundProgress, { stages: stageRows })
+							react_jsx_runtime.jsx(RoundProgress, { stages: stageRows.filter(row => RESEARCH_STAGE_KEYS.includes(row.stage)) })
 							, run && Number(run.started_agents ?? 0) > progress.total ? react_jsx_runtime.jsx("div", { className: "ia-an-note", children: tr("ui.historical.starts") + run.started_agents + tr("ui.including.retries.current.progress.deduplicates.roles.original.timestamps.and.failure") }) : null
 						]
 					}),
@@ -2358,12 +2533,9 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			const [drawerOpen, setDrawerOpen] = react.useState(false);
 			const [screeningCache, setScreeningCache] = react.useState(null);
 			const drawerRef = react.useRef(null);
-			react.useEffect(() => {
-				const drawer = drawerRef.current;
-				if (!drawer) return;
-				if (drawerOpen && !drawer.open) drawer.showModal();
-				else if (!drawerOpen && drawer.open) drawer.close();
-			}, [drawerOpen]);
+
+            useAnimatedProductDialog(drawerRef,drawerOpen,()=>setDrawerOpen(false));
+
 			const screeningAgeMinutes = (row) => {
 				const started = Date.parse(String(row?.generated_at ?? row?.audited_at ?? ""));
 				return Number.isFinite(started) ? (Date.now() - started) / 60000 : Infinity;
@@ -2846,10 +3018,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 
 			const tabsRef = react.useRef(null);
 			useSegThumb(tabsRef, [tab, watchCycleId]);
-			const stageMarkers = ["ready_for_execution", "completed", "failed", "cancelled"];
-			const stageEntryList = run && run.stages && typeof run.stages === "object"
-				? Object.entries(run.stages).filter(([key, value]) => !stageMarkers.includes(key) && value && typeof value === "object")
-				: [];
+			const stageEntryList = run ? researchStageRows(run).map(row => [row.stage, row]) : [];
 			const stageDoneCount = stageEntryList.filter(([, value]) => String(value.status ?? "") === "completed").length;
 			const evidenceCount = Number(run?.evidence_count ?? 0);
 			const runChipKind = engineError || run?.status === "failed" ? "danger" : run ? (["completed", "ready_for_execution"].includes(run.status) ? "ok" : "warn") : "";
@@ -2877,34 +3046,31 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 								!historyRows.length ? h("div", { className: "ia-empty" }, history.loading ? tr("ui.loading.research.history") : tr("ui.no.research.yet.select.new.research.to.begin")) : null)),
 						h("main", { className: "ia-research-workspace" },
 							h("div", { className: "ia-research-heading" }, h("div", null, h("h2", null, run ? (marketName[run.market] ?? run.market) + " · " + (run.label || tr("ui.security.research")) : tr("ui.research.workspace")), h("div", { className: "ia-an-note" }, run ? (run.symbols ?? []).join(" · ") || tr("ui.awaiting.screening") : tr("ui.select.a.round.on.the.left.or.create.new.research")))),
+							h(ResearchStageCards,{run}),
 							run?.error ? h("div", { className: "ia-notice", "data-kind": "err" }, tr("ui.research.stopped") + run.error + tr("ui.saved") + Object.keys(run.checkpoints ?? {}).length + tr("ui.stages.resume.manually.to.continue")) : null,
 							notice ? h("div", { className: "ia-notice", "data-kind": notice.kind, "aria-live": "polite" }, notice.text) : null,
 							h("div", { ref: tabsRef, className: "ia-research-tabs ia-seg ia-tabs", role: "tablist", "aria-label": tr("ui.research.content") },
 								h("span", { className: "ia-seg-thumb", "aria-hidden": "true" }),
 								...[["report", tr("ui.research.report")], ["process", tr("ui.research.progress")], ["evidence", tr("ui.stage.evidence")]].map(([value, name]) => h("button", { id: "ia-research-tab-" + value, className: "ia-an-btn ia-research-tab", type: "button", role: "tab", "aria-selected": tab === value, "aria-controls": "ia-research-content", onClick: () => setTab(value), key: value }, name))),
-							h("div", { id: "ia-research-content", role: "tabpanel", "aria-labelledby": "ia-research-tab-" + tab },
-								tab === "report" ? h(AnalysisReportPanel, { embedded: true, refreshToken, highlightCycleId: watchCycleId }) : tab === "evidence" ? h(AnalysisEvidencePanel, { key: watchCycleId, cycleId: watchCycleId, run }) : h(AnalysisPipelineView, { run, loading: runState.loading, error: runState.error, cycleId: watchCycleId }))))),
-				h("dialog", { ref: drawerRef, className: "ia-an-drawer", "aria-label": tr("ui.new.research.2"), onCancel: () => setDrawerOpen(false) }, h("div", { className: "ia-an-panel-head" }, h("h2", null, tr("ui.new.research.2")), h("button", { className: "ia-an-btn", type: "button", onClick: () => setDrawerOpen(false) }, tr("ui.close.3"))), drawerOpen ? renderStartPanel() : null));
+							h(ContentTransition, { identity: tab+":"+watchCycleId },h("div", { id: "ia-research-content", role: "tabpanel", "aria-labelledby": "ia-research-tab-" + tab },
+								tab === "report" ? h(AnalysisReportPanel, { embedded: true, refreshToken, highlightCycleId: watchCycleId }) : tab === "evidence" ? h(AnalysisEvidencePanel, { key: watchCycleId, cycleId: watchCycleId, run }) : h(AnalysisPipelineView, { run, loading: runState.loading, error: runState.error, cycleId: watchCycleId })))))),
+				h("dialog", { ref: drawerRef, className: "ia-an-drawer", "aria-label": tr("ui.new.research.2"), onCancel: event => { event.preventDefault(); setDrawerOpen(false); } }, h("div", { className: "ia-an-panel-head" }, h("h2", null, tr("ui.new.research.2")), h("button", { className: "ia-an-btn", type: "button", onClick: () => setDrawerOpen(false) }, tr("ui.close.3"))), renderStartPanel()));
 		}
 
 		// ── settings sections ─────────────────────────────────────────────
-		function useAsync(load, deps) {
-			const [state, setState] = react.useState({ loading: false, data: null, error: "" });
-			const action = react.useCallback(load, deps ?? []);
-			const reload = react.useCallback(async () => {
-				setState((previous) => ({ ...previous, loading: true, error: "" }));
-				try {
-					const data = await action();
-					setState({ loading: false, data, error: "" });
-				} catch (error) {
-					setState({ loading: false, data: null, error: String(error?.message ?? error) });
-				}
-			}, [action]);
-			react.useEffect(() => {
-				reload();
-			}, [reload]);
-			return { ...state, reload };
-		}
+
+        function useAsync(load,deps) {
+            const [state,setState]=react.useState({loading:false,data:null,error:''});
+            const sequence=react.useRef(0),action=react.useCallback(load,deps??[]);
+            const reload=react.useCallback(async()=>{
+                const request=++sequence.current;
+                setState(previous=>({...previous,loading:true,error:''}));
+                try {const data=await action();if(request===sequence.current)setState({loading:false,data,error:''});}
+                catch(error){if(request===sequence.current)setState(previous=>({...previous,loading:false,error:String(error?.message??error)}));}
+            },[action]);
+            react.useEffect(()=>{setState({loading:true,data:null,error:''});reload();return()=>{sequence.current++;};},[reload]);
+            return {...state,reload};
+        }
 
 		function SectionFrame({ title, subtitle, children, notice }) {
 			return react_jsx_runtime.jsxs("div", {
@@ -3238,7 +3404,10 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 
         function LanguageSection({setLanguage, saveConfig, fetchConfig}) {
             const current = useProductLocale();
+            const motion=useProductMotion();
+            const [savingMotion,setSavingMotion]=react.useState(false);
             const data = useAsync(fetchConfig, []);
+            react.useEffect(()=>{if(data.data)productMotion.set(data.data.config?.ui?.motion??"system");},[data.data]);
             const [error,setError] = react.useState("");
             const output = data.data?.config?.research?.output_language ?? "follow-ui";
             return react.createElement(SectionFrame,{title:tr("language.title"),subtitle:tr("language.history")},
@@ -3250,6 +3419,10 @@ const localized = Component => function Localized(props) { useProductLocale(); r
                     react.createElement("label",{htmlFor:"ia-output-language"},tr("language.output")),
                     react.createElement("select",{id:"ia-output-language",className:"ia-input",value:output,onChange:async event=>{try{setError("");await saveConfig({"research.output_language":event.target.value});data.reload();}catch{setError(tr("language.saveFailed"));}}},
                         react.createElement("option",{value:"follow-ui"},tr("language.follow")),react.createElement("option",{value:"zh"},"简体中文"),react.createElement("option",{value:"en"},"English"))),
+                react.createElement("div",{className:"ia-form-row"},
+                    react.createElement("div",null,react.createElement("label",{htmlFor:"ia-motion"},tr("motion.title")),react.createElement("div",{className:"ia-form-hint"},tr("motion.hint"))),
+                    react.createElement("select",{id:"ia-motion",className:"ia-input",value:motion.preference,disabled:savingMotion,onChange:async event=>{const value=event.target.value;setSavingMotion(true);try{setError("");await saveConfig({"ui.motion":value});productMotion.set(value);}catch{setError(tr("motion.saveFailed"));}finally{setSavingMotion(false);}}},
+                        ...[["system","motion.system"],["standard","motion.standard"],["off","motion.off"]].map(([value,key])=>react.createElement("option",{key:value,value},tr(key))))),
                 error?react.createElement("p",{role:"alert"},error):null);
         }
 
@@ -3347,6 +3520,9 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			const [results, setResults] = react.useState(null);
 			const [searchError, setSearchError] = react.useState("");
 			const [sessionDialog, setSessionDialog] = react.useState(null);
+            const lastDialog=react.useRef(null);
+            if(sessionDialog)lastDialog.current=sessionDialog;
+            const dialogRecord=sessionDialog??lastDialog.current;
 			const [sessionName, setSessionName] = react.useState("");
 			const [dialogBusy, setDialogBusy] = react.useState(false);
 			const [dialogError, setDialogError] = react.useState("");
@@ -3406,20 +3582,16 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			return react_jsx_runtime.jsxs("div", {
 				className: "ia-sidebar",
 				children: [
-					sessionDialog ? react_jsx_runtime.jsx("div", {style:{position:"fixed",inset:0,zIndex:2000,background:"rgba(0,0,0,.3)",display:"grid",placeItems:"center"},children:react_jsx_runtime.jsxs("div",{
-						role:"dialog", "aria-modal":true, "aria-label":tr(sessionDialog.kind === "rename" ? "ui.rename.session" : "ui.archive.this.session"),
-						style:{width:"min(420px,90vw)",padding:24,borderRadius:16,background:"var(--ia-surface)",boxShadow:"0 16px 48px #0003"},
-						onKeyDown:event=>{if(event.key==="Escape"&&!dialogBusy)setSessionDialog(null);},
-						children:[
-							react_jsx_runtime.jsx("h3",{children:tr(sessionDialog.kind === "rename" ? "ui.rename.session" : "ui.archive.this.session")}),
-							sessionDialog.kind === "rename" ? react_jsx_runtime.jsx("input",{className:"ia-input",autoFocus:true,"aria-label":tr("ui.rename.session"),value:sessionName,onChange:event=>setSessionName(event.target.value)}) : null,
-							dialogError ? react_jsx_runtime.jsx("p",{role:"alert",children:dialogError}) : null,
-							react_jsx_runtime.jsxs("div",{style:{display:"flex",justifyContent:"flex-end",gap:8,marginTop:20},children:[
-								react_jsx_runtime.jsx("button",{className:"ia-btn",disabled:dialogBusy,onClick:()=>setSessionDialog(null),children:tr("ui.dialog.cancel")}),
-								react_jsx_runtime.jsx("button",{className:"ia-btn","data-kind":"primary",disabled:dialogBusy||(sessionDialog.kind==="rename"&&!sessionName.trim()),onClick:submitSessionDialog,children:tr(sessionDialog.kind==="rename"?"ui.dialog.save":"ui.archive")})
-							]})
-						]
-					})}) : null,
+					react.createElement(ProductModal,{
+                        open:Boolean(sessionDialog),busy:dialogBusy,onClose:()=>setSessionDialog(null),
+                        label:tr(dialogRecord?.kind==='rename'?'ui.rename.session':'ui.archive.this.session')
+                    },
+                        react.createElement('h3',null,tr(dialogRecord?.kind==='rename'?'ui.rename.session':'ui.archive.this.session')),
+                        dialogRecord?.kind==='rename'?react.createElement('input',{className:'ia-input',autoFocus:true,'aria-label':tr('ui.rename.session'),value:sessionName,onChange:event=>setSessionName(event.target.value)}):null,
+                        dialogError?react.createElement('p',{role:'alert'},dialogError):null,
+                        react.createElement('div',{className:'ia-modal-actions'},
+                            react.createElement('button',{className:'ia-btn',disabled:dialogBusy,onClick:()=>setSessionDialog(null)},tr('ui.dialog.cancel')),
+                            react.createElement('button',{className:'ia-btn','data-kind':'primary',disabled:dialogBusy||(dialogRecord?.kind==='rename'&&!sessionName.trim()),onClick:submitSessionDialog},tr(dialogRecord?.kind==='rename'?'ui.dialog.save':'ui.archive')))),
 					react_jsx_runtime.jsxs("div", {
 						className: "ia-sidebar-head",
 						children: [
@@ -3480,82 +3652,48 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 
 		// ── shell frame ───────────────────────────────────────────────────
 
-		function ShellFrame(props) {
-            useProductLocale();
-			const { useStore, actions, renderSlot } = props;
-			const state = useStore((value) => value);
-			const page = state?.page ?? "assistant";
-			const detailsOpen = state?.detailsOpen === true;
-			const contextOpen = state?.contextOpen === true;
-			react.useEffect(() => props.syncPanel(page), [page, props.syncPanel]);
-			// Third element is a Lucide icon key (see ICON_SVG); the visible label
-			// stays text so the smoke assertions and screen readers are unaffected.
-			// 分析流程 is no longer a destination: its board (the pipeline diagram,
-			// per-band progress and the acceptance checklist) lives inside 分析中心,
-			// where the action that starts a round already is. Keeping a second page
-			// that only displayed the same round was the duplication.
-			const navigation = [
-				["dashboard", "layoutDashboard", tr("ui.overview")],
-				["assistant", "messageSquare", tr("ui.nav.assistant")],
-				["analyze", "radar", tr("ui.nav.research")],
-				["settings", "settings", tr("ui.settings")]
-			];
 
-			return react_jsx_runtime.jsxs("div", {
-				className: "ia-shell",
-				children: [
-					react_jsx_runtime.jsxs("div", {
-						className: "ia-rail",
-						children: [
-							react_jsx_runtime.jsx("div", { className: "ia-rail-brand", title: "AI Trading Automation", children: "IA" }),
-							react_jsx_runtime.jsx("nav", {
-								className: "ia-rail-nav",
-								"aria-label": tr("ui.product.navigation"),
-								children: navigation.map(([id, iconKey, label]) => react_jsx_runtime.jsxs("button", {
-									key: id,
-									className: "ia-elev ia-elev-static ia-elev-sm ia-navbtn",
-									type: "button",
-									"data-active": page === id,
-									"data-page": id,
-									title: label,
-									onClick: () => actions.setPage(id),
-									children: [
-										react_jsx_runtime.jsx("span", { className: "ia-navicon", "aria-hidden": "true", children: icon(iconKey, 18) }),
-										react_jsx_runtime.jsx("span", { style: { whiteSpace: "normal", maxWidth: "100%", lineHeight: "14px", overflowWrap: "anywhere" }, children: label })
-									]
-								}, id))
-							}),
-							react_jsx_runtime.jsx("div", { className: "ia-rail-spacer" })
-						]
-					}),
-					react_jsx_runtime.jsx("div", {
-						className: "ia-body",
-						children: page === "dashboard" ? react_jsx_runtime.jsx(ProductDashboard, { onOpenAnalysis: () => actions.setPage("analyze") }) : page === "analyze" ? react_jsx_runtime.jsx(AnalysisCenter, {}) : page === "settings" ? react_jsx_runtime.jsx(SettingsPage, { ...props }) : react_jsx_runtime.jsxs("div", {
-							className: "ia-assist",
-							children: [
-								react_jsx_runtime.jsx(AssistantStatusStrip, { contextOpen, onToggleContext: () => actions.setContextOpen(!contextOpen) }),
-								react_jsx_runtime.jsxs("div", {
-									className: "ia-assist-body",
-									children: [
-										renderSlot("sidebar", { collapsed: false, width: 250 }),
-										react_jsx_runtime.jsx("div", { className: "ia-center", children: renderSlot("main", {}, { entryKey: page.startsWith("native:") ? page.slice(7) : "conversation" }) }),
-										react_jsx_runtime.jsx("div", { className: "ia-details", style: state.rightbarFullscreen ? { position: "fixed", inset: 0, width: "100vw", height: "100vh", zIndex: 1000 } : { position: "relative", width: detailsOpen ? 340 : 0, border: detailsOpen ? undefined : "none" }, children: renderSlot("rightbar", { width: 340, viewportWidth: window.innerWidth, canShow: true }) }),
-										!detailsOpen && contextOpen ? react_jsx_runtime.jsx("div", {
-											className: "ia-ctx-drawer",
-											children: react_jsx_runtime.jsx(AssistantContext, {
-												onClose: () => actions.setContextOpen(false),
-												onOpenWorkflow: () => actions.setPage("analyze")
-											})
-										}) : null
-									]
-								})
-							]
-						})
-					}),
-					renderSlot("shell.overlay", {})
-				]
-			});
-		}
+        function ShellFrame(props) {
+            const locale=useProductLocale(),motion=useProductMotion();
+            const {useStore,actions,renderSlot}=props,state=useStore(value=>value)??{};
+            const page=state?.page??'assistant',activePage=['dashboard','analyze','settings'].includes(page)?page:'assistant';
+            const visited=react.useRef(new Set([activePage]));visited.current.add(activePage);
+            const detailsOpen=state?.detailsOpen===true,contextOpen=state?.contextOpen===true;
+            const navRef=react.useRef(null),rightRef=react.useRef(null),nativeEntry=react.useRef('conversation');
+            if(page==='assistant')nativeEntry.current='conversation';else if(page.startsWith('native:'))nativeEntry.current=page.slice(7);
+            const [viewportWidth,setViewportWidth]=react.useState(window.innerWidth);
+            react.useEffect(()=>{const resize=()=>setViewportWidth(window.innerWidth);window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize);},[]);
+            react.useEffect(()=>props.syncPanel(page),[page,props.syncPanel]);
+            useNavigationIndicator(navRef,activePage,locale.active);
+            useRightbarTransition(rightRef,Boolean(state?.rightbarFullscreen),detailsOpen,activePage);
+            const navigation=[['dashboard','layoutDashboard',tr('ui.overview')],['assistant','messageSquare',tr('ui.nav.assistant')],['analyze','radar',tr('ui.nav.research')],['settings','settings',tr('ui.settings')]];
+            const content=id=>{
+                if(id==='dashboard')return react.createElement(ProductDashboard,{onOpenAnalysis:()=>actions.setPage('analyze')});
+                if(id==='analyze')return react.createElement(AnalysisCenter,{});
+                if(id==='settings')return react.createElement(SettingsPage,props);
+                return react.createElement('div',{className:'ia-assist'},
+                    react.createElement(AssistantStatusStrip,{contextOpen,onToggleContext:()=>actions.setContextOpen(!contextOpen)}),
+                    react.createElement('div',{className:'ia-assist-body'},
+                        renderSlot('sidebar',{collapsed:false,width:250}),
+                        react.createElement('div',{className:'ia-center'},renderSlot('main',{},{entryKey:nativeEntry.current})),
+                        react.createElement('div',{ref:rightRef,className:'ia-details','aria-hidden':!detailsOpen,
+                            onTransitionEnd:event=>{if(event.target===rightRef.current&&event.propertyName==='width')window.dispatchEvent(new Event('resize'));},
+                            style:state.rightbarFullscreen?{position:'fixed',inset:0,width:'100vw',height:'100vh',zIndex:1000}:{position:'relative',width:detailsOpen?340:0,border:detailsOpen?undefined:'none'}},
+                            renderSlot('rightbar',{width:state.rightbarFullscreen?viewportWidth:340,viewportWidth,canShow:true})),
+                        react.createElement(MotionPresence,{open:!detailsOpen&&contextOpen,className:'ia-ctx-drawer'},react.createElement(AssistantContext,{onClose:()=>actions.setContextOpen(false),onOpenWorkflow:()=>actions.setPage('analyze')}))));
+            };
+            return react.createElement('div',{className:'ia-shell','data-motion':motion.reduced?'off':'standard'},
+                react.createElement('div',{className:'ia-rail'},
+                    react.createElement('div',{className:'ia-rail-brand',title:'AI Trading Automation'},'IA'),
+                    react.createElement('nav',{ref:navRef,className:'ia-rail-nav','aria-label':tr('ui.product.navigation')},
+                        react.createElement('span',{className:'ia-nav-indicator','aria-hidden':true}),
+                        ...navigation.map(([id,key,label])=>react.createElement('button',{key:id,className:'ia-elev ia-elev-static ia-elev-sm ia-navbtn',type:'button','data-active':activePage===id,'data-page':id,'aria-current':activePage===id?'page':undefined,title:label,onClick:()=>actions.setPage(id)},
+                            react.createElement('span',{className:'ia-navicon','aria-hidden':true},icon(key,18)),react.createElement('span',{style:{whiteSpace:'normal',maxWidth:'100%',lineHeight:'16px',overflowWrap:'anywhere'}},label)))),
+                    react.createElement('div',{className:'ia-rail-spacer'})),
+                react.createElement('div',{className:'ia-body'},...Array.from(visited.current).map(id=>react.createElement(MotionPage,{key:id,page:id,active:activePage===id},content(id)))),
+                renderSlot('shell.overlay',{}));
+        }
+
 
 		// ── theme presenter ────────────────────────────────────────────────
 		//
@@ -3746,6 +3884,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 				if (!response.ok) throw new Error(payload?.error ?? "HTTP " + response.status);
 				return payload;
 			};
+            ctx.effect(()=>{let active=true;fetchConfig().then(value=>{if(active)productMotion.set(value?.config?.ui?.motion??"system");}).catch(()=>{});return()=>{active=false;};},"product motion preference");
 			const fetchStatus = async () => {
 				const payload = await jsonFetch("/api/investment/summary");
 				return payload?.status ?? {};

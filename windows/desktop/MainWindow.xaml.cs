@@ -31,7 +31,8 @@ public partial class MainWindow : Window
         ModeText.Text = Localization.Text("Mode2");
         MandateText.Text = Localization.Text("Strategy2");
         RoundText.Text = Localization.Text("Round2");
-        Localization.Changed += () => Dispatcher.BeginInvoke(new Action(() => { _ = RefreshStatusAsync(); }));
+        StartupStatusText.Text = Localization.Text("Startup_preparing_workspace");
+        Localization.Changed += () => Dispatcher.BeginInvoke(new Action(() => { StartupStatusText.Text = Localization.Text("Startup_preparing_workspace"); _ = RefreshStatusAsync(); }));
         _tray = new TrayIcon(
             onOpen: () => RestoreFromTray(),
             onStart: () => _ = Task.Run(() => _processManager.StartPublicServices()),
@@ -68,6 +69,12 @@ public partial class MainWindow : Window
     private async Task EnsureWebViewAsync(ChatReady ready)
     {
         if (_webViewStarted) return;
+
+        // The native cover explains service startup. Hand over before creating
+        // WebView2's native child window, which owns its own drawing surface.
+        StartupCover.Visibility = Visibility.Collapsed;
+        ChatStatusText.Text = Localization.Text("Startup_loading_interface");
+        WebView.DefaultBackgroundColor = System.Drawing.Color.FromArgb(246, 248, 252);
 
         // A hard-killed previous run leaves orphaned msedgewebview2.exe groups
         // that hold the WebView2 user-data-folder lock; without cleanup the

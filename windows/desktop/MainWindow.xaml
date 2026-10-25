@@ -5,10 +5,11 @@
         Title="AI Trading Automation"
         Width="1420" Height="900"
         MinWidth="960" MinHeight="640"
+        Background="#F6F8FC"
         WindowStartupLocation="CenterScreen"
         Closing="OnClosing">
     <DockPanel>
-        <StatusBar DockPanel.Dock="Bottom" Background="#0B0E14" Foreground="#CBD5E1" BorderBrush="#273044" BorderThickness="0,1,0,0">
+        <StatusBar DockPanel.Dock="Bottom" Background="#F8FAFC" Foreground="#64748B" FontSize="13" BorderBrush="#E5EAF2" BorderThickness="0,1,0,0" Padding="12,6">
             <StatusBarItem>
                 <WrapPanel Orientation="Horizontal">
                     <TextBlock x:Name="AgentStatusText" Text="" Margin="0,0,16,0" />
@@ -20,6 +21,14 @@
                 </WrapPanel>
             </StatusBarItem>
         </StatusBar>
-        <wv2:WebView2 x:Name="WebView" />
+        <Grid Background="#F6F8FC">
+            <wv2:WebView2 x:Name="WebView" />
+            <Border x:Name="StartupCover" Background="#F6F8FC">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560" Margin="32">
+                    <TextBlock Text="AI Trading Automation" Foreground="#1E293B" FontSize="24" FontWeight="SemiBold" TextAlignment="Center" />
+                    <TextBlock x:Name="StartupStatusText" Foreground="#64748B" FontSize="15" TextWrapping="Wrap" TextAlignment="Center" Margin="0,14,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
     </DockPanel>
 </Window>

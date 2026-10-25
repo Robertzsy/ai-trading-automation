@@ -57,6 +57,19 @@ def test_apply_refuses_forbidden_boundaries(isolated_config):
         config_api.apply_config_changes({})
 
 
+def test_motion_preference_is_persisted_without_changing_trading(isolated_config):
+    from engine.config import cfg
+
+    for preference in ("system", "standard", "off"):
+        assert config_api.apply_config_changes({"ui.motion": preference}) == ["ui.motion"]
+        assert cfg.raw["ui"]["motion"] == preference
+        assert cfg.raw["trading"]["mode"] == "paper"
+    before = isolated_config.read_bytes()
+    with pytest.raises(ValueError):
+        config_api.apply_config_changes({"ui.motion": "fast"})
+    assert isolated_config.read_bytes() == before
+
+
 def test_failed_reload_rolls_back_file(isolated_config, monkeypatch):
     import yaml
 

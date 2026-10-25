@@ -11,6 +11,13 @@ This candidate combines bilingual support and an embedded DSH upgrade. These not
 - Reports, notifications and feedback support English. Symbols, action codes, currencies, numbers and evidence IDs stay unchanged. Source titles, quotations, company names and user input are not automatically translated.
 - Repair approval retains reviewed scope, exact file/command permissions, verification and grant revocation. Changing language starts no research or orders.
 
+## Interface and motion
+
+- Product text, forms and status messages are easier to read. Research stages pair progress rings with labels; percentages use recorded task completion and remain indeterminate when counts are unavailable.
+- Pages, navigation, tabs, details, drawers and dialogs use consistent transitions. Switching pages retains forms and workspace state; hidden product pages pause their polling.
+- Motion preferences support System, Standard and Off, while always respecting system reduced-motion settings. Stop, cancellation and submission actions are handled immediately.
+- Desktop startup shows preparation state and shares the web interface's visual treatment. Save, error, empty and refresh feedback is consistent.
+
 ## DSH upgrade and compatibility
 
 - Embedded DSH moves from `0.1.0-rc.6` to exactly `0.2.1-rc.3`, an upstream prerelease.
