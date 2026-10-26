@@ -216,6 +216,7 @@
       name: '@deepseek-ai/dsh-workflow-ptc'
       config:
         provider: spawn
+        maxConcurrentAgents: 4
 
     # The fixed investment workflow must live in this agent-plane scope: it
     # consumes the isolated workflowEngine above while registering its one

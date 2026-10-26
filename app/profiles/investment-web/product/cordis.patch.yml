@@ -6,6 +6,12 @@
 # This file is seeded into $DSH_HOME/profiles/investment-web/ by
 # app/scripts/seed.ps1 (dev) and by the desktop installer (production).
 
+# Keep the host workflow queue within the SDK's eight-child capacity.
+- id: workflow-ptc
+  config:
+    provider: spawn
+    maxConcurrentAgents: 4
+
 # Deployment persona for preset-less agents. The investment agent preset
 # carries its own persona and shadows this one per session.
 - id: system-prompt
@@ -365,6 +371,7 @@
                 name: '@deepseek-ai/dsh-workflow-ptc'
                 config:
                   provider: spawn
+                  maxConcurrentAgents: 4
 
               # The fixed investment workflow must live in this agent-plane scope: it
               # consumes the isolated workflowEngine above while registering its one

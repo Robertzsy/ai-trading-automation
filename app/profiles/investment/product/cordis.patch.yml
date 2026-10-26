@@ -96,3 +96,10 @@
       name: '@ai-trading-automation/dsh-investment-tools/lib/research-search.js'
       config:
         apiKeyEnv: DEEPSEEK_API_KEY
+
+# PTC's CPU-based default can exceed the SDK's eight-child pool.
+# The guest queues excess research roles until a running child is disposed.
+- id: workflow-ptc
+  config:
+    provider: spawn
+    maxConcurrentAgents: 4
