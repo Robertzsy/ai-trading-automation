@@ -1,6 +1,7 @@
 using System.IO;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text.Json;
 using AiTradingAutomation.Desktop.Services;
 using Xunit;
 
@@ -85,6 +86,108 @@ public class ProcessManagerTests
 
         Assert.False(pm.IsFirstRun);
     }
+
+    [Theory]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    public void StartAgent_FreshHeartbeatOnlySuppressesStartupForLivePid(bool pidIsLive, int expectedStarts)
+    {
+        using var root = new TempDir();
+        var app = root.Dir("app");
+        var data = root.Dir("data");
+        Directory.CreateDirectory(Path.Combine(app, "python"));
+        File.WriteAllText(Path.Combine(app, "python", "pythonw.exe"), "");
+        Directory.CreateDirectory(Path.Combine(app, "node"));
+        File.WriteAllText(Path.Combine(app, "node", "node.exe"), "");
+        var bus = Path.Combine(data, "runtime", "investment", "bus");
+        Directory.CreateDirectory(bus);
+        File.WriteAllText(Path.Combine(data, "runtime", "setup.complete"), "1");
+        File.WriteAllText(Path.Combine(bus, "worker.json"), Heartbeat(DateTimeOffset.Now.AddSeconds(-2)));
+        var starts = 0;
+        using var pm = new ProcessManager(app, data, info =>
+        {
+            Assert.Contains("engine.main run", info.Arguments);
+            starts++;
+            return null; // Record the launch without starting a scheduler.
+        }, _ => pidIsLive ? DateTimeOffset.Now.AddMinutes(-1) : null);
+
+        pm.StartAgent();
+
+        Assert.Equal(expectedStarts, starts);
+    }
+
+    [Fact]
+    public void WorkerHeartbeat_RequiresLiveProcessThatPredatesItsWrite()
+    {
+        var now = new DateTimeOffset(2026, 10, 26, 17, 0, 10, TimeSpan.FromHours(8));
+        var updated = now.AddSeconds(-2);
+        var json = Heartbeat(updated);
+        Assert.True(ProcessManager.IsWorkerHeartbeatAlive(json, updated, now, pid =>
+        {
+            Assert.Equal(25000, pid);
+            return now.AddMinutes(-1);
+        }));
+        Assert.False(ProcessManager.IsWorkerHeartbeatAlive(json, updated, now, _ => null));
+        // The PID now exists, but belongs to a process created after the write.
+        Assert.False(ProcessManager.IsWorkerHeartbeatAlive(json, updated, now, _ => updated.AddMilliseconds(1)));
+        // Even if a stale heartbeat was copied later, its JSON age still bounds
+        // the identity check to the original timestamp's one-second precision.
+        Assert.False(ProcessManager.IsWorkerHeartbeatAlive(json, now, now, _ => updated.AddSeconds(1)));
+        // The worker rounds updated_at down to the second, not its start time.
+        Assert.True(ProcessManager.IsWorkerHeartbeatAlive(json, updated.AddMilliseconds(800), now,
+            _ => updated.AddMilliseconds(500)));
+    }
+
+    [Theory]
+    [InlineData(8, true)]
+    [InlineData(9, false)]
+    [InlineData(-1, false)]
+    public void WorkerHeartbeat_RequiresCurrentTimestamp(int ageSeconds, bool expected)
+    {
+        var now = new DateTimeOffset(2026, 10, 26, 17, 0, 10, TimeSpan.Zero);
+        var updated = now.AddSeconds(-ageSeconds);
+        Assert.Equal(expected, ProcessManager.IsWorkerHeartbeatAlive(Heartbeat(updated), updated, now,
+            _ => now.AddMinutes(-1)));
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("null")]
+    [InlineData("[]")]
+    [InlineData("invalid json")]
+    [InlineData("{\"pid\":25000,\"status\":\"running\"}")]
+    [InlineData("{\"pid\":25000,\"updated_at\":\"invalid\",\"status\":\"running\"}")]
+    [InlineData("{\"pid\":0}")]
+    [InlineData("{\"pid\":-1}")]
+    [InlineData("{\"pid\":\"25000\"}")]
+    [InlineData("{\"pid\":25000.5}")]
+    [InlineData("{\"pid\":2147483648}")]
+    public void WorkerHeartbeat_InvalidPayloadDoesNotSuppressStartup(string json)
+    {
+        var now = DateTimeOffset.Now;
+        var probed = false;
+        Assert.False(ProcessManager.IsWorkerHeartbeatAlive(json, now, now, _ =>
+        {
+            probed = true;
+            return now.AddMinutes(-1);
+        }));
+        Assert.False(probed);
+    }
+
+    [Fact]
+    public void WorkerHeartbeat_ProbeFailureDoesNotSuppressStartup()
+    {
+        var now = DateTimeOffset.Now;
+        Assert.False(ProcessManager.IsWorkerHeartbeatAlive(Heartbeat(now), now, now,
+            _ => throw new InvalidOperationException("Process disappeared during inspection.")));
+    }
+
+    private static string Heartbeat(DateTimeOffset updatedAt) => JsonSerializer.Serialize(new
+    {
+        pid = 25000,
+        status = "running",
+        updated_at = updatedAt.ToString("yyyy-MM-dd'T'HH:mm:sszzz"),
+    });
 
     [Fact]
     public void ConcurrentStarts_BeforeAnyHeartbeat_OwnOnlyOneProcessPerService()

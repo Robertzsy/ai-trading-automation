@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -32,6 +33,7 @@ internal sealed class ProcessManager : IDisposable
     private readonly string _token;
     private readonly object _processGate = new();
     private readonly Func<ProcessStartInfo, Process?> _startProcess;
+    private readonly Func<int, DateTimeOffset?> _processStartedAt;
     private int _enginePort;
     private int _webPort;
     private Process? _webProcess;
@@ -41,9 +43,11 @@ internal sealed class ProcessManager : IDisposable
     private bool _disposed;
 
     public ProcessManager(string? appRoot = null, string? dataRoot = null,
-        Func<ProcessStartInfo, Process?>? startProcess = null)
+        Func<ProcessStartInfo, Process?>? startProcess = null,
+        Func<int, DateTimeOffset?>? processStartedAt = null)
     {
         _startProcess = startProcess ?? Process.Start;
+        _processStartedAt = processStartedAt ?? ReadProcessStartedAt;
         _appRoot = appRoot ?? AppDomain.CurrentDomain.BaseDirectory;
         _dataRoot = dataRoot
             ?? Environment.GetEnvironmentVariable("AI_TRADING_AUTOMATION_DATA_DIR")
@@ -470,15 +474,50 @@ internal sealed class ProcessManager : IDisposable
         if (!File.Exists(path)) return false;
         try
         {
-            var payload = JsonSerializer.Deserialize<JsonElement>(File.ReadAllText(path));
-            if (payload.TryGetProperty("updated_at", out var updated))
-            {
-                if (DateTimeOffset.TryParse(updated.GetString(), out var time))
-                    return (DateTimeOffset.Now - time).TotalSeconds <= 8;
-            }
+            var json = File.ReadAllText(path);
+            var writtenAt = new DateTimeOffset(File.GetLastWriteTimeUtc(path));
+            return IsWorkerHeartbeatAlive(json, writtenAt, DateTimeOffset.Now, _processStartedAt);
         }
         catch { }
         return false;
+    }
+
+    private static DateTimeOffset? ReadProcessStartedAt(int pid)
+    {
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            if (process.HasExited) return null;
+            var startedAt = new DateTimeOffset(process.StartTime);
+            return process.HasExited ? null : startedAt;
+        }
+        catch { return null; }
+    }
+
+    internal static bool IsWorkerHeartbeatAlive(string json, DateTimeOffset writtenAt,
+        DateTimeOffset now, Func<int, DateTimeOffset?> processStartedAt)
+    {
+        try
+        {
+            var payload = JsonSerializer.Deserialize<JsonElement>(json);
+            if (payload.ValueKind != JsonValueKind.Object
+                || !payload.TryGetProperty("pid", out var pidValue)
+                || !pidValue.TryGetInt32(out var pid) || pid <= 0
+                || !payload.TryGetProperty("status", out var status) || status.GetString() != "running"
+                || !payload.TryGetProperty("updated_at", out var updated)
+                || !DateTimeOffset.TryParse(updated.GetString(), CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var time)) return false;
+            var age = now - time;
+            if (age < TimeSpan.Zero || age > TimeSpan.FromSeconds(8)) return false;
+
+            var startedAt = processStartedAt(pid);
+            // A recent heartbeat can outlive its process during a quick desktop
+            // restart. A reused PID must also predate this heartbeat. The JSON
+            // timestamp has second precision; the file timestamp closes that gap.
+            return startedAt.HasValue && startedAt.Value <= writtenAt
+                && startedAt.Value < time.AddSeconds(1);
+        }
+        catch { return false; }
     }
 
     private string ReadLastRoundTime()

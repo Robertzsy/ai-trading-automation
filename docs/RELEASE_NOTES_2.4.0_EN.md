@@ -20,6 +20,7 @@ This candidate combines bilingual support and an embedded DSH upgrade. These not
 
 ## DSH upgrade and compatibility
 
+- On a quick desktop restart, scheduler readiness checks both the heartbeat and process lifetime so a recently exited worker cannot prevent startup.
 - Multi-symbol research explicitly runs up to four roles concurrently and queues the rest, keeping CPU-derived workflow defaults from exceeding DSH's child-agent capacity.
 - Background research migrates additional known legacy templates with backups, inherits headless overrides and their declared local plugins, and continues to protect unrecognized legacy customizations.
 - Desktop startup preserves DSH's authenticated launch URL for readiness checks and WebView2 navigation, fixing a 60-second timeout even after the service has started.
