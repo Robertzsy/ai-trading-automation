@@ -51,7 +51,7 @@ STALE_SECONDS = 1800
 # restart killed every worker, so there is nothing else alive to wait for).
 STARTUP_STALE_SECONDS = 300
 LEASE_STALE_SECONDS = 3600
-MAX_SYMBOLS = 40
+MAX_SYMBOLS = 8
 
 
 def _lease_path(cycle_id: str) -> Any:
@@ -80,12 +80,14 @@ def _symbols(value: Any) -> list[str]:
     if not isinstance(value, list):
         raise ValueError("symbols 必须是数组")
     normalized: list[str] = []
-    for item in value[:MAX_SYMBOLS]:
+    for item in value:
         symbol = str(item or "").strip()
         if not symbol:
             raise ValueError("symbols 不能包含空值")
         if symbol not in normalized:
             normalized.append(symbol)
+    if len(normalized) > MAX_SYMBOLS:
+        raise ValueError("每轮最多研究8只标的 / A research round supports at most 8 securities")
     return normalized
 
 
@@ -109,7 +111,7 @@ def _screening_meta(market: str) -> Optional[Dict[str, Any]]:
         return None
     if not isinstance(payload, dict) or not payload:
         return None
-    symbols = payload.get("selected_symbols") or payload.get("allowed_symbols") or []
+    symbols = payload.get("research_symbols") or []
     return {
         "generated_at": payload.get("generated_at"),
         "source": payload.get("source"),
@@ -137,6 +139,22 @@ def _worker(
         return
     try:
         from engine import analysis_reports, dsh_bridge
+
+        if not symbols:
+            from engine.screening.preview import run_screening_preview
+            analysis_runs.update({"cycle_id": cycle_id, "stage": "screening", "event": "stage_start"})
+            from engine.screening.engine import latest_screening
+            cached = latest_screening(market, for_research=True)
+            preview = {"research_symbols": cached["research_symbols"], "audit": cached} if cached else run_screening_preview(market)
+            if analysis_runs.is_cancelled(cycle_id):
+                return
+            selected = analysis_runs.set_selection(cycle_id, preview)
+            symbols = _symbols(selected["symbols"])
+            analysis_runs.update({"cycle_id": cycle_id, "stage": "screening", "event": "checkpoint", "result": preview.get("audit", {})})
+        if analysis_runs.is_cancelled(cycle_id):
+            return
+        symbols = _symbols(symbols)  # Also validate old-run retries.
+        analysis_runs.update({"cycle_id": cycle_id, "stage": "data_preparation", "event": "stage_start"})
 
         app_dir = dsh_bridge._resolve_app_dir()
         if app_dir is None:

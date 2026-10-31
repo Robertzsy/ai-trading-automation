@@ -16,8 +16,8 @@ const RESEARCH_STAGE_KEYS = Object.freeze([
 
 function measuredStageFraction(row) {
   if (row?.status === 'completed') return 1;
-  const total = Number(row?.agents_total);
-  const completed = Number(row?.agents_done ?? 0);
+  const total = Number(row?.agents_total || row?.progress_total);
+  const completed = Number(row?.agents_total ? row.agents_done ?? 0 : row?.progress_done ?? 0);
   if (Number.isFinite(total) && total > 0 && Number.isFinite(completed)) {
     return Math.min(1, Math.max(0, completed / total));
   }
@@ -26,7 +26,7 @@ function measuredStageFraction(row) {
 
 function researchStageRows(run) {
   const stages = run?.stages ?? {};
-  return RESEARCH_STAGE_KEYS.map(stage => {
+  return [...(run?.symbols_source === "screening" || run?.stages?.screening ? ["screening"] : []), "data_preparation", ...RESEARCH_STAGE_KEYS].map(stage => {
     const saved = stages[stage];
     const row = saved && typeof saved === 'object' ? { ...saved, stage, recorded: true } : { stage, status: 'pending', recorded: false };
     const tasks = Object.values(run?.agents ?? {}).filter(task => task && task.stage === stage);
@@ -1833,6 +1833,8 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			get cancelled(){return tr("ui.stopped.2");}
 		};
 		function analysisStageLabel(stage) {
+            if (stage === "screening") return localeTag() === "en-US" ? "Stock screening" : "筛选股票";
+            if (stage === "data_preparation") return localeTag() === "en-US" ? "Shared evidence" : "资料准备";
 			return analysisStageNames[stage] ?? (stage || tr("ui.not.run.yet"));
 		}
 		function checkpointState(analysis, stages) {
@@ -1962,7 +1964,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 		// out of the engine payload (analysis record v2 {stages, agents, logs} +
 		// reports index).  A v1 record simply carries fewer fields.
 		const analysisMarkets = () => [["cn", tr("ui.mainland.china")], ["hk", tr("ui.hong.kong")], ["us", tr("ui.united.states")], ["etf", "ETF"]];
-		const MAX_ANALYSIS_SYMBOLS = 40;
+		const MAX_ANALYSIS_SYMBOLS = 8;
 		// A screening result older than this is re-run before a new analysis round.
 		const SCREENING_TTL_MINUTES = 30;
 		const ANALYSIS_PENDING_KEY = "ia.analysis.pending";
@@ -1970,7 +1972,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 		const ANALYSIS_POLL_IDLE_MS = 8000;
 		// Display metadata only: canonical stage order + the contract's stage
 		// labels.  Statuses, durations and counts always come from the API.
-		const analysisStageOrder = ["preparing", "resuming", "base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision", "execution", "ready_for_execution"];
+		const analysisStageOrder = ["preparing", "resuming", "screening", "data_preparation", "base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision", "execution", "ready_for_execution"];
 		const analysisTerminalStatuses = ["completed", "failed", "cancelled"];
 		const analysisStatusNames = {
 			get queued(){return tr("ui.queued");},
@@ -2115,7 +2117,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
             return h('section',{className:'ia-research-stage-summary','aria-label':tr('motion.stageTitle')},
                 h('div',{className:'ia-research-stage-head'},h('h3',null,tr('motion.stageTitle')),h('span',null,completed+' / '+rows.length)),
                 h('div',{className:'ia-stage-cards'},...rows.map(row=>h('div',{key:row.stage,className:'ia-stage-card','data-status':row.status},
-                    h(StageDot,{status:row.status,fraction:stageFraction(row),stage:row.stage}),h('span',{className:'ia-stage-card-label'},tr('motion.stage.'+row.stage))))),
+                    h(StageDot,{status:row.status,fraction:stageFraction(row),stage:row.stage}),h('span',{className:'ia-stage-card-label'},['screening','data_preparation'].includes(row.stage)?analysisStageLabel(row.stage):tr('motion.stage.'+row.stage))))),
                 h('div',{className:'ia-stage-total'},h('span',null,run&&!rows.some(row=>row.recorded)?tr('ui.no.stage.records.saved.for.this.round'):tr('motion.stageHint')),h('span',null,percent+'%')),
                 h('div',{className:'ia-stage-total-track',role:'progressbar','aria-label':tr('motion.stageTitle'),'aria-valuemin':0,'aria-valuemax':100,'aria-valuenow':percent},h('div',{className:'ia-stage-total-fill',style:{transform:`scaleX(${progress})`}})));
         }
@@ -2277,11 +2279,26 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 				data.loading ? h("div", { className: "ia-empty" }, tr("ui.loading.evidence")) : data.data?.evidence ? h("details", null, h("summary", null, tr("ui.expand.original.materials")), h("pre", { className: "ia-an-evidence-text" }, JSON.stringify(data.data.evidence, null, 2))) : null);
 		}
 
-		function AnalysisPipelineView({ run, loading, error, cycleId }) {
+		function ScreeningResult({ run }) {
+            const h = react.createElement;
+            const audit = run?.screening?.audit ?? run?.screening ?? run?.checkpoints?.screening?.result;
+            if (!Array.isArray(audit?.candidates)) return null;
+            const en = localeTag() === "en-US";
+            const labels = en ? ["Rank", "Security", "Quant", "Daily", "Final", "Change", "Research"] : ["排名", "标的", "量化分", "日报影响", "综合分", "排名变化", "进入研究"];
+            return h("details", {className:"ia-an-panel"},
+              h("summary",null,en ? "Screening results" : "选股结果"),
+              h("p",{className:"ia-an-note"}, (en ? "Daily brief: " : "日报：") + (audit.daily?.date ?? (en ? "unavailable" : "暂无")) + " · " + audit.prefetched_count + (en ? " evaluated · " : "只评估 · ") + (audit.research_symbols?.length ?? 0) + (en ? " for research" : "只进入研究")),
+              h("div",{style:{overflowX:"auto"}},h("table",{className:"ia-table",style:{width:"100%"}},
+                h("thead",null,h("tr",null,...labels.map(label=>h("th",{key:label},label)))),
+                h("tbody",null,...audit.candidates.map(row=>h("tr",{key:row.symbol,title:(row.daily_events ?? []).map(event=>event.summary).join("\n")},
+                  ...[row.rank, (row.name || row.symbol) + (row.name ? " · " + row.symbol : ""), row.quant_score, (row.daily_adjustment > 0 ? "+" : "") + row.daily_adjustment, row.selection_score, row.rank_change > 0 ? "↑" + row.rank_change : row.rank_change < 0 ? "↓" + -row.rank_change : "—", row.research_selected ? (en ? "Selected" : "已入选") : "—"].map((value,i)=>h("td",{key:i},value))))))));
+        }
+
+        function AnalysisPipelineView({ run, loading, error, cycleId }) {
 			const [logsOpen, setLogsOpen] = react.useState(false);
 			const stages = run && run.stages && typeof run.stages === "object" ? run.stages : {};
 			const stateMarkers = ["ready_for_execution", "completed", "failed", "cancelled"];
-			const stageRows = researchStageRows(run).concat(Object.keys(stages).filter(stage => !stateMarkers.includes(stage) && !RESEARCH_STAGE_KEYS.includes(stage)).map(stage => Object.assign({ stage }, stages[stage] ?? {})));
+			const stageRows = researchStageRows(run).concat(Object.keys(stages).filter(stage => !stateMarkers.includes(stage) && !["screening","data_preparation",...RESEARCH_STAGE_KEYS].includes(stage)).map(stage => Object.assign({ stage }, stages[stage] ?? {})));
 			stageRows.sort((a, b) => {
 				const left = analysisStageOrder.indexOf(a.stage);
 				const right = analysisStageOrder.indexOf(b.stage);
@@ -2328,6 +2345,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 							react_jsx_runtime.jsx("span", { className: "ia-chip", "data-kind": analysisStatusKind(run?.status), children: run ? tr("ui.round") + analysisStatusLabel(run.status) : tr("ui.no.rounds.yet") })
 						]
 					}),
+					react_jsx_runtime.jsx(ScreeningResult, {run}),
 					/* Everything above the stage list is the board: it sticks so the
 					   ring and the round bar stay visible while the stage and subagent
 					   lists scroll underneath. */
@@ -2349,7 +2367,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 								className: "ia-an-note",
 								children: run ? tr("ui.round") + String(run.cycle_id ?? cycleId ?? "-") + " · " + (marketName[run.market] ?? run.market ?? "-") + tr("ui.label") + String(run.label ?? "-") + tr("ui.securities.3") + (Array.isArray(run.symbols) ? run.symbols.length : 0) + tr("ui.items.3") : (cycleId ? tr("ui.round") + cycleId + tr("ui.no.record.returned.by.the.engine") : tr("ui.no.analysis.round.started"))
 							}),
-							react_jsx_runtime.jsx(RoundProgress, { stages: stageRows.filter(row => RESEARCH_STAGE_KEYS.includes(row.stage)) })
+							react_jsx_runtime.jsx(RoundProgress, { stages: stageRows.filter(row => ["screening","data_preparation",...RESEARCH_STAGE_KEYS].includes(row.stage)) })
 							, run && Number(run.started_agents ?? 0) > progress.total ? react_jsx_runtime.jsx("div", { className: "ia-an-note", children: tr("ui.historical.starts") + run.started_agents + tr("ui.including.retries.current.progress.deduplicates.roles.original.timestamps.and.failure") }) : null
 						]
 					}),
@@ -2562,8 +2580,8 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 					: null;
 			const runningFromSummary = summaryRuns.find((row) => String(row?.status ?? "") === "running") ?? (String(summaryAnalysis?.status ?? "") === "running" ? summaryAnalysis : null);
 			const activeState = useActiveRounds(run?.status === "running" || runningFromSummary ? ANALYSIS_POLL_RUNNING_MS : ANALYSIS_POLL_IDLE_MS);
-			// ⑤ disable condition: no running round anywhere the shell can see.
-			const runningRound = activeState.rounds.find((row) => String(row?.status ?? "") === "running") ?? runningFromSummary ?? (String(run?.status ?? "") === "running" ? run : null);
+			// Avoid duplicate starts in this market; other markets may keep running.
+			const runningRound = [...activeState.rounds, ...summaryRuns, run].find(row => row?.status === "running" && row?.market === market) ?? null;
 			const hasRunningRound = Boolean(runningRound);
 
 			const normalizedSymbols = normalizeAnalysisSymbols(symbolsText, market);
@@ -2576,7 +2594,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			const screenerRun = screeningCache && Array.isArray(screeningCache.selected_symbols) && screeningCache.selected_symbols.length > 0
 				? { cycle_id: String(screeningCache.generated_at ?? "-"), symbols: screeningCache.selected_symbols.map(String), age_minutes: screeningAgeMinutes(screeningCache), generated_at: screeningCache.generated_at }
 				: null;
-			const screeningFresh = Boolean(screenerRun && screenerRun.age_minutes <= SCREENING_TTL_MINUTES);
+			const screeningFresh = Boolean(screenerRun && screenerRun.age_minutes <= Number(screeningCache?.refresh_minutes ?? SCREENING_TTL_MINUTES));
 			const goalOptions = [];
 			for (const row of [run, ...summaryRuns]) {
 				const value = String(row?.goal_id ?? "");
@@ -2674,46 +2692,10 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 			};
 
 			const handleStart = async () => {
-				if (!canStart) return;
-				let picked = symbols;
-				if (source === "screening") {
-					let cache = screeningCache;
-					if (!cache) {
-						try {
-							const payload = await jsonFetch("/api/investment/analysis?action=screening&market=" + encodeURIComponent(market));
-							cache = payload?.screening ?? null;
-							setScreeningCache(cache);
-						} catch { cache = null; }
-					}
-					if (cache && Array.isArray(cache.selected_symbols) && cache.selected_symbols.length > 0) {
-						if (screeningAgeMinutes(cache) > SCREENING_TTL_MINUTES) {
-							setQuickBusy("full");
-							setNotice(null);
-							try {
-								const result = await jsonFetch("/api/investment/analysis?action=screen&market=" + encodeURIComponent(market));
-								const preview = result?.screening ?? {};
-								const fresh = Array.isArray(preview.selected_symbols) ? preview.selected_symbols.map(String) : [];
-								if (fresh.length === 0) {
-									setNotice({ kind: "warn", text: tr("ui.screening.results.are.older.than") + SCREENING_TTL_MINUTES + tr("ui.minutes.refreshed.screening.found.no.securities.enter.tickers.manually.or.try.later") });
-									return;
-								}
-								picked = fresh;
-								setSymbolsText(fresh.join(","));
-								setScreeningCache(preview);
-							} catch (error) {
-								setNotice({ kind: "err", text: tr("ui.automatic.screening.refresh.failed") + String(error?.message ?? error) });
-								return;
-							} finally {
-								setQuickBusy("");
-							}
-						} else {
-							picked = cache.selected_symbols.map(String);
-						}
-					}
-				}
-				if (picked.length === 0) return;
-				await submitStart({ cycleId: newAnalysisCycleId(market, label), market, label: label || "manual", symbols: picked, symbolsSource: source, goalId });
-			};
+                if (!canStart) return;
+                await submitStart({cycleId:newAnalysisCycleId(market,label),market,label:label || "manual",
+                  symbols:source === "screening" ? [] : symbols,symbolsSource:source,goalId});
+            };
 			// ── one-click entries ──────────────────────────────────────────────
 			// ② Screen. The engine's screening endpoint returns a dashboard preview
 			// whose selected list is `selected_symbols` (there is no `candidates`
@@ -2769,35 +2751,13 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 				setQuickBusy("full");
 				setNotice(null);
 				try {
-					let picked = symbols;
-					// A full pipeline starts from a screening result. Reuse the cache only
-					// while it is younger than the TTL; otherwise re-screen first.
-					if (picked.length === 0 || source === "screening") {
-						if (screeningFresh && screenerRun) {
-							picked = screenerRun.symbols.map(String);
-							setSymbolsText(picked.join(","));
-							setSource("screening");
-						} else {
-							const result = await jsonFetch("/api/investment/analysis?action=screen&market=" + encodeURIComponent(market));
-							const preview = result?.screening ?? {};
-							picked = Array.isArray(preview.selected_symbols) ? preview.selected_symbols.map(String) : [];
-							if (picked.length > 0) {
-								setSymbolsText(picked.join(","));
-								setSource("screening");
-								setScreeningCache(preview);
-							}
-						}
-					}
-					if (picked.length === 0) {
-						setNotice({ kind: "warn", text: tr("ui.workflow.not.started.screening.returned.no.selections.enter.securities.manually") });
-						return;
-					}
+					const picked = source === "screening" ? [] : symbols;
 					await submitStart({
 						cycleId: newAnalysisCycleId(market, label),
 						market,
 						label: label || "manual",
 						symbols: picked,
-						symbolsSource: source === "screening" || picked !== symbols ? "screening" : source,
+						symbolsSource: picked.length ? "user" : "screening",
 						goalId
 					});
 				} catch (error) {
@@ -2945,7 +2905,7 @@ const localized = Component => function Localized(props) { useProductLocale(); r
 								className: "ia-an-field",
 								children: [
 									react_jsx_runtime.jsx("label", { className: "ia-an-lab", htmlFor: "ia-an-symbols", children: tr("ui.security.list.comma.space.newline.separated.deduplicated") }),
-									react_jsx_runtime.jsx("textarea", { id: "ia-an-symbols", className: "ia-an-area", value: symbolsText, spellCheck: false, placeholder: "600519, 000858", onChange: (event) => setSymbolsText(event.target.value) }),
+									react_jsx_runtime.jsx("textarea", { id: "ia-an-symbols", className: "ia-an-area", value: symbolsText, spellCheck: false, placeholder: "600519, 000858", onChange: (event) => { setSymbolsText(event.target.value); setSource("user"); } }),
 									react_jsx_runtime.jsx("div", { className: "ia-an-note", children: tr("ui.recognized") + symbolCount + tr("ui.securities.2") + (symbolOverflow ? tr("ui.exceeds.maximum") + MAX_ANALYSIS_SYMBOLS + tr("ui.securities.5") : "") })
 								]
 							}),

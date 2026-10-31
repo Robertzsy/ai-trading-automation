@@ -16,6 +16,13 @@ import pytest
 from engine import macro, scheduler
 
 
+@pytest.fixture(autouse=True)
+def in_memory_settings(monkeypatch):
+    # These tests patch cfg.raw; disk refresh is covered with two AppConfig
+    # instances in test_daily_screening instead.
+    monkeypatch.setattr(scheduler.cfg, "reload_if_changed", lambda: False)
+
+
 def test_macro_report_syncs_into_standalone_runtime(monkeypatch, tmp_path):
     source = tmp_path / "source"
     target = tmp_path / "target"

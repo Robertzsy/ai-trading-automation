@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import json
-import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional
 from zoneinfo import ZoneInfo
 
-from engine.atomic_write import atomic_replace, write_text_atomic
+from engine.atomic_write import write_text_atomic
 from engine.config import cfg
 from engine.investment.contracts import CommandEnvelope, InvestmentCommand, normalize_market
 from engine.investment.mandate import get_mandate, set_mandate
@@ -18,7 +17,6 @@ from engine.investment.reflection import InvestmentReflectionService
 ROOT = Path(__file__).resolve().parents[2]
 from engine.paths import runtime_dir
 COMMAND_DIR = runtime_dir() / "investment" / "commands"
-_mode_lock = threading.RLock()
 
 
 def _now() -> str:
@@ -38,18 +36,10 @@ def _save_operation_mode(mode: str) -> Dict[str, Any]:
     normalized = str(mode).strip().lower()
     if normalized not in {"manual", "automatic"}:
         raise ValueError("mode 必须是 manual 或 automatic")
-    import yaml
-
-    config_path = Path(cfg._path)  # one authoritative configured file
-    with _mode_lock:
-        config_data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
-        autonomous = config_data.setdefault("autonomous", {})
-        autonomous.update({"operation_mode": normalized, "enabled": True, "auto_execute": True})
-        temporary = config_path.with_suffix(config_path.suffix + ".tmp")
-        temporary.write_text(yaml.safe_dump(config_data, allow_unicode=True, sort_keys=False), encoding="utf-8")
-        atomic_replace(temporary, config_path)
-        cfg.reload()
-    return {"mode": normalized, "enabled": True, "auto_execute": True}
+    from engine.config_api import apply_config_changes
+    apply_config_changes({"autonomous.operation_mode": normalized})
+    autonomous = cfg.autonomous
+    return {"mode": normalized, "enabled": bool(autonomous.get("enabled", False)), "auto_execute": bool(autonomous.get("auto_execute", False))}
 
 
 class InvestmentAgentService:

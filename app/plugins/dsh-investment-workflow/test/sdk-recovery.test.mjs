@@ -10,7 +10,7 @@ import LocalSubprocessRuntime from "@deepseek-ai/dsh-subprocess-local";
 import LocalFileSystem from "@deepseek-ai/dsh-fs-local";
 import { registerAnalysisWorkflow } from "../../dsh-investment-tools/lib/analysis-workflow.js";
 
-const targets=Array.from({length:20},(_,i)=>"TEST"+i);
+const targets=Array.from({length:8},(_,i)=>"TEST"+i);
 function output(schema, key="", symbol="TEST0") {
   if(schema.enum)return schema.enum.includes("HOLD")?"HOLD":schema.enum[0];
   if(schema.const!==undefined)return schema.const;
@@ -25,7 +25,7 @@ function output(schema, key="", symbol="TEST0") {
 const softFailures = ["research_debate", "portfolio_draft", "risk_review", "final_decision"].flatMap(stage => ["max-tokens", "refusal", "missing-structured"].map(reason => stage + "/" + reason));
 for(const failure of [null,"base_research","research_debate","portfolio_draft","risk_review","final_decision",...softFailures,"partial-base"])test("real PTC process chain / child failure: "+(failure??"none"),{timeout:60000},async()=>{
   const previous=process.env.ATA_AUTONOMOUS_ROUND;process.env.ATA_AUTONOMOUS_ROUND="1";
-  const ctx=new Context(),tools=new Map(),archives={},state={cycle_id:"sdk-20",status:"running",checkpoints:{},output_language:failure===null?"en":"zh"},stageStarts=[];
+  const ctx=new Context(),tools=new Map(),archives={},state={cycle_id:"sdk-8",status:"running",checkpoints:{},output_language:failure===null?"en":"zh"},stageStarts=[];
   let currentStage,inject=Boolean(failure),providerCalls=0,ids=0;
   const providerLabels=[];
   ctx.provide("systemPrompt",{tools(){},section(){}});
@@ -82,14 +82,14 @@ for(const failure of [null,"base_research","research_debate","portfolio_draft","
         assert.equal(providerLabels.includes("risk-manager"),false);
       }
       const paidSoFar=providerCalls;await assert.rejects(first());assert.equal(providerCalls,paidSoFar);
-      const savedStages=stageStarts.slice(0,-1);
+      const savedStages=stageStarts.slice(0,-1).filter(stage=>stage!=="data_preparation");
       state.status="running";
       assert.equal((await session()()).status,"ready_for_execution");
       for(const stage of savedStages)assert.equal(stageStarts.filter(value=>value===stage).length,1);
     }else{
-      assert.equal((await first()).status,"ready_for_execution");assert.equal(providerCalls,166);
+      assert.equal((await first()).status,"ready_for_execution");assert.equal(providerCalls,70);
     }
-    assert.equal(Object.keys(state.checkpoints).length,5);assert.equal(state.decisions.length,failure==="partial-base"?19:20);
+    assert.equal(Object.keys(state.checkpoints).length,5);assert.equal(state.decisions.length,failure==="partial-base"?7:8);
     assert.equal(archives.base_research[1].analyses[0].summary.length,"合成软件故障测试".length*2500);
   }finally{await ctx.fiber.dispose();if(previous===undefined)delete process.env.ATA_AUTONOMOUS_ROUND;else process.env.ATA_AUTONOMOUS_ROUND=previous;}
 });

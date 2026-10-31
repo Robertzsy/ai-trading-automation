@@ -12,17 +12,25 @@ test('stage percentages use recorded successful tasks, never elapsed time or fai
   assert.equal(measuredStageFraction({status:'running',agents_total:2,agents_done:5}),1);
 });
 
-test('five fixed stages preserve missing records and count current roles only', () => {
+test('specified symbols show preparation and five stages, counting current roles only', () => {
   const run={current_stage:'research_debate',status:'running',stages:{base_research:{status:'completed'},research_debate:{status:'running',agents_total:9,agents_done:9}},agents:{a:{stage:'research_debate',status:'completed'},b:{stage:'research_debate',status:'failed'},c:{stage:'research_debate',status:'running'}}};
   const rows=researchStageRows(run);
-  assert.equal(rows.length,5);
-  assert.equal(rows[0].status,'completed');
-  assert.equal(rows[1].agents_done,1);
-  assert.equal(rows[1].agents_total,3);
-  assert.equal(measuredStageFraction(rows[1]),1/3);
-  assert.equal(rows[4].recorded,false);
-  assert.equal(rows[4].status,'pending');
+  assert.equal(rows.length,6);
+  assert.equal(rows[0].stage,'data_preparation');
+  assert.equal(rows[1].status,'completed');
+  assert.equal(rows[2].agents_done,1);
+  assert.equal(rows[2].agents_total,3);
+  assert.equal(measuredStageFraction(rows[2]),1/3);
+  assert.equal(rows[5].recorded,false);
+  assert.equal(rows[5].status,'pending');
   assert.equal(run.stages.research_debate.agents_done,9);
+});
+
+test('screening rounds display seven stages and keep unknown progress indeterminate', () => {
+  const rows=researchStageRows({symbols_source:'screening',current_stage:'screening',status:'running'});
+  assert.equal(rows.length,7);
+  assert.equal(rows[0].stage,'screening');
+  assert.equal(measuredStageFraction(rows[0]),null);
 });
 
 function animatedElement(){

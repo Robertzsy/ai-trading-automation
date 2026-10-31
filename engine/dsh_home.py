@@ -15,10 +15,31 @@ import hashlib
 import logging
 import os
 import shutil
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from engine.runtime_lock import ProcessLease
+
 logger = logging.getLogger("ai-trading-automation.dsh-home")
+
+
+def _same_tree(source: Path, target: Path) -> bool:
+    """Avoid removing a live plugin when another startup already refreshed it."""
+    if not target.is_dir():
+        return False
+    source_files = {path.relative_to(source) for path in source.rglob("*") if path.is_file()}
+    target_files = {path.relative_to(target) for path in target.rglob("*") if path.is_file()}
+    return source_files == target_files and all(
+        (source / path).read_bytes() == (target / path).read_bytes() for path in source_files
+    )
+
+
+def _copy_if_changed(source, target):
+    source, target = Path(source), Path(target)
+    if not target.is_file() or source.read_bytes() != target.read_bytes():
+        shutil.copy2(source, target)
+    return str(target)
 
 
 def _seed_profiles(source: Path, target: Path, *, force: bool) -> None:
@@ -62,7 +83,7 @@ def _seed_profiles(source: Path, target: Path, *, force: bool) -> None:
             if child.is_dir():
                 _copy_tree(child, output, force=force)
             elif force or not output.exists():
-                shutil.copy2(child, output)
+                _copy_if_changed(child, output)
 
 
 def _copy_tree(source: Path, target: Path, *, force: bool, allowed: Optional[list[str]] = None) -> None:
@@ -76,9 +97,9 @@ def _copy_tree(source: Path, target: Path, *, force: bool, allowed: Optional[lis
         if destination.exists() and not force:
             continue
         if child.is_dir():
-            shutil.copytree(child, destination, dirs_exist_ok=True)
+            shutil.copytree(child, destination, dirs_exist_ok=True, copy_function=_copy_if_changed)
         else:
-            shutil.copy2(child, destination)
+            _copy_if_changed(child, destination)
 
 
 def _install_plugins(plugins_root: Path, profiles_root: Path, *, force: bool, allowed: Optional[list[str]] = None) -> None:
@@ -106,6 +127,8 @@ def _install_plugins(plugins_root: Path, profiles_root: Path, *, force: bool, al
             destination = profile / "node_modules" / name
             if destination.exists() and not force:
                 continue
+            if _same_tree(plugin, destination):
+                continue
             if destination.exists():
                 shutil.rmtree(destination)
             shutil.copytree(plugin, destination)
@@ -113,6 +136,25 @@ def _install_plugins(plugins_root: Path, profiles_root: Path, *, force: bool, al
 
 def seed_dsh_home(app_dir: str | Path, dsh_home: str | Path, *, force: bool = False) -> Dict[str, Any]:
     """Seed profiles/presets/skills/plugins from app/ into DSH_HOME."""
+    # API and scheduler start together. Protect their shared shipped trees;
+    # the OS releases this lock even if one startup process exits unexpectedly.
+    lease = ProcessLease(Path(dsh_home) / ".product-seed.lock")
+    deadline = time.monotonic() + 30
+    while True:
+        try:
+            lease.acquire()
+            break
+        except RuntimeError:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("Timed out waiting for DSH product files to finish syncing")
+            time.sleep(.05)
+    try:
+        return _seed_dsh_home(app_dir, dsh_home, force=force)
+    finally:
+        lease.release()
+
+
+def _seed_dsh_home(app_dir: str | Path, dsh_home: str | Path, *, force: bool) -> Dict[str, Any]:
     app = Path(app_dir)
     home = Path(dsh_home)
     manifest_path = app / "product-manifest.json"

@@ -30,6 +30,15 @@ class AppConfig:
     def reload(self) -> None:
         with open(self._path, encoding="utf-8") as f:
             self._data = yaml.safe_load(f) or {}
+        stat = Path(self._path).stat()
+        self._revision = (stat.st_mtime_ns, stat.st_size)
+
+    def reload_if_changed(self) -> bool:
+        stat = Path(self._path).stat()
+        if (stat.st_mtime_ns, stat.st_size) == getattr(self, "_revision", None):
+            return False
+        self.reload()
+        return True
 
     @property
     def raw(self) -> Dict[str, Any]: return self._data

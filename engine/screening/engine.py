@@ -11,6 +11,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Seque
 
 from engine.atomic_write import write_text_atomic
 from engine.data import fetcher
+from engine.screening import daily_signals
 from engine.screening.storage import (
     MongoScreeningStore,
     get_screening_store,
@@ -469,7 +470,7 @@ def _latest_path(market: str) -> Path:
     return SCREENING_DIR / f"latest-{market}.json"
 
 
-def latest_screening(market: str, *, max_age_minutes: Optional[int] = None, now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
+def latest_screening(market: str, *, max_age_minutes: Optional[int] = None, now: Optional[datetime] = None, for_research: bool = False) -> Optional[Dict[str, Any]]:
     normalized = str(market or "").strip().lower()
     payload = None
     settings: Mapping[str, Any] = {}
@@ -490,6 +491,11 @@ def latest_screening(market: str, *, max_age_minutes: Optional[int] = None, now:
             payload = json.loads(_latest_path(normalized).read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             return None
+    if for_research:
+        current_daily = daily_signals.load_daily(now or datetime.now().astimezone())
+        if payload.get("selection_version") != daily_signals.SELECTION_VERSION or payload.get("daily", {}).get("hash") != current_daily.get("hash"):
+            return None
+        max_age_minutes = int(settings.get("refresh_minutes", 30))
     if max_age_minutes is not None:
         generated = _parse_time(payload.get("generated_at"))
         current = now or datetime.now().astimezone()
@@ -544,6 +550,10 @@ def _apply_conditions(
             elif operator == "contains":
                 if str(target or "") not in str(actual or ""):
                     ok = False
+            elif operator in {"==", "=", "!=", "<>"}:
+                expected = _number(target) if isinstance(actual, (int, float)) else str(target or "")
+                equal = actual == expected
+                ok = equal if operator in {"==", "="} else not equal
             else:
                 left, right = actual, _number(target)
                 if left is None or right is None:
@@ -706,10 +716,6 @@ def run_screening(
             rows = [{"symbol": item, "name": ""} for item in fallback]
 
     condition_rejected: Dict[str, int] = {}
-    if conditions:
-        rows, condition_rejected = _apply_conditions(rows, conditions)
-        if not rows:
-            status = "conditions_no_match"
     mx_audit: Optional[Dict[str, Any]] = None
     if status == "screened" and market == "cn":
         mx_rows, mx_audit = _miaoxiang_candidates(market, settings)
@@ -724,11 +730,56 @@ def run_screening(
             if added:
                 source = f"{source}+miaoxiang"
 
-    ranked = sorted(rows, key=_cheap_score, reverse=True)
-    preselected = ranked[:snapshot_limit]
+    daily = daily_signals.load_daily(now) if enabled else {"events": [], "status": "disabled"}
+    if daily.get("events") and daily.get("hash"):
+        from engine.screening.daily_semantics import enrich_daily
+        daily = enrich_daily(daily, market, settings)
+    from engine.data.securities import load_catalog
+    catalog = load_catalog(market).get("data", []) if daily.get("events") else []
+    identities = {row["symbol"]: row for row in catalog}
+    rows = [{**identities.get(row["symbol"], {}), **row,
+             "sector": row.get("sector") or identities.get(row["symbol"], {}).get("sector", ""),
+             "industry": row.get("industry") or identities.get(row["symbol"], {}).get("industry", ""),
+             "aliases": identities.get(row["symbol"], {}).get("aliases", row.get("aliases", []))} for row in rows]
+    recalled_snapshots, recalled_errors = {}, {}
+    daily_added = 0
+    if enabled and not configured and daily.get("events"):
+        # The catalogue is local. Fetch only the at-most-ten event matches
+        # outside discovery, then apply the same filters as every other source.
+        try:
+            known = {row["symbol"] for row in rows}
+            matches = [(row, daily_signals.signals_for(row, daily, market)) for row in catalog if row["symbol"] not in known]
+            matches = sorted((pair for pair in matches if pair[1]["daily_relevance"] > 0), key=lambda pair: -pair[1]["daily_relevance"])[:daily_signals.DAILY_CANDIDATE_LIMIT]
+            if matches:
+                recalled_snapshots, recalled_errors = snapshot_loader([row["symbol"] for row, _ in matches], workers)
+                additions = []
+                for row, _ in matches:
+                    quote = recalled_snapshots.get(row["symbol"], {}).get("realtime", {})
+                    additions.append({**row, **quote, "symbol": row["symbol"], "source": "daily"})
+                additions, _ = _filter_candidates(additions, market, settings)
+                rows.extend(additions)
+                daily_added = len(additions)
+        except Exception as exc:
+            logger.warning("Daily candidate recall unavailable: %s", type(exc).__name__)
+    if conditions:
+        rows, condition_rejected = _apply_conditions(rows, conditions)
+        if not rows:
+            status = "conditions_no_match"
+    preselected = daily_signals.preselect(rows, snapshot_limit, daily, market, _cheap_score)
     requested = _dedupe([*held, *(row.get("symbol") for row in preselected)])
-    snapshots, errors = snapshot_loader(requested, workers)
+    snapshots, errors = snapshot_loader([symbol for symbol in requested if symbol not in recalled_snapshots], workers)
+    snapshots.update(recalled_snapshots)
+    errors.update(recalled_errors)
     scored = _factor_rows(preselected, snapshots, settings) if enabled else []
+    metadata = {row["symbol"]: row for row in preselected}
+    for row in scored:
+        row["aliases"] = metadata[row["symbol"]].get("aliases", [])
+    scored_symbols = {row["symbol"] for row in scored}
+    for symbol in metadata.keys() - scored_symbols:
+        snapshot = snapshots.get(symbol, {})
+        reason = snapshot.get("indicators", {}).get("error") or snapshot.get("error") or "Insufficient quote or indicator data"
+        errors.setdefault(symbol, str(reason)[:500])
+    candidates, research = daily_signals.rank_and_select(scored, daily, market, snapshots=snapshots)
     mongo_snapshots_written = False
     if store is not None:
         try:
@@ -739,7 +790,7 @@ def run_screening(
             mark_screening_store_failed(settings, store, exc)
             logger.warning("MongoDB screening snapshot/factor write failed: %s", exc)
             store = None
-    selected = scored[:shortlist_size]
+    selected = candidates[:shortlist_size]
     selected_symbols = [item["symbol"] for item in selected]
     if not selected_symbols:
         selected_symbols = [symbol for symbol in requested if symbol not in held][:shortlist_size]
@@ -755,6 +806,11 @@ def run_screening(
             for symbol in selected_symbols
             if symbol in snapshots
         ]
+    # Allowed holdings remain available to portfolio/risk consumers. They are
+    # never implicitly added to the paid research list.
+    research_symbols = [row["symbol"] for row in research]
+    if not research_symbols and not scored:
+        research_symbols = [row["symbol"] for row in selected if (row.get("price") or 0) > 0][:8]
     symbols = _dedupe([*held, *selected_symbols], max_universe)
     selected_snapshots = {symbol: snapshots[symbol] for symbol in symbols if symbol in snapshots}
     selected_errors = {symbol: error for symbol, error in errors.items() if symbol in symbols or symbol in requested}
@@ -771,6 +827,15 @@ def run_screening(
         "scored_count": len(scored),
         "shortlist_size": shortlist_size,
         "selected_symbols": selected_symbols,
+        "research_symbols": research_symbols,
+        "candidate_symbols": [row["symbol"] for row in candidates],
+        "candidates": candidates,
+        "daily": {key: value for key, value in daily.items() if key != "events"},
+        "daily_events_count": len(daily.get("events", [])),
+        "daily_added_count": daily_added,
+        "daily_evaluated_count": sum(row.get("daily_relevance", 0) > 0 for row in preselected),
+        "selection_version": daily_signals.SELECTION_VERSION,
+        "selection_strategy": daily_signals.SELECTION_STRATEGY,
         "allowed_symbols": symbols,
         "selected": selected,
         "rejected": rejected,

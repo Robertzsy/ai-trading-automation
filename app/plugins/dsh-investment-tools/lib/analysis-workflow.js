@@ -462,6 +462,10 @@ function checkCancellation(payload) {
 
 async function submitReadyRun(client, run, label, note) {
   const cycleId = run.cycle_id;
+  const current = (await client.get("/api/config"))?.config;
+  if (current && (current.autonomous?.enabled !== true || current.autonomous?.auto_execute !== true || current.autonomous?.operation_mode === "manual" || current.schedule?.auto_rounds_enabled === false || (run.catch_up && current.autonomous?.trade_on_catch_up !== true))) {
+    return {run, execution:{status:"not_submitted", reason_code:"AUTO_EXECUTION_DISABLED"}};
+  }
   const decisions = run.decisions ?? [];
   const execution = await client.issue("submit_decisions", {market:run.market,decisions,label,note,idempotency_key:cycleId}, {requestedBy:"dsh-analysis-workflow",timeoutMs:300000});
   const complete = await saveRunState(client, "/api/analysis/runs/complete", {cycle_id:cycleId,decisions,execution:compact(execution),report:execution?.report??null,audit_file:execution?.audit_file??null,warnings:run.warnings??[]});
@@ -747,41 +751,48 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           client.get("/api/config"),
           client.get("/api/analysis/runs?market="+normalizedMarket+"&limit=3").catch(() => ({runs:[]})),
         ]);
-        if (status?.control?.kill_switch || status?.control?.kill_switch_active || status?.control?.paused) throw new Error(message("workflow.the.engine.is.paused.or.emergency.stopped.no.analysis.round.was.started"));
+        if (status?.control?.kill_switch || status?.control?.kill_switch_active) throw new Error(message("workflow.the.engine.is.paused.or.emergency.stopped.no.analysis.round.was.started"));
         const holdings = holdingMap(portfolio);
         const holdingSymbols = Object.keys(holdings);
         const config = configPayload?.config ?? {};
         const workflowConfig = config?.autonomous?.agent_workflow ?? {};
-        const maxUniverse = Math.max(1, Number(config?.autonomous?.max_universe_size ?? 30));
+        const maxUniverse = 8;
 
         // ── target universe: explicit symbols win; screening is the fallback ──
         let targets = uniqueSymbols(symbols);
         let screeningNote = null;
+        let screeningAudit = null;
         if (targets.length === 0) {
+          const admission = await saveRunState(client, "/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket,label:safeLabel,symbols:[],symbols_source:"screening",submit:Boolean(submit)});
+          started = true;
+          if (["completed","cancelled","failed","ready_for_execution"].includes(admission.analysis?.status)) return {...summarize(admission.analysis),done:true};
+          await saveRunState(client, "/api/analysis/runs/update", {cycle_id:cycleId,stage:"screening",event:"stage_start"});
           // Reuse the cached screening only while it is fresh (30 minutes);
           // otherwise re-screen so an autonomous round never runs on a stale pool.
-          const SCREENING_TTL_MS = 30 * 60 * 1000;
+          const SCREENING_TTL_MS = Number(config?.screening?.refresh_minutes ?? 30) * 60 * 1000;
           let screeningPayload = await client.get("/api/screening/"+normalizedMarket);
           const cachedScreening = screeningPayload?.screening;
           const cachedAt = Date.parse(String(cachedScreening?.generated_at ?? cachedScreening?.audited_at ?? ""));
-          const screeningFresh = Boolean(screeningPayload?.cached && cachedScreening && Number.isFinite(cachedAt) && (Date.now() - cachedAt) <= SCREENING_TTL_MS);
+          const screeningFresh = Boolean(screeningPayload?.cached && cachedScreening?.research_symbols && Number.isFinite(cachedAt) && (Date.now() - cachedAt) <= SCREENING_TTL_MS);
           if (!screeningFresh) {
             screeningPayload = await client.issue("run_screening", {market:normalizedMarket}, {requestedBy:"dsh-analysis-workflow",timeoutMs:300000});
           }
           const screening = screeningPayload?.screening ?? screeningPayload;
-          const selected = uniqueSymbols(screening?.selected_symbols ?? screening?.allowed_symbols ?? []);
+          const selected = uniqueSymbols(screening?.research_symbols ?? screening?.audit?.research_symbols ?? []);
           screeningNote = message("workflow.targets.came.from.screening.and.holdings.screened.within.the.automatic.round");
-          targets = uniqueSymbols([...holdingSymbols,...selected]).slice(0,maxUniverse);
+          targets = selected;
+          screeningAudit = screening?.audit ?? screening;
+          await saveRunState(client, "/api/analysis/runs/update", {cycle_id:cycleId,stage:"screening",event:"checkpoint",result:screeningAudit});
         } else {
           screeningNote = message("workflow.targets.were.explicitly.selected.by.the.caller") + symbolsSource + message("workflow.screening.pool.securities.were.not.added");
         }
         if (targets.length === 0) throw new Error(message("workflow.screening.and.holdings.are.empty.analysis.cannot.start"));
-        if (targets.length > maxUniverse) targets = targets.slice(0, maxUniverse);
+        if (targets.length > maxUniverse) throw new Error("每轮最多研究8只标的 / At most 8 securities per research round");
 
         const researchRounds = Math.max(1,Math.min(3,Number(workflowConfig.research_debate_rounds ?? 1)));
         const riskRounds = Math.max(1,Math.min(3,Number(workflowConfig.risk_debate_rounds ?? 1)));
         const expectedAgents = targets.length * (6 + 2 * researchRounds) + 3 * riskRounds + 3;
-        const startPayload = await saveRunState(client, "/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket, ...(["zh","en"].includes(process.env.ATA_OUTPUT_LANGUAGE) ? {output_language:process.env.ATA_OUTPUT_LANGUAGE} : {}),label:safeLabel,symbols:targets,symbols_source:symbolsSource,submit:Boolean(submit),holding_symbols:holdingSymbols,expected_agents:expectedAgents});
+        const startPayload = await saveRunState(client, "/api/analysis/runs/start", {cycle_id:cycleId,market:normalizedMarket, ...(["zh","en"].includes(process.env.ATA_OUTPUT_LANGUAGE) ? {output_language:process.env.ATA_OUTPUT_LANGUAGE} : {}),label:safeLabel,symbols:targets,symbols_source:symbolsSource,submit:Boolean(submit),catch_up:process.env.ATA_ROUND_CATCH_UP === "1",holding_symbols:holdingSymbols,expected_agents:expectedAgents,...(screeningAudit ? {screening:{audit:screeningAudit}} : {})});
         started = true;
         meter.begin(cycleId, exec.agent);
         const runState = startPayload.analysis ?? {};
@@ -846,6 +857,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           return executeStage(ctx, client, exec, activeRuns, cycleId, stage,
             uniformOutput ? uniformScript(script, WORKFLOW_AGENT_SCHEMAS) : script, args, maxAgents, policyRun, briefRun, thinking);
         };
+        await saveRunState(client, "/api/analysis/runs/update", {cycle_id:cycleId,stage:"data_preparation",event:"stage_start"});
         const packets = collectShared && checkpoints.base_research?.result && (researchRoles || researchBriefs)
           ? (await client.get("/api/analysis/evidence?cycle_id=" + encodeURIComponent(cycleId) + "&stage=shared_research").catch(() => null))?.evidence
           : collectShared && !checkpoints.base_research?.result
@@ -864,6 +876,7 @@ export function registerAnalysisWorkflow(ctx, client, registerTool, { cacheOptim
           } catch { collectionWarnings.push(message("workflow.shared.evidence.archive.request.failed.traceability.is.incomplete")); }
         }
         if (collectShared) checkCancellation(await client.get("/api/analysis/run?cycle_id=" + encodeURIComponent(cycleId)));
+        await saveRunState(client, "/api/analysis/runs/update", {cycle_id:cycleId,stage:"data_preparation",event:"checkpoint",result:{symbols:targets}});
         const base = await runStage("base_research",(singleConversationBaseResearch ? cachedScripts?.base_research_single : null) ?? cachedScripts?.base_research ?? BASE_RESEARCH_SCRIPT,{symbols:targets,market:normalizedMarket,roles:Object.keys(ROLE_INSTRUCTIONS),role_instructions:ROLE_INSTRUCTIONS,memory,packets,research_roles:researchRoles},targets.length*4);
         const validation = validBaseResearch(base,minimumAnalysts,minimumCitations,requireCitations,targets);
         const successRatio = validation.good.length / targets.length;

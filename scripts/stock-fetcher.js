@@ -156,39 +156,34 @@ async function getTencentRealtime(market, code) {
  * param: <代码>,day,,,<数量>,qfq(前复权) 或 空(不复权)
  * 返回 data[code].day 或 .qfqday 数组: [日期, 开盘, 收盘, 最高, 最低, 成交量]
  */
-async function getTencentHistory(market, code, period = "day", count = 1023, fq = "qfq") {
-  let tencentCode = toTencentCode(market, code);
-  // 美股K线统一用 .OQ 后缀（如 usAAPL.OQ）
-  if (market === "us" && !tencentCode.includes(".")) tencentCode += ".OQ";
-  const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${tencentCode},${period},,,${count},${fq}`;
-  const text = await fetchText(url, { encoding: "utf8" });
+function tencentHistoryCodes(market, code) {
+  const base = toTencentCode(market, code);
+  if (market !== "us" || /\.(OQ|N|A)$/i.test(base)) return [base];
+  // A share-class dot (BRK.B) is not an exchange suffix. Some Nasdaq/NYSE
+  // aliases return a single quote under the wrong suffix instead of an error.
+  const compact = base.replace(/\./g, "");
+  return [...new Set([base + ".OQ", base + ".N", compact + ".N", compact + ".OQ"])];
+}
 
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    return { error: "K线数据解析失败" };
+async function getTencentHistory(market, code, period = "day", count = 1023, fq = "qfq", loadText = fetchText) {
+  let best = { error: "暂无K线数据", count: 0, data: [] };
+  for (const tencentCode of tencentHistoryCodes(market, code)) {
+    try {
+      const url = `https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=${tencentCode},${period},,,${count},${fq}`;
+      const json = JSON.parse(await loadText(url, { encoding: "utf8" }));
+      const node = json.code === 0 && json.data?.[tencentCode];
+      if (!node) continue;
+      const rows = node["qfq" + period] || node[period] || [];
+      if (!Array.isArray(rows)) continue;
+      const data = rows.map(r => ({date: r[0], open: +r[1], close: +r[2], high: +r[3], low: +r[4], volume: +r[5]}))
+        .filter(r => Number.isFinite(r.close) && r.close > 0);
+      if (data.length > best.count) best = { code: tencentCode, count: data.length, data };
+      if (data.length >= Math.min(30, count)) return best;
+    } catch (error) {
+      if (market !== "us") throw error;
+    }
   }
-  if (json.code !== 0 || !json.data) return { error: "暂无K线数据" };
-
-  const key = Object.keys(json.data)[0];
-  if (!key) return { error: "暂无K线数据" };
-  const node = json.data[key];
-
-  // 腾讯返回 day 或 qfqday 字段
-  let rows = node[period] || node[`${period === "day" ? "qfq" : ""}day`] || node.qfqday || node.day;
-  if (!Array.isArray(rows)) rows = [];
-
-  const data = rows.map((r) => ({
-    date: r[0],
-    open: parseFloat(r[1]),
-    close: parseFloat(r[2]),
-    high: parseFloat(r[3]),
-    low: parseFloat(r[4]),
-    volume: parseFloat(r[5]),
-  }));
-
-  return { code: tencentCode, count: data.length, data };
+  return best;
 }
 
 // ─── 新浪实时行情（A股备用） ──────────────────────────
@@ -941,4 +936,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { detectMarket };
+module.exports = { detectMarket, tencentHistoryCodes, getTencentHistory };

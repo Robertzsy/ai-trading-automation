@@ -7,8 +7,8 @@ export const RESEARCH_STAGE_KEYS = Object.freeze([
 
 export function measuredStageFraction(row) {
   if (row?.status === 'completed') return 1;
-  const total = Number(row?.agents_total);
-  const completed = Number(row?.agents_done ?? 0);
+  const total = Number(row?.agents_total || row?.progress_total);
+  const completed = Number(row?.agents_total ? row.agents_done ?? 0 : row?.progress_done ?? 0);
   if (Number.isFinite(total) && total > 0 && Number.isFinite(completed)) {
     return Math.min(1, Math.max(0, completed / total));
   }
@@ -17,7 +17,7 @@ export function measuredStageFraction(row) {
 
 export function researchStageRows(run) {
   const stages = run?.stages ?? {};
-  return RESEARCH_STAGE_KEYS.map(stage => {
+  return [...(run?.symbols_source === "screening" || run?.stages?.screening ? ["screening"] : []), "data_preparation", ...RESEARCH_STAGE_KEYS].map(stage => {
     const saved = stages[stage];
     const row = saved && typeof saved === 'object' ? { ...saved, stage, recorded: true } : { stage, status: 'pending', recorded: false };
     const tasks = Object.values(run?.agents ?? {}).filter(task => task && task.stage === stage);

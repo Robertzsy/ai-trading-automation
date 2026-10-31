@@ -81,7 +81,7 @@ def test_runner_spawns_headless_profile_with_task(monkeypatch, tmp_path):
         captured["env"] = kwargs.get("env") or {}
         return subprocess.CompletedProcess(command, 0, stdout="轮次总结".encode("utf-8"), stderr=b"")
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     monkeypatch.setattr(dsh_bridge, "_latest_audit_since", lambda *args: None)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
 
@@ -112,7 +112,7 @@ def test_profile_sync_failure_never_spawns_paid_research(monkeypatch, tmp_path):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setattr(dsh_bridge, "_sync_internal_home", lambda *a, **kw: (_ for _ in ()).throw(OSError("profile locked")))
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", lambda *a, **kw: pytest.fail("must stop before launching node"))
+    monkeypatch.setattr(dsh_bridge, "run_headless", lambda *a, **kw: pytest.fail("must stop before launching node"))
     runner = dsh_bridge.DshBridgeRunner(app_dir=tmp_path / "app", node="node.exe", dsh_home=str(home))
     result = runner.run_analysis_round("cn", symbols=["600519"], symbols_source="user", label="sync-failure", submit=False, cycle_id="sync-failure")
     assert result["status"] == "error"
@@ -128,7 +128,7 @@ def test_runner_passes_engine_url_from_api_port(monkeypatch, tmp_path):
         captured["env"] = kwargs.get("env") or {}
         return subprocess.CompletedProcess(command, 0, stdout=b"ok", stderr=b"")
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
     monkeypatch.setenv("INVESTMENT_API_PORT", "8802")
     monkeypatch.delenv("INVESTMENT_ENGINE_URL", raising=False)
@@ -167,7 +167,7 @@ def test_desktop_runner_applies_dpapi_patch_with_or_without_token(monkeypatch, t
         captured[key] = list(command)
         return subprocess.CompletedProcess(command, 0, stdout=b"ok", stderr=b"")
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
 
     captured["_token"] = "desktop-token"
@@ -227,7 +227,7 @@ def test_source_development_uses_the_settings_pages_file_credentials(monkeypatch
         captured["home"] = kwargs["env"]["DSH_HOME"]
         return subprocess.CompletedProcess(command, 0, stdout=b"ok", stderr=b"")
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     _runner(tmp_path).run_analysis_round("us", symbols=["AAPL"], symbols_source="user", label="dev", submit=False, cycle_id="dev-test")
     assert "--patch" not in captured["command"]
     assert (Path(captured["home"]) / ".credentials.yaml").read_bytes() == credentials.read_bytes()
@@ -249,7 +249,7 @@ def test_tokenless_desktop_keeps_dpapi_even_with_leftover_file_credentials(monke
         captured["home"] = kwargs["env"]["DSH_HOME"]
         return subprocess.CompletedProcess(command, 0, stdout=b"ok", stderr=b"")
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     _runner(tmp_path).run_analysis_round("us", symbols=["AAPL"], symbols_source="user", label="desktop", submit=False, cycle_id="desktop-test")
     assert "--patch" in captured["command"]
     assert not (Path(captured["home"]) / ".credentials.yaml").exists()
@@ -295,7 +295,7 @@ def test_runner_folds_engine_audit_into_result(monkeypatch, tmp_path):
     def fake_run(command, **kwargs):
         return subprocess.CompletedProcess(command, 0, stdout="ok".encode("utf-8"), stderr=b"")
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
     result = _runner(tmp_path)("cn", "intraday", _context())
 
@@ -312,7 +312,7 @@ def test_runner_reports_process_failure(monkeypatch, tmp_path):
     def fake_run(command, **kwargs):
         return subprocess.CompletedProcess(command, 1, stdout=b"", stderr="fatal error".encode("utf-8"))
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
     result = _runner(tmp_path)("cn", "intraday", _context())
 
@@ -328,7 +328,7 @@ def test_runner_reports_timeout(monkeypatch, tmp_path):
     def fake_run(command, **kwargs):
         raise subprocess.TimeoutExpired(command, 30)
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
     result = _runner(tmp_path)("us", "close", _context())
 
@@ -398,7 +398,7 @@ def test_runner_spawns_analysis_round_with_same_env(monkeypatch, tmp_path):
         captured["env"] = kwargs.get("env") or {}
         return subprocess.CompletedProcess(command, 0, stdout="分析总结".encode("utf-8"), stderr=b"")
 
-    monkeypatch.setattr(dsh_bridge.subprocess, "run", fake_run)
+    monkeypatch.setattr(dsh_bridge, "run_headless", fake_run)
     monkeypatch.setattr(dsh_bridge.shutil, "which", lambda name: "node.exe")
 
     result = _runner(tmp_path).run_analysis_round(

@@ -78,7 +78,10 @@ def run_screening_preview(
     )
     return {
         "market": normalized,
-        "selected_symbols": outcome.symbols,
+        "selected_symbols": outcome.audit["research_symbols"],
+        "research_symbols": outcome.audit["research_symbols"],
+        "candidate_symbols": outcome.audit["candidate_symbols"],
+        "holding_symbols": held,
         "snapshots": outcome.snapshots,
         "market_data_errors": outcome.market_data_errors,
         "audit": outcome.audit,

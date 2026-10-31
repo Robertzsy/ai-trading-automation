@@ -224,8 +224,8 @@
     "en": "The engine is paused or emergency-stopped; no analysis round was started"
   },
   "workflow.targets.came.from.screening.and.holdings.screened.within.the.automatic.round": {
-    "zh": "目标来自选股池与持仓（自动轮次内部选股）",
-    "en": "Targets came from screening and holdings (screened within the automatic round)"
+    "zh": "目标来自选股结果，持仓仅作为组合背景，不扩充研究名单。",
+    "en": "Targets came from screening. Existing holdings remain portfolio context and do not expand the research list."
   },
   "workflow.targets.were.explicitly.selected.by.the.caller": {
     "zh": "目标来自调用方显式指定（",
@@ -236,8 +236,8 @@
     "en": "); screening-pool securities were not added"
   },
   "workflow.screening.and.holdings.are.empty.analysis.cannot.start": {
-    "zh": "选股与持仓均为空，无法启动分析",
-    "en": "Screening and holdings are empty; analysis cannot start"
+    "zh": "未筛选出可研究标的；请查看选股结果。",
+    "en": "No research candidates were selected. Review the screening result."
   },
   "workflow.submit.the.saved.final.decisions.for.this.paper.round": {
     "zh": "使用已保存的最终决策完成本轮模拟提交",

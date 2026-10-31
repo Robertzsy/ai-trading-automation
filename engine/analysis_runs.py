@@ -197,6 +197,13 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
                 _write(path, existing)
             if existing.get("status") == "running":
                 existing = _restore_checkpoints(existing)
+                if not existing.get("symbols") and payload.get("symbols"):
+                    symbols = list(dict.fromkeys(str(code).strip() for code in payload["symbols"] if str(code).strip()))
+                    if len(symbols) > 8:
+                        raise ValueError("每轮最多研究8只标的 / At most 8 securities per research round")
+                    existing["symbols"] = symbols
+                    existing["screening"] = payload.get("screening", existing.get("screening"))
+                    _write(path, existing)
                 # The UI orchestrator creates the run before the workflow can
                 # calculate its role count. Fill this initially unknown value
                 # once; replayed starts must not change an established plan.
@@ -209,6 +216,8 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             symbol = str(item).strip()
             if symbol and symbol not in symbols:
                 symbols.append(symbol)
+        if len(symbols) > 8:
+            raise ValueError("每轮最多研究8只标的 / At most 8 securities per research round")
         symbols_source = str(payload.get("symbols_source") or "").strip().lower()
         if symbols_source not in {"user", "screening", "autonomous"}:
             # Legacy records and older callers had no source; infer it from
@@ -231,6 +240,7 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             "symbols": symbols,
             "symbols_source": symbols_source,
             "submit": bool(payload.get("submit", False)),
+            "catch_up": bool(payload.get("catch_up", False)),
             # Screening freshness captured at round start (feedback loop only).
             "screening": payload.get("screening") if isinstance(payload.get("screening"), dict) else None,
             "holding_symbols": [
@@ -255,6 +265,23 @@ def start_or_resume(payload: Mapping[str, Any], *, retry_failed: bool = False) -
             "updated_at": now,
             "completed_at": None,
         }
+        _write(path, run)
+        return copy.deepcopy(run)
+
+
+def set_selection(cycle_id: str, screening: Mapping[str, Any]) -> Dict[str, Any]:
+    """Persist a prepared shortlist before a headless worker is launched."""
+    with _lock:
+        path = _path(cycle_id)
+        run = _read(path)
+        if run is None:
+            raise KeyError(cycle_id)
+        if run.get("status") != "running":
+            return copy.deepcopy(run)
+        symbols = list(screening.get("research_symbols", screening.get("selected_symbols", [])))
+        if not symbols or len(symbols) > 8:
+            raise ValueError("选股需要1—8只有效标的 / Screening must select 1–8 securities")
+        run.update(symbols=symbols, screening=dict(screening), updated_at=_now())
         _write(path, run)
         return copy.deepcopy(run)
 
@@ -359,6 +386,9 @@ def update(payload: Mapping[str, Any]) -> Dict[str, Any]:
             _end_stage(stage_state, "completed", now, result)
         elif event == "stage_start":
             stage_state["status"] = "running"
+            total, done = payload.get("progress_total"), payload.get("progress_done")
+            if isinstance(total, int) and isinstance(done, int) and 0 <= done <= total:
+                stage_state.update(progress_total=total, progress_done=done)
         else:
             raise ValueError("event 必须是 stage_start、agent_start、agent_end 或 checkpoint")
         run["updated_at"] = now

@@ -1,3 +1,4 @@
+import { workflowOptions } from "../lib/index.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -16,7 +17,7 @@ import { registerAnalysisWorkflow } from "../../dsh-investment-tools/lib/analysi
 // Exercise the released shared-evidence scripts and the migrated production
 // dedup override through real managed PTC processes, IPC, scope and tool hooks.
 // All provider answers and research sources are local deterministic fixtures.
-const targets = Array.from({ length: 20 }, (_, i) => "OFFLINE" + String(i).padStart(2, "0"));
+const targets = Array.from({ length: 8 }, (_, i) => "OFFLINE" + String(i).padStart(2, "0"));
 const stages = ["base_research", "research_debate", "portfolio_draft", "risk_review", "final_decision"];
 const yamlSchema = DEFAULT_SCHEMA.extend([
   new Type("tag:yaml.org,2002:js", { kind: "scalar", construct: value => value }),
@@ -34,7 +35,7 @@ async function productionConfig() {
   // The migrated root patch contains this single approved workflow override.
   // Keep it explicit without making the test depend on a user's home or keys.
   const rootOverride = { id: "investment-analysis-workflow", config: { deduplicateResearch: true } };
-  const options = { ...workflow[0].config, ...rootOverride.config };
+  const options = workflowOptions(rootOverride.config);
   assert.equal(options.sharedResearch, true);
   assert.equal(options.deduplicateResearch, true);
   assert.equal(options.strictEvidence, false);
@@ -57,7 +58,7 @@ function output(schema, key = "", symbol = targets[0]) {
 }
 
 function durableRun() {
-  const state = { cycle_id: "production-20", market: "us", status: "running", checkpoints: {}, output_language: "en", submit: false };
+  const state = { cycle_id: "production-8", market: "us", status: "running", checkpoints: {}, output_language: "en", submit: false };
   const archives = {}, stageStarts = [], providerCalls = Object.fromEntries(stages.map(stage => [stage, 0]));
   const allowedPosts = new Set(["/api/research/plan", ...["start", "update", "archive", "checkpoint", "fail", "events"].map(action => "/api/analysis/runs/" + action)]);
   let currentStage;
@@ -202,21 +203,21 @@ async function autonomous(task) {
   finally { for (const key of keys) if (previous[key] === undefined) delete process.env[key]; else process.env[key] = previous[key]; }
 }
 
-test("production shared research + dedup: 20 targets complete all five real PTC stages", { timeout: 60000 }, () => autonomous(async () => {
+test("sparse production config + dedup: 8 targets complete preparation and five real PTC stages", { timeout: 60000 }, () => autonomous(async () => {
   const durable = durableRun(), runtime = await harness(durable);
   try {
     const result = await runtime.run();
     assert.equal(result.status, "ready_for_execution");
     assert.equal(result.execution.status, "not_submitted");
     assert.equal(result.decisions.length, targets.length);
-    assert.deepEqual(durable.stageStarts, stages);
+    assert.deepEqual(durable.stageStarts, ["data_preparation", ...stages]);
     assert.deepEqual(Object.keys(durable.state.checkpoints), stages);
-    assert.equal(runtime.stats.materialized, 166);
-    assert.equal(runtime.stats.gated, 166);
+    assert.equal(runtime.stats.materialized, 70);
+    assert.equal(runtime.stats.gated, 70);
     assert.equal(runtime.stats.childReads, targets.length * 4);
     assert.equal(Object.keys(durable.archives.shared_research).length, targets.length);
     for (const tool of ["investment_market_snapshot", "investment_market_history", "investment_fundamentals", "web_search"]) assert.equal(runtime.stats.upstream[tool], targets.length, tool + " must reuse the prefetched evidence");
-    assert.ok(durable.state.checkpoints.base_research.evidence_registry.length >= 80);
+    assert.ok(durable.state.checkpoints.base_research.evidence_registry.length >= 32);
     assertReleased(runtime);
   } finally { await runtime.dispose(); }
 }));
@@ -255,7 +256,7 @@ test("production cancellation stops queued roles, cleans children and preserves 
     durable.state.status = "cancelled"; // Same durable status observed by the workflow's polling loop.
     const result = await pending;
     assert.equal(result.status, "cancelled");
-    assert.deepEqual(durable.stageStarts, ["base_research"]);
+    assert.deepEqual(durable.stageStarts, ["data_preparation", "base_research"]);
     assert.equal(Object.keys(durable.state.checkpoints).length, 0);
     assert.ok(runtime.stats.materialized < targets.length * 4, "queued roles must not materialize after cancellation");
     assertReleased(runtime);

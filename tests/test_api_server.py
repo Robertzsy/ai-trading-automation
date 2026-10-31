@@ -132,16 +132,16 @@ def test_large_multistock_checkpoint_commits_and_survives_http_replay(api, monke
     from engine import analysis_runs, analysis_reports
     monkeypatch.setattr(analysis_runs, "runtime_dir", lambda: tmp_path / "runtime")
     monkeypatch.setattr(analysis_reports, "_analysis_dir", lambda: tmp_path / "runtime/analysis_runs")
-    symbols = [f"{600000 + i}" for i in range(20)]
-    _post(api, "/api/analysis/runs/start", {"cycle_id": "20-stock", "market": "cn", "symbols": symbols})
-    evidence = [{"symbol": symbol, "analyses": [{"summary": "verified evidence " * 1500} for _ in range(4)]} for symbol in symbols]
+    symbols = [f"{600000 + i}" for i in range(8)]
+    assert _post(api, "/api/analysis/runs/start", {"cycle_id": "8-stock", "market": "cn", "symbols": symbols})[0] == 200
+    evidence = [{"symbol": symbol, "analyses": [{"summary": "verified evidence " * 3500} for _ in range(4)]} for symbol in symbols]
     compact = [{"symbol": row["symbol"], "analyses": [{"summary": item["summary"][:1600]} for item in row["analyses"]]} for row in evidence]
-    body = {"cycle_id": "20-stock", "stage": "base_research", "result": compact, "archives": {"base_research": evidence}, "agents_started": 80}
+    body = {"cycle_id": "8-stock", "stage": "base_research", "result": compact, "archives": {"base_research": evidence}, "agents_started": 32}
     assert len(json.dumps(body).encode()) > 1_000_000
     code, first = _post(api, "/api/analysis/runs/checkpoint", body)
-    assert code == 200 and len(first["analysis"]["checkpoints"]["base_research"]["result"]) == 20
+    assert code == 200 and len(first["analysis"]["checkpoints"]["base_research"]["result"]) == 8
     assert _post(api, "/api/analysis/runs/checkpoint", body)[1]["analysis"]["checkpoints"] == first["analysis"]["checkpoints"]
-    restored = _get(api, "/api/analysis/evidence?cycle_id=20-stock&stage=base_research")["evidence"]
+    restored = _get(api, "/api/analysis/evidence?cycle_id=8-stock&stage=base_research")["evidence"]
     assert restored == evidence
 
 

@@ -4,9 +4,9 @@ import { registerAnalysisWorkflow, validBaseResearch } from "../../dsh-investmen
 
 // Exercise the real executor without model calls, keeping both the raw archive
 // and compact checkpoint payloads visible at the engine boundary.
-function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheckpoint, loseCheckpointReply, loseReadyReply, failCleanup, failFlush, submit=false, loseSubmitReply } = {}) {
+function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheckpoint, loseCheckpointReply, loseReadyReply, failCleanup, failFlush, submit=false, loseSubmitReply, autoExecute=true, catchUp=false } = {}) {
   const tools = new Map(), archives = {}, calls = [], started = [], disposed = [];
-  const state = { cycle_id: "execution-test", market:"us", submit, status: initialStatus, checkpoints: {} };
+  const state = { cycle_id: "execution-test", market:"us", submit, catch_up:catchUp, status: initialStatus, checkpoints: {} };
   const longText = "研究证据".repeat(1000);
   const values = {
     base_research: [{ symbol: "AAPL", analyses: Array.from({ length: 4 }, () => ({ summary: longText, evidence: [{ id: "e1", claim: longText }] })) }],
@@ -31,7 +31,7 @@ function pipeline({ failAt, initialStatus = "running", onStart, cancelAfterCheck
   };
   const client = {
     async get(path) {
-      if (path === "/api/config") return { config: {} };
+      if (path === "/api/config") return { config: {autonomous:{enabled:true, auto_execute:autoExecute, trade_on_catch_up:false}} };
       if (path === "/api/mandate") return { mandate: {} };
       if (path.startsWith("/api/analysis/run?")) return { ok: true, analysis: structuredClone(state) };
       if (path.startsWith("/api/analysis/evidence?")) return { ok: true, evidence: archives[new URLSearchParams(path.split("?")[1]).get("stage")] ?? null };
@@ -179,6 +179,15 @@ test("approved autonomous ready run submits stored decisions without research",(
   assert.equal((await run.execute()).status,"completed");
   assert.equal(run.started.length,0);
   assert.equal(run.calls.filter(row=>row.path==="submit_decisions").length,1);
+}));
+
+test("automatic execution disabled after research preserves ready decisions",()=>headless(async()=>{
+  for (const options of [{autoExecute:false},{catchUp:true}]) {
+    const run=pipeline({initialStatus:"ready_for_execution",submit:true,...options});
+    run.state.decisions=[];
+    assert.equal((await run.execute()).status,"ready_for_execution");
+    assert.equal(run.calls.filter(row=>row.path==="submit_decisions").length,0);
+  }
 }));
 
 test("stopping an active stage aborts its children and admits no later stages", { timeout: 5000 }, () => headless(async () => {

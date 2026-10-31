@@ -330,6 +330,15 @@ def submit_decisions(
         bound_run = None
     allowed = _allowed_symbols(market, holdings)
     if bound_run is not None:
+        if bound_run.get("submit") and requested_by == "dsh-analysis-workflow":
+            cfg.reload_if_changed()
+            automatic = cfg.autonomous
+            if (automatic.get("enabled") is not True or automatic.get("auto_execute") is not True
+                    or automatic.get("operation_mode", "automatic") != "automatic"
+                    or cfg.schedule.get("auto_rounds_enabled", True) is not True
+                    or (bound_run.get("catch_up") and automatic.get("trade_on_catch_up") is not True)):
+                _release_claim(dedupe_key)
+                raise RuntimeError("自动执行已关闭；保留研究结果 / Automatic execution disabled; research preserved")
         if bound_run.get("status") != "ready_for_execution":
             _record_rejected(dedupe_key, "分析轮次尚未就绪（状态必须为 ready_for_execution）或已经执行完成", fingerprint=fingerprint, market=market, label=label)
             raise RuntimeError("分析轮次尚未就绪：请等待固定分析流程到达 ready_for_execution 后再提交")

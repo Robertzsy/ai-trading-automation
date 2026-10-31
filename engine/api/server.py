@@ -325,11 +325,11 @@ class _Handler(BaseHTTPRequestHandler):
             from engine.config import cfg
             from engine.screening import latest_screening
 
-            cached = latest_screening(market, now=datetime.now(ZoneInfo(cfg.schedule.get("timezone", "Asia/Shanghai"))))
+            cached = latest_screening(market, now=datetime.now(ZoneInfo(cfg.schedule.get("timezone", "Asia/Shanghai"))), for_research=True)
             if cached is None:
                 self._send(200, {"ok": True, "market": market, "cached": False, "screening": None})
                 return
-            self._send(200, {"ok": True, "market": market, "cached": True, "screening": cached})
+            self._send(200, {"ok": True, "market": market, "cached": True, "screening": {**cached, "selected_symbols": cached.get("research_symbols", []), "refresh_minutes": cfg.screening.get("refresh_minutes", 30)}})
             return
         if path.startswith("/api/optimizer/"):
             market = path.rsplit("/", 1)[-1].strip().lower()

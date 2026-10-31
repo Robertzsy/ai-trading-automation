@@ -14,6 +14,8 @@ headless run can lose a round but can never duplicate fills.
 """
 from __future__ import annotations
 
+from engine.research_process import run_headless
+
 import json
 import logging
 import os
@@ -115,6 +117,7 @@ def _resolve_dsh_home(app_dir: Path) -> str:
 
 def _round_task(market: str, cycle_type: str, context: Mapping[str, Any]) -> str:
     catch_up = bool(context.get("catch_up"))
+    submit = bool(cfg.autonomous.get("auto_execute", False)) and (not catch_up or bool(cfg.autonomous.get("trade_on_catch_up", False)))
     scheduled_at = context.get("scheduled_at")
     schedule_text = scheduled_at.isoformat(timespec="minutes") if isinstance(scheduled_at, datetime) else str(scheduled_at or "")
     kind = "收盘复盘轮次" if cycle_type == "close" else "盘中轮次"
@@ -122,7 +125,7 @@ def _round_task(market: str, cycle_type: str, context: Mapping[str, Any]) -> str
         f"你在执行 AI Trading Automation 的 {market.upper()} 市场{kind}（计划时间 {schedule_text}，"
         f"{'启动补跑' if catch_up else '准时运行'}）。\n\n"
         f"这是自主调度轮次。必须调用一次 investment_analysis_workflow(market=\"{market}\", "
-        f"label=\"{context.get('label', 'auto')}\", submit=true)，由固定工作流完成四类基础研究、多空辩论、"
+        f"label=\"{context.get('label', 'auto')}\", submit={'true' if submit else 'false'})，由固定工作流完成四类基础研究、多空辩论、"
         f"研究经理、个股交易员、组合构建、三方风险辩论、风险经理和最终组合经理。不要自行简化步骤，"
         f"也不要绕过该工具直接调用 investment_submit_decisions。\n\n"
         f"工具返回的检查点、硬风控结果、成交和拒绝清单是唯一事实。最后按本轮规定的输出语言简要复述最终决策、"
@@ -403,7 +406,7 @@ class DshBridgeRunner:
         configured_timeout = int(_bridge_config().get("node_timeout_seconds", 0) or 0)
         self.timeout_seconds = int(timeout_seconds or configured_timeout or 1800)
 
-    def _spawn(self, market: str, task: str, label: str, cycle_id: str, *, language: str | None = None) -> Dict[str, Any]:
+    def _spawn(self, market: str, task: str, label: str, cycle_id: str, *, language: str | None = None, catch_up: bool = False) -> Dict[str, Any]:
         """Run one headless DSH round (shared by scheduled and analysis rounds)."""
         from engine.subprocess_utils import decode_subprocess_output, hidden_subprocess_kwargs
 
@@ -420,6 +423,7 @@ class DshBridgeRunner:
         env["DSH_PERMISSION_MODE"] = "danger-full-access"
         env["ATA_AUTONOMOUS_ROUND"] = "1"
         env["INVESTMENT_CYCLE_ID"] = cycle_id
+        env["ATA_ROUND_CATCH_UP"] = "1" if catch_up else "0"
         # Give workflow cancellation/disposal time to finish before Python's
         # hard process timeout. Identical 30-minute deadlines used to race.
         env["ATA_ROUND_DEADLINE_MS"] = str(int((time.time() + max(1, self.timeout_seconds - 30)) * 1000))
@@ -465,13 +469,16 @@ class DshBridgeRunner:
         start_wall = time.time()
         logger.info("[DSH-BRIDGE:%s] spawning headless round (label=%s)", market, label)
         try:
-            completed = subprocess.run(
+            completed = run_headless(
                 command,
+                cycle_id=cycle_id,
                 capture_output=True,
                 timeout=self.timeout_seconds,
                 env=env,
                 **hidden_subprocess_kwargs(),
             )
+        except InterruptedError:
+            return {"status": "cancelled", "reason": "research_stopped"}
         except subprocess.TimeoutExpired as exc:
             logger.exception("[DSH-BRIDGE:%s] headless round timed out", market)
             self._fail_running(cycle_id, f"DSH 轮次超时（>{self.timeout_seconds}s），检查点保留")
@@ -514,9 +521,12 @@ class DshBridgeRunner:
             analysis_runs.finish({"cycle_id": cycle_id, "error": error}, failed=True)
 
     def __call__(self, market: str, cycle_type: str, context: Mapping[str, Any]) -> Dict[str, Any]:
+        from engine.scheduler import _auto_rounds_enabled
+        if context.get("trigger") != "manual" and (not _auto_rounds_enabled() or cfg.autonomous.get("operation_mode", "automatic") != "automatic"):
+            return {"status": "skipped", "reason": "automatic_research_disabled"}
         label = str(context.get("label", "auto"))[:40]
         task = _round_task(market, cycle_type, context)
-        spawned = self._spawn(market, task, label, _cycle_id(market, context), language=context.get("output_language"))
+        spawned = self._spawn(market, task, label, _cycle_id(market, context), language=context.get("output_language"), catch_up=bool(context.get("catch_up")))
         if spawned.get("status") != "generated":
             return spawned
         audit = _latest_audit_since(market, label, spawned.pop("_start_wall"))

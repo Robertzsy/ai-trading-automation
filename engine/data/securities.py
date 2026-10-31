@@ -72,7 +72,8 @@ def _rows(payload: Mapping[str, Any], market: str) -> list[dict]:
         aliases = list(extra) if isinstance(extra, list) else []
         aliases.extend(_ALIASES.get((market, symbol), []))
         aliases = list(dict.fromkeys(_text(value)[:100] for value in aliases if _text(value)))
-        output[symbol] = {"symbol": symbol, "name": name, "market": market, "aliases": aliases}
+        output[symbol] = {"symbol": symbol, "name": name, "market": market, "aliases": aliases,
+                          "sector": _text(row.get("sector")), "industry": _text(row.get("industry"))}
     return list(output.values())
 
 

@@ -24,21 +24,27 @@ function registerTool(ctx, toolName, description, parameters, executor, options 
   }));
 }
 
+export function workflowOptions(config) {
+  return {
+    sharedResearch: process.env.IA_SHARED_RESEARCH !== undefined ? process.env.IA_SHARED_RESEARCH === "1" : config?.sharedResearch !== false,
+    // Keep the released path as the default until the opt-in comparison passes.
+    cacheOptimization: config?.cacheOptimization === true || process.env.IA_CACHE_OPTIMIZATION === "1",
+    researchPolicy: process.env.IA_RESEARCH_TOOL_POLICY ?? config?.researchPolicy ?? "off",
+    lightweightResults: process.env.IA_LIGHTWEIGHT_RESULTS !== undefined ? process.env.IA_LIGHTWEIGHT_RESULTS === "1" : config?.lightweightResults !== false,
+    uniformOutput: process.env.IA_UNIFORM_RESEARCH_OUTPUT !== undefined ? process.env.IA_UNIFORM_RESEARCH_OUTPUT === "1" : config?.uniformOutput === true,
+    strictEvidence: process.env.IA_VERIFY_RESEARCH_EVIDENCE !== undefined ? process.env.IA_VERIFY_RESEARCH_EVIDENCE === "1" : config?.strictEvidence === true,
+    researchRoles: process.env.IA_RESEARCH_ROLES !== undefined ? process.env.IA_RESEARCH_ROLES === "1" : config?.researchRoles === true,
+    deduplicateResearch: process.env.IA_DEDUPLICATE_RESEARCH !== undefined ? process.env.IA_DEDUPLICATE_RESEARCH === "1" : config?.deduplicateResearch === true,
+    singleConversationBaseResearch: config?.singleConversationBaseResearch === true,
+    researchBriefs: process.env.IA_RESEARCH_BRIEFS !== undefined ? process.env.IA_RESEARCH_BRIEFS === "1" : config?.researchBriefs === true,
+    selectiveFastThinking: process.env.IA_SELECTIVE_FAST_THINKING !== undefined ? process.env.IA_SELECTIVE_FAST_THINKING === "1" : config?.selectiveFastThinking === true,
+  };
+}
+
 export function apply(ctx, config) {
   const engineUrl = process.env.INVESTMENT_ENGINE_URL ??
     (typeof config?.engineUrl === "string" ? config.engineUrl : "http://127.0.0.1:8790");
   const token = process.env.ATA_ACCESS_TOKEN ?? (typeof config?.token === "string" ? config.token : "");
-  registerAnalysisWorkflow(ctx, new EngineClient(engineUrl, token), registerTool, {
-    sharedResearch: process.env.IA_SHARED_RESEARCH !== undefined ? process.env.IA_SHARED_RESEARCH === "1" : config?.sharedResearch === true,
-    // Keep the released path as the default until the opt-in comparison passes.
-    cacheOptimization: config?.cacheOptimization === true || process.env.IA_CACHE_OPTIMIZATION === "1",
-    researchPolicy: process.env.IA_RESEARCH_TOOL_POLICY ?? config?.researchPolicy ?? "off",
-    lightweightResults: process.env.IA_LIGHTWEIGHT_RESULTS !== undefined ? process.env.IA_LIGHTWEIGHT_RESULTS === "1" : config?.lightweightResults === true,
-    uniformOutput: process.env.IA_UNIFORM_RESEARCH_OUTPUT !== undefined ? process.env.IA_UNIFORM_RESEARCH_OUTPUT === "1" : config?.uniformOutput === true,
-    strictEvidence: process.env.IA_VERIFY_RESEARCH_EVIDENCE !== undefined ? process.env.IA_VERIFY_RESEARCH_EVIDENCE === "1" : config?.strictEvidence !== false,
-    researchRoles: process.env.IA_RESEARCH_ROLES !== undefined ? process.env.IA_RESEARCH_ROLES === "1" : config?.researchRoles === true,
-    deduplicateResearch: process.env.IA_DEDUPLICATE_RESEARCH !== undefined ? process.env.IA_DEDUPLICATE_RESEARCH === "1" : config?.deduplicateResearch === true,
-    researchBriefs: process.env.IA_RESEARCH_BRIEFS !== undefined ? process.env.IA_RESEARCH_BRIEFS === "1" : config?.researchBriefs === true,
-    selectiveFastThinking: process.env.IA_SELECTIVE_FAST_THINKING !== undefined ? process.env.IA_SELECTIVE_FAST_THINKING === "1" : config?.selectiveFastThinking === true,
-  });
+  registerAnalysisWorkflow(ctx, new EngineClient(engineUrl, token), registerTool, workflowOptions(config));
+
 }

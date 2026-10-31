@@ -177,3 +177,35 @@ def test_unknown_legacy_custom_edits_remain_protected(tmp_path):
     with pytest.raises(ValueError, match="contains custom edits"):
         dsh_home.seed_dsh_home(app, tmp_path / "home", force=True)
     assert patch.read_bytes() == custom
+
+
+def test_concurrent_startups_do_not_remove_live_unchanged_plugins(tmp_path):
+    import subprocess
+    import sys
+    from concurrent.futures import ThreadPoolExecutor
+
+    app = _make_app(tmp_path)
+    plugin = app / "plugins/dsh-test-plugin"
+    (plugin / "client.js").write_text("// live product client\n", encoding="utf-8")
+    home = tmp_path / "home"
+    dsh_home.seed_dsh_home(app, home, force=True)
+    target = home / "profiles/investment-web/node_modules/@ai-trading-automation/dsh-test-plugin/client.js"
+    before = target.stat().st_mtime_ns
+    code = "from engine.dsh_home import seed_dsh_home; import sys; [seed_dsh_home(sys.argv[1], sys.argv[2], force=True) for _ in range(6)]"
+
+    def run_startup():
+        return subprocess.run([sys.executable, "-c", code, str(app), str(home)],
+                              capture_output=True, text=True, timeout=20)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first, second = pool.submit(run_startup), pool.submit(run_startup)
+        while not (first.done() and second.done()):
+            assert target.read_text(encoding="utf-8") == "// live product client\n"
+        for result in (first.result(), second.result()):
+            assert result.returncode == 0, result.stderr
+    assert target.stat().st_mtime_ns == before
+
+    # A real shipped update is still installed on the next startup.
+    (plugin / "client.js").write_text("// updated product client\n", encoding="utf-8")
+    dsh_home.seed_dsh_home(app, home, force=True)
+    assert target.read_text(encoding="utf-8") == "// updated product client\n"

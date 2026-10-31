@@ -22,6 +22,11 @@ REPORT_DIR = runtime_dir() / "reports"
 SCHEDULER_LOCK = runtime_dir() / "scheduler.lock"
 _active_scheduler: Optional[_BgScheduler] = None
 
+
+class _QuietSettingsRefresh(logging.Filter):
+    def filter(self, record):
+        return record.levelno >= logging.WARNING or ".refresh_settings (" not in record.getMessage()
+
 # ── cycle runner plug (AI Trading Automation 2.0) ─────────────────────────────────
 #
 # The AI decision layer moved to the DSH app. The engine scheduler keeps the
@@ -344,6 +349,7 @@ def _run_intraday_job(
     label: str,
     *,
     catch_up: bool = False,
+    trigger: str = "scheduled",
     now: Optional[datetime] = None,
     scheduled_at: Optional[datetime] = None,
     progress_callback: Optional[Callable[[str], None]] = None,
@@ -365,6 +371,7 @@ def _run_intraday_job(
             "time_str": time_str,
             "scheduled_at": scheduled,
             "catch_up": catch_up,
+            "trigger": trigger,
             "now": current,
             "macro_excerpt": macro,
             "account": _account_context(market),
@@ -453,7 +460,11 @@ def _run_close_job(
 
 
 def _auto_rounds_enabled() -> bool:
-    return bool(cfg.schedule.get("auto_rounds_enabled", True))
+    try:
+        cfg.reload_if_changed()
+    except OSError:
+        return False
+    return cfg.autonomous.get("enabled", False) is True and cfg.schedule.get("auto_rounds_enabled", True) is True
 
 
 def _build_intraday_job(market: str, time_str: str, label: str):
@@ -586,6 +597,9 @@ def run_catch_up(markets: Optional[Sequence[str]] = None, *, include_macro: bool
 
 
 def start(*, catch_up: bool = True) -> _BgScheduler:
+    executor_log = logging.getLogger("apscheduler.executors.default")
+    if not any(isinstance(item, _QuietSettingsRefresh) for item in executor_log.filters):
+        executor_log.addFilter(_QuietSettingsRefresh())
     global _active_scheduler
     lease = ProcessLease(SCHEDULER_LOCK)
     lease.acquire()
@@ -616,6 +630,34 @@ def start(*, catch_up: bool = True) -> _BgScheduler:
         )
         scheduler.start()
         _active_scheduler = scheduler
+        # Refresh independent scheduler processes after a Settings save. A
+        # changed schedule only changes future jobs; it never triggers catch-up.
+        import json
+        revision = json.dumps([cfg.schedule, cfg.enabled_markets, cfg.autonomous.get("enabled")], sort_keys=True)
+        def refresh_settings():
+            nonlocal revision
+            try:
+                cfg.reload_if_changed()
+                current = json.dumps([cfg.schedule, cfg.enabled_markets, cfg.autonomous.get("enabled")], sort_keys=True)
+                if current == revision:
+                    return
+                for job in scheduler.get_jobs():
+                    if job.id.startswith(("cn-", "hk-", "us-", "etf-")) or job.id in {"macro-daily", "startup-catch-up"}:
+                        scheduler.remove_job(job.id)
+                if _auto_rounds_enabled():
+                    for market in cfg.enabled_markets:
+                        for at in cfg.intraday_times(market):
+                            label = str(at).replace(":", "")
+                            scheduler.add_job(_build_intraday_job(market, str(at), label), trigger=_cron_trigger(market, str(at)), id=f"{market}-{label}", replace_existing=True)
+                        at = cfg.close_time(market)
+                        if at:
+                            scheduler.add_job(_build_close_job(market, str(at)), trigger=_cron_trigger(market, str(at)), id=f"{market}-close", replace_existing=True)
+                hour, minute = map(int, str(cfg.schedule.get("macro_daily_time", "08:00")).split(":"))
+                scheduler.add_job(_run_macro_job, trigger=CronTrigger(hour=hour, minute=minute, timezone=cfg.schedule.get("timezone", "Asia/Shanghai")), id="macro-daily", replace_existing=True)
+                revision = current
+            except Exception:
+                logger.exception("Could not apply updated scheduler settings")
+        scheduler.add_job(refresh_settings, trigger="interval", seconds=2, id="settings-refresh", replace_existing=True)
         if catch_up and _auto_rounds_enabled():
             scheduler.add_job(
                 run_catch_up,
@@ -641,7 +683,7 @@ def run_investment_cycle(
     unique_label = f"{label}-{current.strftime('%H%M%S')}"
     return _run_intraday_job(
         market, current.strftime("%H:%M"), unique_label,
-        now=current, progress_callback=progress_callback,
+        now=current, trigger="manual", progress_callback=progress_callback,
     )
 
 
