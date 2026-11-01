@@ -4,7 +4,7 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0)
+[![Release](https://img.shields.io/badge/release-v2.4.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.4.0)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
@@ -14,7 +14,7 @@ AI Trading Automation combines **multi-factor quantitative screening, portfolio 
 
 Version 2.x is built on DeepSeek Harness (DSH) and provides four workspaces: Overview, Investment Assistant, Investment Research, and Settings.
 
-The latest version, **2.3.0**, improves screening relevance and research actionability while reducing repeated research work. It adds conditional watch, cash-deployment rules and a dashboard refresh.
+The latest version, **2.4.0**, adds bilingual support, multi-factor and event-driven screening, daily company events, research progress and motion improvements, a DSH upgrade, and startup and scheduling fixes.
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
@@ -33,7 +33,7 @@ The latest version, **2.3.0**, improves screening relevance and research actiona
 - [Branches and Compatibility](#branches-and-compatibility)
 - [License](#license)
 
-The current source is preparing **2.4.0**: multi-factor and event-driven screening, company events from daily briefings, bilingual interface/research output and pinned DSH **0.2.1-rc.3**. Published download links above continue to point to the available 2.3.0 release. See the [complete screening rules below](#multi-factor-and-event-driven-screening), [2.4.0 release notes](docs/RELEASE_NOTES_2.4.0_EN.md), [language support](docs/LANGUAGE_SUPPORT.md), [desktop usage](docs/DESKTOP_USAGE_EN.md) and the [English API overview](docs/ENGINE_API_EN.md).
+Embedded DSH is pinned to **0.2.1-rc.3**. See the [complete screening rules below](#multi-factor-and-event-driven-screening), [2.4.0 release notes](docs/RELEASE_NOTES_2.4.0_EN.md), [language support](docs/LANGUAGE_SUPPORT.md), [desktop usage](docs/DESKTOP_USAGE_EN.md) and the [English API overview](docs/ENGINE_API_EN.md).
 
 ## Features
 
@@ -48,10 +48,10 @@ The current source is preparing **2.4.0**: multi-factor and event-driven screeni
 
 ## Installation
 
-- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.3.0 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0)
+- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.4.0 release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.4.0)
 - Windows 10/11 x64. The installer bundles Python, Node.js, the .NET desktop runtime, and a WebView2 fallback installer.
 
-Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.3.0/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
+Download the [SHA-256 file](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.4.0/AiTradingAutomation-Setup-x64.exe.sha256) alongside the installer. Compute the installer checksum in PowerShell and compare it with that file:
 
 ```powershell
 Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
@@ -185,6 +185,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 
 | Version | Highlights |
 |---|---|
+| 2.4.0 | Bilingual support, multi-factor and event-driven screening, daily events, research progress and motion, plus DSH, startup and scheduling fixes. |
 | 2.3.0 | Screening relevance, research actionability, lower analysis cost and dashboard refresh. |
 | 2.2.1 | Investment Research workspace, local stock suggestions, failure recovery and repair confirmation. |
 | 2.1.5 | Holdings-linked stock history and visual examples. |
@@ -195,7 +196,7 @@ market data, screening, portfolio, risk, paper broker, audit, scheduler
 | 2.1.0 | Standalone desktop interface and product settings. |
 | 2.0.0 | Rebuilt desktop application and multi-agent workflow. |
 
-See the [changelog](CHANGELOG_EN.md) and [v2.3.0 release notes](docs/RELEASE_NOTES_2.3.0.md).
+See the [changelog](CHANGELOG_EN.md) and [v2.4.0 release notes](docs/RELEASE_NOTES_2.4.0_EN.md).
 
 ## Safety Boundaries
 

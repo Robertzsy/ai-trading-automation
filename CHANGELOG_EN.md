@@ -4,9 +4,9 @@
 
 See the [README](README_EN.md) for installation and usage, and [GitHub Releases](https://github.com/Robertzsy/ai-trading-automation/releases) for published builds.
 
-## 2.4.0 — Bilingual support, multi-factor and event-driven screening and research workflow improvements (unreleased)
+## 2.4.0 — Bilingual support, multi-factor and event-driven screening and research workflow improvements (2026-11-01)
 
-Cumulative changes through October 31, 2026. See the [2.4.0 release notes](docs/RELEASE_NOTES_2.4.0_EN.md) for full rules and compatibility details. Local desktop patches have been applied; a published installer containing every latest patch is not yet available.
+See the [2.4.0 release notes](docs/RELEASE_NOTES_2.4.0_EN.md) for full rules, compatibility details and installation.
 
 ### Multi-factor and event-driven screening and daily-event rules
 

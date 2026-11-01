@@ -4,7 +4,7 @@
 
 This update combines Chinese and English support, a DSH runtime upgrade, multi-factor and event-driven screening, company events from daily briefings, visible research progress, interface transitions, and fixes to startup, scheduling and research workload limits.
 
-**Release status: unreleased.** Updated through October 31, 2026, these notes cover the cumulative 2.4.0 changes, including subsequent patches applied to the local desktop installation. The published GitHub release remains 2.3.0. Earlier 2.4.0 candidate installers do not contain every latest patch; the release must be rebuilt from the final source. The product version is `2.4.0`, with embedded DSH pinned to `0.2.1-rc.3`.
+**Release date: November 1, 2026.** Product version `2.4.0` embeds DSH pinned to `0.2.1-rc.3`. This release includes bilingual, interface and screening changes together with subsequent stability fixes, for Windows 10/11 x64.
 
 ## Multi-factor and event-driven screening: complete rules
 
@@ -93,6 +93,6 @@ The strategy preserves the existing quantitative preferences and daily-event rul
 - The screening implementation matches the frozen prototype's research lists in all 96 historical windows, with 46 relevant regression checks passing. Installed-code checks covered US history, live daily interpretation, one shared model request across four concurrent markets, and subsequent cache reuse.
 - These results validate screening rules and the data pipeline, not investment returns. The latest screening patch has not rerun the full five-stage paid research workflow. Earlier bilingual, desktop and workflow checks are recorded separately from this screening validation, rather than presented as one complete end-to-end acceptance run.
 - Program updates still require an in-place installation and restart; there is no in-app program hot update. Interface language can change in the app, while a new research-output language applies to new rounds.
-- Published installers and checksums are the attachments on the corresponding GitHub Release. This unreleased document does not mean those attachments have been updated.
+- Download `AiTradingAutomation-Setup-x64.exe` from the [v2.4.0 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.4.0) for an in-place upgrade, or use `AiTradingAutomation-Windows-v2.4.0.zip`. Both include matching `.sha256` files. In-place upgrades preserve accounts, holdings, settings and history.
 
 See [Desktop usage](DESKTOP_USAGE_EN.md), [language rules](LANGUAGE_SUPPORT.md) and [product shell](PRODUCT_SHELL_EN.md).

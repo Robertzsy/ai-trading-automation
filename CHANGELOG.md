@@ -4,9 +4,9 @@
 
 安装与使用见 [README](README.md)，正式安装包见 [GitHub Releases](https://github.com/Robertzsy/ai-trading-automation/releases)。
 
-## 2.4.0 — 双语、多因子与事件驱动选股与研究流程改进（未发布）
+## 2.4.0 — 双语、多因子与事件驱动选股与研究流程改进（2026-11-01）
 
-累计更新至 2026-10-31。完整规则及兼容说明见 [2.4.0 发行说明](docs/RELEASE_NOTES_2.4.0.md)；本地桌面补丁已应用，包含最新补丁的正式安装包尚未发布。
+完整规则、兼容说明与安装方式见 [2.4.0 发行说明](docs/RELEASE_NOTES_2.4.0.md)。
 
 ### 多因子与事件驱动选股与日报规则
 

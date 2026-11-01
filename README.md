@@ -4,7 +4,7 @@
 
 [简体中文](README.md) | [English](README_EN.md)
 
-[![Release](https://img.shields.io/badge/release-v2.3.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0)
+[![Release](https://img.shields.io/badge/release-v2.4.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.4.0)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
@@ -14,7 +14,7 @@ AI Trading Automation 是一款将**多因子量化筛选、组合优化与多�
 
 2.x 基于 DeepSeek Harness（DSH）构建，提供总览、投资助手、投资研究和设置四个工作区。
 
-最新版本 **2.3.0**：提升选股针对性、研究结论可执行性，并减少重复研究开销；新增条件观察、现金部署规则与投资总览界面更新。
+最新版本 **2.4.0**：中英文支持、多因子与事件驱动选股、日报公司事件接入、研究进度与动效改进，以及 DSH 升级和启动、调度修复。
 
 > 本项目只支持研究与模拟交易，不连接真实券商，也不应直接用于真实资金决策。
 
@@ -33,7 +33,7 @@ AI Trading Automation 是一款将**多因子量化筛选、组合优化与多�
 - [分支与兼容性](#分支与兼容性)
 - [许可证](#许可证)
 
-当前源码正在准备 **2.4.0**：多因子与事件驱动选股、日报公司事件接入、中英界面与研究输出，以及精确锁定的 DSH **0.2.1-rc.3**。上方下载链接仍指向已发布的 2.3.0。参阅下方[完整选股规则](#多因子与事件驱动选股)、[2.4.0 发行说明](docs/RELEASE_NOTES_2.4.0.md)、[语言支持](docs/LANGUAGE_SUPPORT.md)和[桌面使用说明](docs/DESKTOP_USAGE.md)。
+内嵌 DSH 精确锁定为 **0.2.1-rc.3**。参阅下方[完整选股规则](#多因子与事件驱动选股)、[2.4.0 发行说明](docs/RELEASE_NOTES_2.4.0.md)、[语言支持](docs/LANGUAGE_SUPPORT.md)和[桌面使用说明](docs/DESKTOP_USAGE.md)。
 
 ## 特性
 
@@ -48,10 +48,10 @@ AI Trading Automation 是一款将**多因子量化筛选、组合优化与多�
 
 ## 安装
 
-- 下载 [v2.3.0 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.3.0) 中的 `AiTradingAutomation-Setup-x64.exe`
+- 下载 [v2.4.0 Release](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.4.0) 中的 `AiTradingAutomation-Setup-x64.exe`
 - 支持 Windows 10/11 x64；安装包内置 Python、Node.js、.NET 桌面运行时与 WebView2 兜底安装程序
 
-校验文件：[AiTradingAutomation-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.3.0/AiTradingAutomation-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
+校验文件：[AiTradingAutomation-Setup-x64.exe.sha256](https://github.com/Robertzsy/ai-trading-automation/releases/download/v2.4.0/AiTradingAutomation-Setup-x64.exe.sha256)。下载后可在 PowerShell 中计算安装包的 SHA-256，与校验文件比较：
 
 ```powershell
 Get-FileHash .\AiTradingAutomation-Setup-x64.exe -Algorithm SHA256
@@ -185,6 +185,7 @@ Python 投资引擎
 
 | 版本 | 核心变化 |
 |---|---|
+| 2.4.0 | 双语、多因子与事件驱动选股、日报接入、研究进度与动效，以及 DSH、启动和调度修复。 |
 | 2.3.0 | 选股针对性、研究可执行性、分析成本与投资总览界面更新。 |
 | 2.2.1 | 投资研究工作区、本地股票推荐、失败恢复与修复确认。 |
 | 2.1.5 | 持仓与个股走势联动，首页用例可视化。 |
@@ -195,7 +196,7 @@ Python 投资引擎
 | 2.1.0 | 独立桌面界面与产品设置。 |
 | 2.0.0 | 桌面应用与多智能体流程重构。 |
 
-更新记录见 [中文更新日志](CHANGELOG.md) 和 [v2.3.0 发行说明](docs/RELEASE_NOTES_2.3.0.md)。
+更新记录见 [中文更新日志](CHANGELOG.md) 和 [v2.4.0 发行说明](docs/RELEASE_NOTES_2.4.0.md)。
 
 ## 安全边界
 
