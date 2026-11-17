@@ -5,6 +5,7 @@
 [简体中文](README.md) | [English](README_EN.md)
 
 [![Release](https://img.shields.io/badge/release-v2.4.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.4.0)
+[![Live Demo](https://img.shields.io/badge/live%20demo-online-brightgreen)](https://aitradinglab.online)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
@@ -18,8 +19,23 @@ AI Trading Automation 是一款将**多因子量化筛选、组合优化与多�
 
 > 本项目只支持研究与模拟交易，不连接真实券商，也不应直接用于真实资金决策。
 
+## 在线演示
+
+**<https://aitradinglab.online>**
+
+免注册即可打开的在线演示（纯模拟交易，不构成投资建议）。演示站运行完整引擎与 AI 研究流程，预置两轮真实历史分析：**2026-10-11 美股**（MU / NBIS / IREN / SNDK）与 **2026-10-11 港股**（00700）。
+
+| 总览 · A 股账户 | 总览 · 美股账户 |
+| --- | --- |
+| ![总览](docs/assets/demo/overview.png) | ![总览 · 美股](docs/assets/demo/overview-us.png) |
+
+| 投资助手 · 自然语言研究 | 投资研究 · 流水线进度与历史报告 |
+| --- | --- |
+| ![投资助手](docs/assets/demo/assistant.png) | ![投资研究](docs/assets/demo/research.png) |
+
 ## 目录
 
+- [在线演示](#在线演示)
 - [特性](#特性)
 - [安装](#安装)
 - [从源码运行](#从源码运行)

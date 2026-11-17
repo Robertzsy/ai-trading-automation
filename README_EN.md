@@ -5,6 +5,7 @@
 [简体中文](README.md) | [English](README_EN.md)
 
 [![Release](https://img.shields.io/badge/release-v2.4.0-brightgreen)](https://github.com/Robertzsy/ai-trading-automation/releases/tag/v2.4.0)
+[![Live Demo](https://img.shields.io/badge/live%20demo-online-brightgreen)](https://aitradinglab.online)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-lightgrey)]()
 
@@ -18,8 +19,23 @@ The latest version, **2.4.0**, adds bilingual support, multi-factor and event-dr
 
 > This project supports research and paper trading only. It does not connect to a live broker and should not be used directly with real capital.
 
+## Live Demo
+
+**<https://aitradinglab.online>**
+
+A no-signup hosted demo (paper trading only, not investment advice). The demo runs the full engine and AI research workflow with two real historical rounds preloaded: **2026-10-11 US** (MU / NBIS / IREN / SNDK) and **2026-10-11 Hong Kong** (00700).
+
+| Overview · A-share account | Overview · U.S. account |
+| --- | --- |
+| ![Overview](docs/assets/demo/overview.png) | ![Overview · U.S.](docs/assets/demo/overview-us.png) |
+
+| Investment Assistant · natural-language research | Investment Research · pipeline progress and historical reports |
+| --- | --- |
+| ![Investment Assistant](docs/assets/demo/assistant.png) | ![Investment Research](docs/assets/demo/research.png) |
+
 ## Table of Contents
 
+- [Live Demo](#live-demo)
 - [Features](#features)
 - [Installation](#installation)
 - [Run from Source](#run-from-source)
